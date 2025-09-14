@@ -1,41 +1,214 @@
-<<<<<<< HEAD
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Nexa - Autonomous AI Growth Agent
 
-## Getting Started
+Nexa is a production-ready autonomous AI agent designed for marketing and content creation. It helps businesses scale their marketing efforts through intelligent automation, multi-channel content distribution, and data-driven optimization.
 
-First, run the development server:
+## 🚀 Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- **Autonomous Campaign Management**: Create and manage marketing campaigns with minimal human intervention
+- **Multi-Channel Content Generation**: Generate content optimized for Twitter, LinkedIn, Facebook, and Instagram
+- **Intelligent Scheduling**: AI-powered content scheduling based on audience engagement patterns
+- **Real-time Analytics**: Track campaign performance, engagement rates, and ROI
+- **Modular Architecture**: Extensible skill-based system for adding new capabilities
+- **Production Ready**: Built with TypeScript, Next.js, and comprehensive testing
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🏗️ Architecture
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+\`\`\`
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Web Dashboard │    │   API Gateway   │    │  Agent Runner   │
+│   (Next.js)     │◄──►│   (Next.js)     │◄──►│  (TypeScript)   │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+                                │                        │
+                                ▼                        ▼
+                       ┌─────────────────┐    ┌─────────────────┐
+                       │   Rate Limiter  │    │  Skills Registry│
+                       │   & Auth        │    │  (Modular)      │
+                       └─────────────────┘    └─────────────────┘
+                                                        │
+                                                        ▼
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Vector DB     │    │   Job Queue     │    │   LLM Wrapper   │
+│   (Optional)    │◄──►│   (BullMQ)      │◄──►│   (OpenAI)      │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+\`\`\`
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🛠️ Quick Start
 
-## Learn More
+### Prerequisites
 
-To learn more about Next.js, take a look at the following resources:
+- Node.js 18+ and npm 8+
+- OpenAI API key
+- Optional: Redis for production job queue
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Installation
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. **Clone the repository**
+   \`\`\`bash
+   git clone https://github.com/your-username/nexa.git
+   cd nexa
+   \`\`\`
 
-## Deploy on Vercel
+2. **Install dependencies**
+   \`\`\`bash
+   npm install
+   \`\`\`
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+3. **Set up environment variables**
+   \`\`\`bash
+   cp .env.example .env.local
+   # Edit .env.local with your API keys
+   \`\`\`
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-=======
-# Nexa
-Nexa – Autonomous AI Growth Agent for promoting AI tools like Tradia
->>>>>>> 3d65777667199e15dd35e07808d6d2e200d5c807
+4. **Run development server**
+   \`\`\`bash
+   npm run dev
+   \`\`\`
+
+5. **Open your browser**
+   Navigate to [http://localhost:3000](http://localhost:3000)
+
+### Environment Variables
+
+\`\`\`bash
+# Required
+OPENAI_API_KEY=your_openai_api_key
+DATABASE_URL=file:./dev.db
+
+# Optional
+REDIS_URL=redis://localhost:6379
+SENTRY_DSN=your_sentry_dsn
+JWT_SECRET=your_jwt_secret
+\`\`\`
+
+## 🧪 Testing
+
+\`\`\`bash
+# Run all tests
+npm run check
+
+# Unit tests
+npm run test
+npm run test:watch
+npm run test:coverage
+
+# E2E tests
+npm run test:e2e
+npm run test:e2e:ui
+\`\`\`
+
+## 🐳 Docker
+
+\`\`\`bash
+# Build and run with Docker
+npm run docker:build
+npm run docker:run
+
+# Or use docker-compose for full stack
+docker-compose up -d
+\`\`\`
+
+## 📊 API Endpoints
+
+### Agent Management
+- `POST /api/agent/start` - Start a new campaign
+- `GET /api/agent/:id/status` - Get agent status
+- `GET /api/agent/:id/logs` - Get agent logs
+- `POST /api/agent/:id/feedback` - Provide feedback
+
+### Campaign Management
+- `GET /api/campaigns` - List campaigns
+- `POST /api/campaigns` - Create campaign
+- `PUT /api/campaigns/:id` - Update campaign
+- `DELETE /api/campaigns/:id` - Delete campaign
+
+### Health & Monitoring
+- `GET /api/health` - Health check
+- `GET /api/metrics` - System metrics
+
+## 🔧 Configuration
+
+### Agent Configuration
+
+\`\`\`typescript
+const config: AgentConfig = {
+  id: "my-agent",
+  name: "Marketing Campaign",
+  maxConcurrentTasks: 3,
+  retryAttempts: 3,
+  timeoutMs: 300000,
+  metadata: {
+    targetAudience: "Tech enthusiasts",
+    channels: ["twitter", "linkedin"],
+    contentTopics: ["AI", "Technology"],
+    schedule: {
+      postsPerDay: 5,
+      timezone: "UTC"
+    }
+  }
+}
+\`\`\`
+
+### Skills System
+
+Add custom skills by implementing the `Skill` interface:
+
+\`\`\`typescript
+export class CustomSkill implements Skill {
+  name = "custom-skill"
+  description = "A custom skill"
+
+  async execute(payload: any): Promise<SkillResult> {
+    // Your custom logic here
+    return {
+      data: { result: "success" },
+      metadata: { tokensUsed: 100, apiCalls: 1 }
+    }
+  }
+}
+\`\`\`
+
+## 📈 Monitoring
+
+Nexa includes built-in monitoring and observability:
+
+- **Health Checks**: Automated system health monitoring
+- **Metrics Collection**: Performance and usage metrics
+- **Structured Logging**: JSON-formatted logs with correlation IDs
+- **Error Tracking**: Integration with Sentry for error monitoring
+
+## 🚀 Deployment
+
+### Vercel (Recommended)
+
+1. Connect your GitHub repository to Vercel
+2. Set environment variables in Vercel dashboard
+3. Deploy automatically on push to main branch
+
+### Docker
+
+\`\`\`bash
+# Production build
+docker build -t nexa .
+docker run -p 3000:3000 nexa
+\`\`\`
+
+### Manual Deployment
+
+\`\`\`bash
+npm run build
+npm start
+\`\`\`
+
+## 🤝 Contributing
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for development guidelines.
+
+## 📄 License
+
+MIT License - see [LICENSE](./LICENSE) for details.
+
+## 🆘 Support
+
+- 📖 [Documentation](./docs/)
+- 🐛 [Issue Tracker](https://github.com/your-username/nexa/issues)
+- 💬 [Discussions](https://github.com/your-username/nexa/discussions)
