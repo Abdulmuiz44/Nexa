@@ -5,12 +5,12 @@ import { crawlContext } from '@/utils/crawler';
 import { supabaseServer } from '@/src/lib/supabaseServer';
 import OpenAI from 'openai';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
 export async function POST(req: Request) {
   try {
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+
     const session = await getServerSession(authOptions);
 
     if (!session || !session.user) {
