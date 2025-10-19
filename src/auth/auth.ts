@@ -1,13 +1,49 @@
 import type { NextAuthOptions } from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
+import CredentialsProvider from "next-auth/providers/credentials";
 import { supabaseServer } from "@/src/lib/supabaseServer"
 import { generateApiKey } from "@/lib/utils"
+import bcrypt from 'bcryptjs';
 
 export const authOptions: NextAuthOptions = {
   providers: [
     GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      clientId: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_SECRET!,
+    }),
+    CredentialsProvider({
+      name: "Credentials",
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) {
+          return null;
+        }
+
+        const { data: user, error } = await supabaseServer
+          .from('users')
+          .select('*')
+          .eq('email', credentials.email)
+          .single();
+
+        if (error || !user) {
+          return null;
+        }
+
+        if (!user.password_hash) {
+          return null; // Or handle users who signed up with OAuth differently
+        }
+
+        const isValid = await bcrypt.compare(credentials.password, user.password_hash);
+
+        if (isValid) {
+          return { id: user.id, name: user.name, email: user.email, image: user.avatar_url };
+        } else {
+          return null;
+        }
+      },
     }),
   ],
   callbacks: {
@@ -132,8 +168,7 @@ export const authOptions: NextAuthOptions = {
     },
   },
   pages: {
-  signIn: "/auth/signin",
-  newUser: "/auth/signup",
+  signIn: "/login",
   },
   session: {
     strategy: "jwt",

@@ -3,8 +3,20 @@
 import { Button } from "@/components/ui/button";
 import { Zap } from "lucide-react";
 import Link from "next/link";
+import { useSession, signOut } from "next-auth/react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const Navbar = () => {
+  const { data: session, status } = useSession();
+
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border">
       <div className="container mx-auto px-6 py-4 flex items-center justify-between">
@@ -22,18 +34,49 @@ const Navbar = () => {
           <Link href="/pricing" className="text-muted-foreground hover:text-foreground transition-colors">
             Pricing
           </Link>
-          <Link href="/dashboard" className="text-muted-foreground hover:text-foreground transition-colors">
-            Dashboard
-          </Link>
+          {status === "authenticated" && (
+            <Link href="/dashboard" className="text-muted-foreground hover:text-foreground transition-colors">
+              Dashboard
+            </Link>
+          )}
         </div>
 
         <div className="flex items-center gap-4">
-          <Button variant="ghost" asChild>
-            <Link href="/login">Sign In</Link>
-          </Button>
-          <Button variant="hero" asChild>
-            <Link href="/dashboard">Get Started</Link>
-          </Button>
+          {status === "authenticated" ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={session.user?.image || "/placeholder-user.jpg"} alt={session.user?.name || ""} />
+                    <AvatarFallback>{session.user?.name?.[0]}</AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56" align="end" forceMount>
+                <DropdownMenuLabel className="font-normal">
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">{session.user?.name}</p>
+                    <p className="text-xs leading-none text-muted-foreground">
+                      {session.user?.email}
+                    </p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => signOut({ callbackUrl: "/" })}>
+                  Log out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <>
+              <Button variant="ghost" asChild>
+                <Link href="/login">Sign In</Link>
+              </Button>
+              <Button variant="hero" asChild>
+                <Link href="/signup">Get Started</Link>
+              </Button>
+            </>
+          )}
         </div>
       </div>
     </nav>

@@ -1,22 +1,25 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
+import { signIn } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Link from "next/link"
+
+const countries = ["United States", "Canada", "United Kingdom", "Australia", "Germany", "France"]; // Simple list
 
 export default function SignUpPage() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     password: "",
-    confirmPassword: "",
+    country: "",
   })
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
@@ -27,25 +30,15 @@ export default function SignUpPage() {
     setLoading(true)
     setError("")
 
-    if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match")
-      setLoading(false)
-      return
-    }
-
     try {
       const response = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          password: formData.password,
-        }),
+        body: JSON.stringify(formData),
       })
 
       if (response.ok) {
-        router.push("/auth/signin?message=Account created successfully")
+        router.push("/login?message=Account created successfully")
       } else {
         const data = await response.json()
         setError(data.error || "Registration failed")
@@ -58,10 +51,15 @@ export default function SignUpPage() {
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData((prev) => ({
-      ...prev,
-      [e.target.name]: e.target.value,
-    }))
+    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }))
+  }
+
+  const handleCountryChange = (value: string) => {
+    setFormData((prev) => ({ ...prev, country: value }))
+  }
+
+  const handleGoogleSignIn = () => {
+    signIn("google", { callbackUrl: "/dashboard" })
   }
 
   return (
@@ -90,28 +88,20 @@ export default function SignUpPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                name="password"
-                type="password"
-                value={formData.password}
-                onChange={handleChange}
-                required
-                minLength={8}
-              />
+              <Label htmlFor="country">Country</Label>
+              <Select onValueChange={handleCountryChange} defaultValue={formData.country}>
+                <SelectTrigger id="country">
+                  <SelectValue placeholder="Select a country" />
+                </SelectTrigger>
+                <SelectContent>
+                  {countries.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
-              <Input
-                id="confirmPassword"
-                name="confirmPassword"
-                type="password"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                required
-              />
+              <Label htmlFor="password">Password</Label>
+              <Input id="password" name="password" type="password" value={formData.password} onChange={handleChange} required minLength={8} />
             </div>
 
             <Button type="submit" className="w-full" disabled={loading}>
@@ -119,11 +109,18 @@ export default function SignUpPage() {
             </Button>
           </form>
 
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
+            <div className="relative flex justify-center text-xs uppercase"><span className="bg-background px-2 text-muted-foreground">Or continue with</span></div>
+          </div>
+
+          <Button variant="outline" className="w-full bg-transparent" onClick={handleGoogleSignIn}>
+            Continue with Google
+          </Button>
+
           <p className="text-center text-sm text-muted-foreground">
             Already have an account?{" "}
-            <Link href="/auth/signin" className="underline">
-              Sign in
-            </Link>
+            <Link href="/login" className="underline">Sign in</Link>
           </p>
         </CardContent>
       </Card>
