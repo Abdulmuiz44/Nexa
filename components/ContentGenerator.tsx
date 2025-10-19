@@ -68,12 +68,20 @@ const ContentGenerator = () => {
     }
   };
 
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(generatedContent);
-    toast({
-      title: "Copied!",
-      description: "Content copied to clipboard",
-    });
+  const copyToClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(generatedContent);
+      toast({
+        title: "Copied!",
+        description: "Content copied to clipboard",
+      });
+    } catch (error) {
+      toast({
+        title: "Copy Failed",
+        description: "Could not copy to clipboard. Please copy manually.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -101,7 +109,7 @@ const ContentGenerator = () => {
             <Label htmlFor="toolDescription">Tool Description</Label>
             <Textarea
               id="toolDescription"
-              placeholder="Describe what your tool does and its key benefits..."
+              placeholder="e.g., Nexa AI helps businesses automate their social media content creation."
               value={toolDescription}
               onChange={(e) => setToolDescription(e.target.value)}
               className="mt-1 min-h-[100px]"
@@ -112,7 +120,7 @@ const ContentGenerator = () => {
             <div>
               <Label htmlFor="platform">Platform</Label>
               <Select value={platform} onValueChange={setPlatform}>
-                <SelectTrigger className="mt-1">
+                <SelectTrigger id="platform" className="mt-1">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -126,7 +134,7 @@ const ContentGenerator = () => {
             <div>
               <Label htmlFor="tone">Tone</Label>
               <Select value={tone} onValueChange={setTone}>
-                <SelectTrigger className="mt-1">
+                <SelectTrigger id="tone" className="mt-1">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -142,7 +150,7 @@ const ContentGenerator = () => {
           <div>
             <Label htmlFor="contentType">Content Type</Label>
             <Select value={contentType} onValueChange={setContentType}>
-              <SelectTrigger className="mt-1">
+              <SelectTrigger id="contentType" className="mt-1">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

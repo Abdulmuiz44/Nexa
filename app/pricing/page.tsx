@@ -94,8 +94,10 @@ const Pricing = () => {
             <p className="text-muted-foreground mb-4">
               Need a custom solution or have questions?
             </p>
-            <Button variant="outline" size="lg">
+            <Button variant="outline" size="lg" asChild>
+              <Link href="mailto:sales@example.com">
               Contact Sales
+              </Link>
             </Button>
           </div>
         </div>

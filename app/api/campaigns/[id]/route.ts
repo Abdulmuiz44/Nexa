@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/src/auth/auth"
-import { supabase } from "@/src/lib/db"
+import { supabaseServer } from "@/src/lib/supabaseServer"
 import { z } from "zod"
 
 const updateCampaignSchema = z.object({
@@ -23,17 +23,20 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const { data: campaign, error } = await supabase
+    const { data: campaign, error } = await supabaseServer
       .from('campaigns')
       .select('*')
       .eq('id', params.id)
       .eq('user_id', session.user.id)
       .single()
 
-    if (error || !campaign) {
-      return NextResponse.json({ error: "Campaign not found" }, { status: 404 })
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return NextResponse.json({ error: "Campaign not found" }, { status: 404 })
+      }
+      console.error("Database error:", error)
+      return NextResponse.json({ error: "Internal server error" }, { status: 500 })
     }
-
     return NextResponse.json(campaign)
   } catch (error) {
     console.error("Campaign fetch error:", error)
@@ -51,7 +54,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     const body = await request.json()
     const updates = updateCampaignSchema.parse(body)
 
-    const { error } = await supabase
+    const { error } = await supabaseServer
       .from('campaigns')
       .update(updates)
       .eq('id', params.id)
@@ -74,14 +77,19 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
-
-    const { error } = await supabase
+    const { data, error } = await supabaseServer
       .from('campaigns')
       .delete()
       .eq('id', params.id)
       .eq('user_id', session.user.id)
+      .select()
 
     if (error) {
+      console.error("Database error:", error)
+      return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    }
+
+    if (!data || data.length === 0) {
       return NextResponse.json({ error: "Campaign not found" }, { status: 404 })
     }
 

@@ -1,6 +1,6 @@
-import dotenv from 'dotenv';
+import dotenv from 'dotenv-extended';
 
-dotenv.config({ path: '.env.local' });
+dotenv.load();
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {

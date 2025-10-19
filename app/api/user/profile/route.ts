@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/src/auth/auth"
-import { supabase } from "@/src/lib/db"
+import { supabaseServer } from "@/src/lib/supabaseServer"
 import { z } from "zod"
 
 const updateProfileSchema = z.object({
@@ -16,7 +16,7 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const { data: user, error } = await supabase
+    const { data: user, error } = await supabaseServer
       .from('users')
       .select('id, email, name, avatar_url, subscription_tier, api_key, created_at, last_login')
       .eq('id', session.user.id)
@@ -41,9 +41,16 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json()
-    const updates = updateProfileSchema.parse(body)
-
-    const { error } = await supabase
+    
+    const validation = updateProfileSchema.safeParse(body)
+    if (!validation.success) {
+      return NextResponse.json(
+        { error: "Invalid input", details: validation.error.errors },
+        { status: 400 }
+      )
+    }
+    const updates = validation.data
+    const { error } = await supabaseServer
       .from('users')
       .update(updates)
       .eq('id', session.user.id)

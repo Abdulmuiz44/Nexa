@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { hash } from "bcryptjs"
-import { supabase } from "@/src/lib/db"
+import { supabaseServer } from "@/src/lib/supabaseServer"
 import { generateApiKey } from "@/lib/utils"
 import { z } from "zod"
 
@@ -16,22 +16,25 @@ export async function POST(request: NextRequest) {
     const { email, password, name } = registerSchema.parse(body)
 
     // Check if user already exists
-    const { data: existingUser, error: existingUserError } = await supabase
+    const { data: existingUser, error: existingUserError } = await supabaseServer
       .from('users')
       .select('id')
       .eq('email', email)
       .single()
 
+    if (existingUserError && existingUserError.code !== 'PGRST116') {
+      throw existingUserError
+    }
+
     if (existingUser) {
       return NextResponse.json({ error: "User already exists" }, { status: 400 })
     }
-
     // Hash password and generate API key
     const passwordHash = await hash(password, 12)
     const apiKey = generateApiKey()
 
     // Create user
-    const { data: newUser, error: newUserError } = await supabase
+    const { data: newUser, error: newUserError } = await supabaseServer
       .from('users')
       .insert([
         {
@@ -40,17 +43,20 @@ export async function POST(request: NextRequest) {
           name,
           api_key: apiKey,
         },
-      ])
-      .select()
+      ]);
 
     if (newUserError) {
       throw newUserError
     }
 
+    if (!newUser || newUser.length === 0) {
+      throw new Error("User creation succeeded but no data returned")
+    }
+
     return NextResponse.json({
       message: "User created successfully",
       userId: newUser[0].id,
-    })
+    });
   } catch (error) {
     console.error("Registration error:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
