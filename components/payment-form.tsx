@@ -1,36 +1,43 @@
-"use client"
+'use client';
 
-import type React from "react"
-
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { CreditCard, Loader2 } from "lucide-react"
+import type React from "react";
+import { useState } from "react";
+import { useRouter } from 'next/navigation';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { CreditCard, Loader2 } from "lucide-react";
+import { supabase } from '@/lib/db';
 
 interface PaymentFormProps {
-  campaignId: string
-  amount: number
-  onPaymentSuccess: (reference: string) => void
-  onPaymentError: (error: string) => void
+  amount: number;
+  planId: string;
+  onPaymentSuccess: (reference: string) => void;
+  onPaymentError: (error: string) => void;
 }
 
-export function PaymentForm({ campaignId, amount, onPaymentSuccess, onPaymentError }: PaymentFormProps) {
+export function PaymentForm({ amount, planId, onPaymentSuccess, onPaymentError }: PaymentFormProps) {
   const [formData, setFormData] = useState({
     email: "",
     name: "",
     phone: "",
     currency: "USD",
-  })
-  const [isLoading, setIsLoading] = useState(false)
+  });
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
+    e.preventDefault();
+    setIsLoading(true);
 
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('User not found');
+      }
+
       const response = await fetch("/api/payments/initialize", {
         method: "POST",
         headers: {
@@ -39,24 +46,25 @@ export function PaymentForm({ campaignId, amount, onPaymentSuccess, onPaymentErr
         body: JSON.stringify({
           ...formData,
           amount,
-          campaignId,
+          user_id: user.id,
+          planId,
         }),
-      })
+      });
 
-      const result = await response.json()
+      const result = await response.json();
 
       if (result.status === "success" && result.data?.link) {
         // Redirect to Flutterwave payment page
-        window.location.href = result.data.link
+        window.location.href = result.data.link;
       } else {
-        onPaymentError(result.message || "Payment initialization failed")
+        onPaymentError(result.message || "Payment initialization failed");
       }
     } catch (error) {
-      onPaymentError("Payment initialization error")
+      onPaymentError("Payment initialization error");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <Card className="w-full max-w-md">
@@ -142,5 +150,5 @@ export function PaymentForm({ campaignId, amount, onPaymentSuccess, onPaymentErr
         </form>
       </CardContent>
     </Card>
-  )
+  );
 }

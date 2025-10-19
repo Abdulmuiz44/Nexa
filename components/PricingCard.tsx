@@ -39,7 +39,7 @@ const PricingCard: React.FC<PricingCardProps> = ({ title, tagline, price, period
       </CardContent>
       <div className="p-6">
         <Button className="w-full" variant={highlighted ? 'default' : 'outline'} asChild>
-          <Link href={`/signup?plan=${planId}`}>
+          <Link href={`/subscribe?plan=${planId}`}>
             Choose Plan
           </Link>
         </Button>

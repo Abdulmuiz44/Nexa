@@ -7,14 +7,12 @@ export interface PaymentData {
   name: string
   phone?: string
   campaignId: string
+  planId: string
 }
 
 export interface PaymentResponse {
   status: "success" | "error"
-  data?: {
-    link: string
-    reference: string
-  }
+  data?: any
   message?: string
 }
 
@@ -52,6 +50,7 @@ export class FlutterwavePayment {
         },
         meta: {
           campaign_id: paymentData.campaignId,
+          plan_id: paymentData.planId,
         },
       }
 
@@ -116,10 +115,7 @@ export class FlutterwavePayment {
 
         return {
           status: "success",
-          data: {
-            reference: result.data.tx_ref,
-            link: "",
-          },
+          data: result.data,
         }
       } else {
         logger.warn("Payment verification failed", { transactionId, result })

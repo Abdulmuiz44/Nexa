@@ -1,7 +1,7 @@
-import { getToken } from "next-auth/jwt";
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimitMiddleware } from "@/src/middleware/rate-limit";
 import { authMiddleware } from "@/src/middleware/auth";
+import { subscriptionMiddleware } from "@/src/middleware/subscription";
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -23,12 +23,7 @@ export async function middleware(request: NextRequest) {
 
   // Protect dashboard
   if (pathname.startsWith("/dashboard")) {
-    const token = await getToken({ req: request });
-    if (!token) {
-      const url = request.nextUrl.clone();
-      url.pathname = "/login";
-      return NextResponse.redirect(url);
-    }
+    return subscriptionMiddleware(request);
   }
 
   return NextResponse.next();

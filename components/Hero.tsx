@@ -1,9 +1,8 @@
-"use client";
+'use client';
 
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Sparkles, TrendingUp } from "lucide-react";
+import { ArrowRight, Sparkles, TrendingUp, Bot } from "lucide-react";
 import Link from "next/link";
-import Image from "next/image";
 
 const Hero = () => {
   return (
@@ -33,28 +32,30 @@ const Hero = () => {
         </h1>
 
         <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto mb-12 leading-relaxed">
-          Nexa promotes your AI tool or SaaS on Reddit, X, and beyond — creating content, 
-          posting, replying, and driving growth while you sleep.
+          Nexa promotes your brand on Reddit, X, and LinkedIn — creating content, 
+          posting, replying, and driving targeted growth while you focus on your product.
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
           <Button variant="hero" size="lg" className="group" asChild>
-            <Link href="/dashboard">
-              Start Growing Today
+            <Link href="/pricing">
+              Start Your Agent
               <ArrowRight className="group-hover:translate-x-1 transition-transform" />
             </Link>
           </Button>
           <Button variant="outline" size="lg" asChild>
-            <Link href="/pricing">View Pricing</Link>
+            <Link href="#features">
+              Learn More
+            </Link>
           </Button>
         </div>
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
           {[
-            { icon: TrendingUp, label: "Average Growth", value: "340%" },
-            { icon: Sparkles, label: "Posts Per Day", value: "10+" },
-            { icon: ArrowRight, label: "Engagement Rate", value: "24%" },
+            { icon: TrendingUp, label: "Avg. Monthly Growth", value: "+340%" },
+            { icon: Bot, label: "Daily Social Touches", value: "1,000+" },
+            { icon: Sparkles, label: "Engagement Rate", value: "24%" },
           ].map((stat, idx) => (
             <div 
               key={idx} 

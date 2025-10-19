@@ -1,17 +1,23 @@
 import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
 import Features from "@/components/Features";
+import HowItWorks from "@/components/HowItWorks";
+import Testimonials from "@/components/Testimonials";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
+import TrustedBy from '@/components/TrustedBy';
 
 const LandingPage = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
       <Hero />
+      <TrustedBy />
       <Features />
+      <HowItWorks />
+      <Testimonials />
 
       {/* CTA Section */}
       <section className="py-24 relative overflow-hidden bg-background">
@@ -25,7 +31,7 @@ const LandingPage = () => {
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Button variant="hero" size="lg" className="group" asChild>
-              <Link href="/dashboard">
+              <Link href="/pricing">
                 Start Your AI Agent
                 <ArrowRight className="group-hover:translate-x-1 transition-transform" />
               </Link>

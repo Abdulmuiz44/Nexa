@@ -102,6 +102,43 @@ async function setupDatabase() {
       );
     `
 
+    // Create onboarding table
+    await sql`
+      CREATE TABLE IF NOT EXISTS onboarding (
+        id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+        user_id uuid REFERENCES users(id) ON DELETE CASCADE,
+        company_name TEXT,
+        brand_voice TEXT,
+        content_pillars TEXT,
+        target_audience TEXT,
+        twitter TEXT,
+        linkedin TEXT,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+      );
+    `
+
+    // Secure the onboarding table with Row Level Security
+    await sql`ALTER TABLE onboarding ENABLE ROW LEVEL SECURITY;`
+    await sql`
+      CREATE POLICY "Allow users to read their own onboarding data" 
+      ON onboarding 
+      FOR SELECT 
+      USING (auth.uid() = user_id);
+    `
+    await sql`
+      CREATE POLICY "Allow users to create their own onboarding data" 
+      ON onboarding 
+      FOR INSERT 
+      WITH CHECK (auth.uid() = user_id);
+    `
+    await sql`
+      CREATE POLICY "Allow users to update their own onboarding data" 
+      ON onboarding 
+      FOR UPDATE 
+      USING (auth.uid() = user_id) 
+      WITH CHECK (auth.uid() = user_id);
+    `
+
     // Create indexes for better performance
     await sql`CREATE INDEX IF NOT EXISTS idx_campaigns_user_id ON campaigns(user_id);`
     await sql`CREATE INDEX IF NOT EXISTS idx_agent_runs_campaign_id ON agent_runs(campaign_id);`
