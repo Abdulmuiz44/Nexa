@@ -7,6 +7,7 @@ import Link from "next/link";
 const pricingPlans = [
   {
     title: "Growth",
+    planId: "growth",
     tagline: "Hire your first AI growth assistant.",
     price: "$49",
     period: "/month",
@@ -24,6 +25,7 @@ const pricingPlans = [
   },
   {
     title: "Scale",
+    planId: "scale",
     tagline: "Run campaigns like a full-time growth team.",
     price: "$149",
     period: "/month",
@@ -42,9 +44,10 @@ const pricingPlans = [
   },
   {
     title: "Enterprise",
+    planId: "enterprise",
     tagline: "Your entire AI growth department in the cloud.",
-    price: "Custom",
-    period: "",
+    price: "$499",
+    period: "/month",
     features: [
       "Unlimited AI tools/projects",
       "Dedicated private Nexa instance",

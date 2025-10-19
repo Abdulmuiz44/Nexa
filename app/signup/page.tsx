@@ -1,28 +1,20 @@
-"use client"
-
-import type React from "react"
-import { useState, useEffect } from "react"
-import { signIn } from "next-auth/react"
-import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import Link from "next/link"
+import { useSearchParams } from "next/navigation";
 
 export default function SignUpPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const plan = searchParams.get("plan") || "growth"; // Default to growth plan
+
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     password: "",
     country: "",
+    plan: plan,
   })
   const [countries, setCountries] = useState<any[]>([]);
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
-  const router = useRouter()
 
   useEffect(() => {
     const fetchCountries = async () => {
@@ -50,10 +42,15 @@ export default function SignUpPage() {
         body: JSON.stringify(formData),
       })
 
+      const data = await response.json()
+
       if (response.ok) {
-        router.push("/login?message=Account created successfully")
+        if (data.paymentLink) {
+          router.push(data.paymentLink);
+        } else {
+          router.push("/login?message=Account created successfully");
+        }
       } else {
-        const data = await response.json()
         setError(data.error || "Registration failed")
       }
     } catch (error) {
