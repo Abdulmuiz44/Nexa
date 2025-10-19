@@ -14,6 +14,7 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
+        console.log("credentials", credentials);
         if (!credentials?.email || !credentials?.password) {
           return null;
         }
@@ -24,6 +25,8 @@ export const authOptions: NextAuthOptions = {
           .eq('email', credentials.email)
           .single();
 
+        console.log("user", user);
+
         if (error || !user) {
           return null;
         }
@@ -33,6 +36,8 @@ export const authOptions: NextAuthOptions = {
         }
 
         const isValid = await bcrypt.compare(credentials.password, user.password_hash);
+
+        console.log("isValid", isValid);
 
         if (isValid) {
           return { id: user.id, name: user.name, email: user.email, image: user.avatar_url };
