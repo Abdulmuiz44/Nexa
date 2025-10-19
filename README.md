@@ -73,6 +73,10 @@ Nexa is a production-ready autonomous AI agent designed for marketing and conten
 # Required
 OPENAI_API_KEY=your_openai_api_key
 DATABASE_URL=file:./dev.db
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_URL=your_supabase_url
+SUPABASE_KEY=your_supabase_key
 
 # Optional
 REDIS_URL=redis://localhost:6379
