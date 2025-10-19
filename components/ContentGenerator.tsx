@@ -9,13 +9,13 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
 import { Sparkles, Copy, Loader2 } from "lucide-react";
-import { supabase } from "@/lib/db";
 
 const ContentGenerator = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [toolName, setToolName] = useState("");
   const [toolDescription, setToolDescription] = useState("");
+  const [websiteUrl, setWebsiteUrl] = useState("");
   const [platform, setPlatform] = useState("reddit");
   const [tone, setTone] = useState("professional");
   const [contentType, setContentType] = useState("post");
@@ -35,26 +35,31 @@ const ContentGenerator = () => {
     setGeneratedContent("");
 
     try {
-      const { data, error } = await supabase.functions.invoke('generate-content', {
-        body: {
+      const response = await fetch('/api/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
           toolName,
           toolDescription,
+          websiteUrl,
           platform,
           tone,
           contentType,
-        }
+        }),
       });
 
-      if (error) throw error;
+      const data = await response.json();
 
-      if (data?.error) {
-        throw new Error(data.error);
+      if (!response.ok) {
+        throw new Error(data.error || "Something went wrong");
       }
 
       setGeneratedContent(data.content);
       toast({
         title: "Content Generated!",
-        description: "Your AI-generated content is ready",
+        description: "Your AI-generated content is ready and saved.",
       });
     } catch (error: any) {
       console.error('Generation error:', error);
@@ -113,6 +118,18 @@ const ContentGenerator = () => {
               value={toolDescription}
               onChange={(e) => setToolDescription(e.target.value)}
               className="mt-1 min-h-[100px]"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="websiteUrl">Website/App Link</Label>
+            <Input
+              id="websiteUrl"
+              type="url"
+              placeholder="https://example.com"
+              value={websiteUrl}
+              onChange={(e) => setWebsiteUrl(e.target.value)}
+              className="mt-1"
             />
           </div>
 
