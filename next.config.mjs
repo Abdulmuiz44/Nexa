@@ -4,6 +4,10 @@ dotenv.load();
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  experimental: {
+    appDir: true,
+    pagesDir: false,
+  },
   eslint: {
     ignoreDuringBuilds: true,
   },

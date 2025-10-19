@@ -63,7 +63,7 @@ const Pricing = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
       
-      <main className="pt-24 pb-16">
+      <main className="pt-24 pb-16 flex flex-col items-center">
         <div className="container px-6">
           <Button variant="ghost" className="mb-8" asChild>
             <Link href="/">
@@ -75,9 +75,7 @@ const Pricing = () => {
           <div className="text-center mb-16">
             <h1 className="text-5xl md:text-6xl font-bold mb-4">
               Simple,{" "}
-              <span className="bg-gradient-primary bg-clip-text text-transparent">
-                Transparent Pricing
-              </span>
+              <span className="">Transparent Pricing</span>
             </h1>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
               Choose the plan that fits your growth goals. No hidden fees, cancel anytime.
