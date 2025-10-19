@@ -7,10 +7,6 @@ import bcrypt from 'bcryptjs';
 
 export const authOptions: NextAuthOptions = {
   providers: [
-    GoogleProvider({
-      clientId: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_SECRET!,
-    }),
     CredentialsProvider({
       name: "Credentials",
       credentials: {
@@ -47,75 +43,6 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async signIn({ user, account, profile }) {
-      if (account?.provider === "google") {
-        // Try to find an existing user by email
-        const { data: existingUser, error } = await supabaseServer
-          .from('users')
-          .select('id, email, name, avatar_url, subscription_tier, api_key')
-          .eq('email', user.email!)
-          .single()
-
-        // If there's an error that's not the expected "no rows" case, abort sign-in
-        const isNoRowsError = !!(error && /no rows|not found|0 rows/i.test(error.message || ''))
-        if (error && !isNoRowsError) {
-          console.error('Sign-in user lookup error:', error)
-          return false
-        }
-
-        let dbUser = existingUser
-
-        // If user doesn't exist, attempt a safe upsert (handles concurrent inserts)
-        if (!dbUser) {
-          const apiKey = generateApiKey()
-          // Use upsert with onConflict on email to avoid TOCTOU races.
-          // Request the returning representation so we get the authoritative row when possible.
-          const upsertPayload = {
-            email: user.email,
-            name: user.name,
-            avatar_url: user.image,
-            api_key: apiKey,
-            password_hash: 'oauth',
-          }
-
-          const { data: upsertData, error: upsertError } = await supabaseServer
-            .from('users')
-            .upsert(upsertPayload, { onConflict: 'email' })
-            .select('id, email, name, avatar_url, subscription_tier, api_key')
-            .single()
-
-          if (upsertError) {
-            console.error('Sign-in upsert error:', upsertError)
-            return false
-          }
-
-          // If upsert returned a row, use it; otherwise re-query to get authoritative row
-          if (upsertData) {
-            dbUser = upsertData
-          } else {
-            const { data: fetched, error: fetchError } = await supabaseServer
-              .from('users')
-              .select('id, email, name, avatar_url, subscription_tier, api_key')
-              .eq('email', user.email!)
-              .single()
-
-            if (fetchError || !fetched) {
-              console.error('Sign-in post-upsert fetch error:', fetchError)
-              return false
-            }
-
-            dbUser = fetched
-          }
-        }
-
-        // Require an api_key from the authoritative DB row before allowing sign-in
-        if (!dbUser || !dbUser.api_key) {
-          console.error('Sign-in aborted: missing api_key on user', { email: user.email })
-          return false
-        }
-      }
-      return true
-    },
     async jwt({ token, user }) {
       try {
         // On first sign in, `user` is present (provider profile). Lookup authoritative DB user
