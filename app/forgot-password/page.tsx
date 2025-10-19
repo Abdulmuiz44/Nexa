@@ -2,8 +2,6 @@
 
 import type React from "react"
 import { useState } from "react"
-import { signIn } from "next-auth/react"
-import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -11,31 +9,31 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import Link from "next/link"
 
-export default function LoginPage() {
+export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
+  const [message, setMessage] = useState("")
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
-  const router = useRouter()
-  const searchParams = useSearchParams();
-  const message = searchParams.get('message');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError("")
+    setMessage("")
 
     try {
-      const result = await signIn("credentials", {
-        email,
-        password,
-        redirect: false,
+      const response = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
       })
 
-      if (result?.error) {
-        setError("Invalid credentials")
+      const data = await response.json()
+
+      if (response.ok) {
+        setMessage(data.message)
       } else {
-        router.push("/dashboard")
+        setError(data.error || "An error occurred")
       }
     } catch (error) {
       setError("An error occurred. Please try again.")
@@ -44,16 +42,12 @@ export default function LoginPage() {
     }
   }
 
-  const handleGoogleSignIn = () => {
-    signIn("google", { callbackUrl: "/dashboard" })
-  }
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
       <Card className="w-full max-w-md bg-card/50 backdrop-blur-sm">
         <CardHeader>
-          <CardTitle>Sign In to Nexa</CardTitle>
-          <CardDescription>Access your AI Growth Agent dashboard</CardDescription>
+          <CardTitle>Forgot Password</CardTitle>
+          <CardDescription>Enter your email to receive a password reset link.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {error && (
@@ -73,28 +67,14 @@ export default function LoginPage() {
               <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-            </div>
-
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Signing in..." : "Sign In"}
+              {loading ? "Sending..." : "Send Reset Link"}
             </Button>
           </form>
 
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
-            <div className="relative flex justify-center text-xs uppercase"><span className="bg-background px-2 text-muted-foreground">Or continue with</span></div>
-          </div>
-
-          <Button variant="outline" className="w-full bg-transparent" onClick={handleGoogleSignIn}>
-            Continue with Google
-          </Button>
-
           <p className="text-center text-sm text-muted-foreground">
-            Don't have an account?{" "}
-            <Link href="/signup" className="underline">Sign up</Link>
+            Remember your password?{" "}
+            <Link href="/login" className="underline">Sign in</Link>
           </p>
         </CardContent>
       </Card>

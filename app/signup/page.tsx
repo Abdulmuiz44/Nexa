@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { signIn } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -12,8 +12,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Link from "next/link"
 
-const countries = ["United States", "Canada", "United Kingdom", "Australia", "Germany", "France"]; // Simple list
-
 export default function SignUpPage() {
   const [formData, setFormData] = useState({
     name: "",
@@ -21,9 +19,24 @@ export default function SignUpPage() {
     password: "",
     country: "",
   })
+  const [countries, setCountries] = useState<any[]>([]);
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
   const router = useRouter()
+
+  useEffect(() => {
+    const fetchCountries = async () => {
+      try {
+        const response = await fetch("https://restcountries.com/v3.1/all?fields=name");
+        const data = await response.json();
+        const countryNames = data.map((c: any) => c.name.common).sort();
+        setCountries(countryNames);
+      } catch (error) {
+        console.error("Failed to fetch countries:", error);
+      }
+    };
+    fetchCountries();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -63,8 +76,8 @@ export default function SignUpPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <Card className="w-full max-w-md bg-card/50 backdrop-blur-sm">
         <CardHeader>
           <CardTitle>Create Your Nexa Account</CardTitle>
           <CardDescription>Start your AI-powered marketing journey</CardDescription>
