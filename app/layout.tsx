@@ -1,35 +1,9 @@
-import type React from "react"
-import type { Metadata } from "next"
-import { Geist, Geist_Mono } from "next/font/google"
-import "./globals.css"
-import { Providers } from "./providers" // move all client logic here
+import './globals.css'
 
-// ✅ Load fonts
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-})
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-})
-
-// ✅ Page metadata (Server Component safe)
-export const metadata: Metadata = {
-  title: "Nexa - AI Growth Agent",
-  description: "Autonomous AI agent for marketing and growth",
-  generator: "v0.app",
-}
-
-export default function RootLayout({
-  children,
-}: Readonly<{ children: React.ReactNode }>) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <Providers>{children}</Providers>
-      </body>
+    <html lang="en">
+      <body>{children}</body>
     </html>
   )
 }

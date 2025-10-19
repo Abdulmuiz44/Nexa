@@ -1,0 +1,107 @@
+import Navbar from "@/components/Navbar";
+import PricingCard from "@/components/PricingCard";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft } from "lucide-react";
+import Link from "next/link";
+
+const pricingPlans = [
+  {
+    title: "Growth",
+    tagline: "Hire your first AI growth assistant.",
+    price: "$49",
+    period: "/month",
+    features: [
+      "1 AI tool/project",
+      "Unlimited posts (Reddit + X)",
+      "AI Growth Agent (auto-replies & engagement)",
+      "Smart scheduling (best times to post)",
+      "Content variations & A/B testing",
+      "Campaign mode (launches, feature promos)",
+      "Full analytics dashboard",
+      "Weekly AI Growth Report",
+      "Priority email/chat support",
+    ],
+  },
+  {
+    title: "Scale",
+    tagline: "Run campaigns like a full-time growth team.",
+    price: "$149",
+    period: "/month",
+    features: [
+      "Up to 5 AI tools/projects",
+      "Autonomous multi-agent campaigns (different personas)",
+      "Platforms: Reddit, X, Product Hunt, Indie Hackers",
+      "Advanced analytics (sentiment, post performance, funnel tracking)",
+      "Smart targeting (trending hashtags/subreddits)",
+      "Campaign templates & automation library",
+      "White-label PDF/Excel reports",
+      "Priority human + AI success manager",
+      "Early access to new features",
+    ],
+    highlighted: true,
+  },
+  {
+    title: "Enterprise",
+    tagline: "Your entire AI growth department in the cloud.",
+    price: "Custom",
+    period: "",
+    features: [
+      "Unlimited AI tools/projects",
+      "Dedicated private Nexa instance",
+      "Custom integrations (LinkedIn, Slack, CRM, Webhooks)",
+      "Multi-agent orchestration (custom personas + AI brand tone)",
+      "Dedicated success manager & quarterly strategy sessions",
+      "White-label branding (own logo/domain)",
+      "API access + advanced analytics exports",
+      "99.9% uptime SLA",
+    ],
+  },
+];
+
+const Pricing = () => {
+  return (
+    <div className="min-h-screen bg-background">
+      <Navbar />
+      
+      <main className="pt-24 pb-16">
+        <div className="container px-6">
+          <Button variant="ghost" className="mb-8" asChild>
+            <Link href="/">
+              <ArrowLeft className="mr-2" />
+              Back to Home
+            </Link>
+          </Button>
+
+          <div className="text-center mb-16">
+            <h1 className="text-5xl md:text-6xl font-bold mb-4">
+              Simple,{" "}
+              <span className="bg-gradient-primary bg-clip-text text-transparent">
+                Transparent Pricing
+              </span>
+            </h1>
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+              Choose the plan that fits your growth goals. No hidden fees, cancel anytime.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-7xl mx-auto mb-16">
+            {pricingPlans.map((plan, idx) => (
+              <PricingCard key={idx} {...plan} />
+            ))}
+          </div>
+
+          <div className="text-center">
+            <p className="text-muted-foreground mb-4">
+              Need a custom solution or have questions?
+            </p>
+            <Button variant="outline" size="lg">
+              Contact Sales
+            </Button>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+};
+
+export default Pricing;

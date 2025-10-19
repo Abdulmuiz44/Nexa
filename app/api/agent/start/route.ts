@@ -2,9 +2,9 @@ import { type NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { AgentRunner } from "@/src/agent/runner"
 import { SkillRegistry } from "@/src/agent/skills/registry"
-import { SQLiteAdapter } from "@/src/agent/store/sqlite-adapter"
+import { SupabaseAdapter } from "@/src/agent/store/supabase-adapter"
 import { MemoryQueueAdapter } from "@/src/agent/queue/memory-adapter"
-import { Logger } from "@/src/agent/utils/logger"
+import { createLogger } from "@/src/agent/utils/logger"
 import type { AgentConfig } from "@/src/types/agent"
 
 const startAgentSchema = z.object({
@@ -39,8 +39,8 @@ export async function POST(request: NextRequest) {
       },
     }
 
-    const logger = new Logger()
-    const store = new SQLiteAdapter()
+    const logger = createLogger("agent-start")
+    const store = new SupabaseAdapter()
     const queue = new MemoryQueueAdapter()
     const skillRegistry = new SkillRegistry()
 

@@ -1,44 +1,45 @@
-"use client"
+import Navbar from "@/components/Navbar";
+import Hero from "@/components/Hero";
+import Features from "@/components/Features";
+import Footer from "@/components/Footer";
+import { Button } from "@/components/ui/button";
+import { ArrowRight } from "lucide-react";
+import Link from "next/link";
 
-export default function HomePage() {
+const LandingPage = () => {
   return (
-    <main className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto text-center">
-          <h1 className="text-4xl font-bold tracking-tight text-foreground mb-6">Nexa AI Growth Agent</h1>
-          <p className="text-xl text-muted-foreground mb-8">
-            Autonomous AI agent that markets your tools through multi-channel campaigns
+    <div className="min-h-screen bg-background">
+      <Navbar />
+      <Hero />
+      <Features />
+
+      {/* CTA Section */}
+      <section className="py-24 relative overflow-hidden bg-background">
+        <div className="container relative z-10 px-6 text-center mx-auto flex flex-col items-center">
+          <h2 className="text-4xl md:text-5xl font-bold mb-6">
+            Ready to Scale Your Growth?
+          </h2>
+          <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
+            Join founders who replaced their social media team with Nexa — 
+            and never looked back.
           </p>
-          <div className="flex gap-4 justify-center mb-12">
-            <a
-              href="/dashboard"
-              className="bg-primary text-primary-foreground px-6 py-3 rounded-lg font-medium hover:bg-primary/90 transition-colors"
-            >
-              Launch Dashboard
-            </a>
-            <a
-              href="/api-docs"
-              className="border border-border px-6 py-3 rounded-lg font-medium hover:bg-accent transition-colors"
-            >
-              API Documentation
-            </a>
-          </div>
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            <div className="p-6 border rounded-lg bg-card">
-              <h3 className="text-lg font-semibold mb-2">Multi-Channel Marketing</h3>
-              <p className="text-muted-foreground">Twitter, LinkedIn, Reddit, and more platforms</p>
-            </div>
-            <div className="p-6 border rounded-lg bg-card">
-              <h3 className="text-lg font-semibold mb-2">Content Generation</h3>
-              <p className="text-muted-foreground">AI-powered content creation and optimization</p>
-            </div>
-            <div className="p-6 border rounded-lg bg-card">
-              <h3 className="text-lg font-semibold mb-2">Campaign Analytics</h3>
-              <p className="text-muted-foreground">Real-time performance tracking and insights</p>
-            </div>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Button variant="hero" size="lg" className="group" asChild>
+              <Link href="/dashboard">
+                Start Your AI Agent
+                <ArrowRight className="group-hover:translate-x-1 transition-transform" />
+              </Link>
+            </Button>
+            <Button variant="outline" size="lg" asChild>
+              <Link href="/pricing">View Pricing</Link>
+            </Button>
           </div>
         </div>
-      </div>
-    </main>
-  )
-}
+      </section>
+
+      <Footer />
+    </div>
+  );
+};
+
+export default LandingPage;

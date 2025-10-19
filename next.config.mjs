@@ -1,3 +1,7 @@
+import dotenv from 'dotenv';
+
+dotenv.config({ path: '.env.local' });
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   eslint: {
@@ -8,6 +12,10 @@ const nextConfig = {
   },
   images: {
     unoptimized: true,
+  },
+  env: {
+    SUPABASE_URL: process.env.SUPABASE_URL,
+    SUPABASE_KEY: process.env.SUPABASE_KEY,
   },
 }
 

@@ -2,7 +2,7 @@ import type { NextAuthOptions } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
 import GoogleProvider from "next-auth/providers/google"
 import { compare } from "bcryptjs"
-import { db } from "@/lib/db"
+import { supabase } from "@/src/lib/db"
 import { generateApiKey } from "@/lib/utils"
 
 export const authOptions: NextAuthOptions = {
@@ -18,15 +18,27 @@ export const authOptions: NextAuthOptions = {
           return null
         }
 
-        const users = await db`SELECT * FROM users WHERE email = ${credentials.email}`
-        const user = users[0]
+        const { data: user, error } = await supabase
+          .from('users')
+          .select('*')
+          .eq('email', credentials.email)
+          .single()
 
-        if (!user || !(await compare(credentials.password, user.password_hash))) {
+        if (error || !user) {
+          return null
+        }
+
+        const isValid = await compare(credentials.password, user.password_hash)
+
+        if (!isValid) {
           return null
         }
 
         // Update last login
-        await db`UPDATE users SET last_login = NOW() WHERE id = ${user.id}`
+        await supabase
+          .from('users')
+          .update({ last_login: new Date() })
+          .eq('id', user.id)
 
         return {
           id: user.id,
@@ -46,15 +58,21 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async signIn({ user, account, profile }) {
       if (account?.provider === "google") {
-        const existingUsers = await db`SELECT * FROM users WHERE email = ${user.email!}`
-        const existingUser = existingUsers[0]
+        const { data: existingUser, error } = await supabase
+          .from('users')
+          .select('*')
+          .eq('email', user.email!)
+          .single()
 
         if (!existingUser) {
           const apiKey = generateApiKey()
-          await db`
-            INSERT INTO users (email, name, avatar_url, api_key, password_hash)
-            VALUES (${user.email}, ${user.name}, ${user.image}, ${apiKey}, 'oauth')
-          `
+          await supabase.from('users').insert({
+            email: user.email,
+            name: user.name,
+            avatar_url: user.image,
+            api_key: apiKey,
+            password_hash: 'oauth',
+          })
         }
       }
       return true

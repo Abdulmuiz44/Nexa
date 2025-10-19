@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { SQLiteAdapter } from "@/src/agent/store/sqlite-adapter"
+import { SupabaseAdapter } from "@/src/agent/store/supabase-adapter"
 
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -7,7 +7,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     const limit = Number.parseInt(searchParams.get("limit") || "50")
     const offset = Number.parseInt(searchParams.get("offset") || "0")
 
-    const store = new SQLiteAdapter()
+    const store = new SupabaseAdapter()
     const logs = await store.getLogs(params.id, { limit, offset })
 
     return NextResponse.json({
