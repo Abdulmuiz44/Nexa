@@ -56,6 +56,7 @@ const ContentGenerator = () => {
         throw new Error(data.error || "Something went wrong");
       }
 
+      console.log("Generated Content:", data.content); // For debugging
       setGeneratedContent(data.content);
       toast({
         title: "Content Generated!",
@@ -220,7 +221,7 @@ const ContentGenerator = () => {
               </div>
             </div>
           ) : generatedContent ? (
-            <div className="prose prose-invert max-w-none">
+            <div className="max-w-none">
               <div className="bg-secondary/50 p-4 rounded-lg border border-border whitespace-pre-wrap">
                 {generatedContent}
               </div>
