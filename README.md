@@ -1,19 +1,19 @@
-Nexa - Autonomous AI Growth Agent
+# Nexa - Autonomous AI Growth Agent
+
 Nexa is a production-ready autonomous AI agent designed for marketing and content creation. It helps businesses scale their marketing efforts through intelligent automation, multi-channel content distribution, and data-driven optimization.
 
-🚀 Live Demo
-[Link to the live demo]
+## 🚀 Features
 
-✨ Features
-Autonomous Campaign Management: Create and manage marketing campaigns with minimal human intervention.
-Multi-Channel Content Generation: Generate content optimized for Twitter and Reddit.
-Intelligent Scheduling: AI-powered content scheduling based on audience engagement patterns.
-Real-time Analytics: Track campaign performance, engagement rates, and ROI.
-Modular Architecture: Extensible skill-based system for adding new capabilities.
-Production Ready: Built with TypeScript, Next.js, and comprehensive testing.
-⚙️ How it Works
-The diagram below illustrates the architecture of Nexa:
+- **Autonomous Campaign Management**: Create and manage marketing campaigns with minimal human intervention
+- **Multi-Channel Content Generation**: Generate content optimized for Twitter and Reddit
+- **Intelligent Scheduling**: AI-powered content scheduling based on audience engagement patterns
+- **Real-time Analytics**: Track campaign performance, engagement rates, and ROI
+- **Modular Architecture**: Extensible skill-based system for adding new capabilities
+- **Production Ready**: Built with TypeScript, Next.js, and comprehensive testing
 
+## 🏗️ Architecture
+
+\`\`\`
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
 │   Web Dashboard │    │   API Gateway   │    │  Agent Runner   │
 │   (Next.js)     │◄──►│   (Next.js)     │◄──►│  (TypeScript)   │
@@ -30,87 +30,185 @@ The diagram below illustrates the architecture of Nexa:
 │   Vector DB     │    │   Job Queue     │    │   LLM Wrapper   │
 │   (Optional)    │◄──►│   (BullMQ)      │◄──►│   (OpenAI)      │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
-Nexa's architecture is composed of three main components:
+\`\`\`
 
-Web Dashboard: A Next.js application that provides a user interface for managing campaigns, viewing analytics, and configuring the agent.
-API Gateway: A Next.js application that exposes a REST API for interacting with the agent.
-Agent Runner: A TypeScript application that runs the agent, executes skills, and interacts with the job queue and LLM wrapper.
-🛠️ Tech Stack
-Frontend: Next.js, React, Tailwind CSS
-Backend: Next.js, TypeScript, Node.js
-Database: Supabase
-Job Queue: BullMQ, Redis
-AI: OpenAI
-Testing: Jest, Playwright
-Deployment: Docker, Vercel
-🏁 Getting Started
-Prerequisites
-Node.js 18+
-npm 8+
-Docker (optional)
-Installation
-Clone the repository:
+## 🛠️ Quick Start
 
-git clone https://github.com/your-username/nexa.git
-cd nexa
-Install dependencies:
+### Prerequisites
 
-pnpm install
-Set up the environment:
+- Node.js 18+ and npm 8+
+- OpenAI API key
+- Optional: Redis for production job queue
 
-cp .env .env.local
-Update the .env.local file with your API keys and configuration.
+### Installation
 
-Run the development server:
+1. **Clone the repository**
+   \`\`\`bash
+   git clone https://github.com/your-username/nexa.git
+   cd nexa
+   \`\`\`
 
-npm run dev
-Open your browser and navigate to http://localhost:3000.
+2. **Install dependencies**
+   \`\`\`bash
+   pnpm install
+   \`\`\`
 
-⚙️ Configuration
-The following environment variables can be configured in the .env.local file:
+3. **Set up environment variables**
+   \`\`\`bash
+   cp .env .env.local
+   # Edit .env.local with your API keys
+   \`\`\`
 
-OPENAI_API_KEY: Your OpenAI API key.
-DATABASE_URL: The connection string for your PostgreSQL database.
-REDIS_URL: The connection string for your Redis server.
-NEXTAUTH_URL: The URL of your Next.js application.
-NEXTAUTH_SECRET: A secret for NextAuth.js.
-📖 Usage
-Create a new campaign from the dashboard.
-Configure the campaign with your target audience, channels, and content topics.
-Start the campaign and monitor its performance from the analytics dashboard.
-🧪 Testing
-To run the tests, use the following commands:
+4. **Run development server**
+   \`\`\`bash
+   pnpm run dev
+   \`\`\`
 
-pnpm run test: Run unit tests.
-pnpm run test:watch: Run unit tests in watch mode.
-pnpm run test:coverage: Generate a code coverage report.
-pnpm run test:e2e: Run end-to-end tests.
-🐳 Docker
-To build and run the application with Docker, use the following commands:
+5. **Open your browser**
+   Navigate to [http://localhost:3000](http://localhost:3000)
 
-pnpm run docker:build: Build the Docker image.
-pnpm run docker:run: Run the Docker container.
-Alternatively, you can use Docker Compose to run the entire stack:
+### Environment Variables
 
+\`\`\`bash
+# Required
+OPENAI_API_KEY=your_openai_api_key
+DATABASE_URL=file:./dev.db
+
+# Optional
+REDIS_URL=redis://localhost:6379
+SENTRY_DSN=your_sentry_dsn
+JWT_SECRET=your_jwt_secret
+\`\`\`
+
+## 🧪 Testing
+
+\`\`\`bash
+# Run all tests
+npm run check
+
+# Unit tests
+npm run test
+npm run test:watch
+npm run test:coverage
+
+# E2E tests
+npm run test:e2e
+npm run test:e2e:ui
+\`\`\`
+
+## 🐳 Docker
+
+\`\`\`bash
+# Build and run with Docker
+npm run docker:build
+npm run docker:run
+
+# Or use docker-compose for full stack
 docker-compose up -d
-🔗 API Endpoints
-The following API endpoints are available:
+\`\`\`
 
-POST /api/agent/start: Start a new campaign.
-GET /api/agent/:id/status: Get the status of an agent.
-GET /api/agent/:id/logs: Get the logs of an agent.
-POST /api/agent/:id/feedback: Provide feedback to an agent.
-GET /api/campaigns: Get all campaigns.
-POST /api/campaigns: Create a new campaign.
-PUT /api/campaigns/:id: Update a campaign.
-DELETE /api/campaigns/:id: Delete a campaign.
-GET /api/health: Get the health status of the application.
-GET /api/metrics: Get the metrics of the application.
-🤝 Contributing
-Contributions are welcome! Please read the CONTRIBUTING.md file for more information.
+## 📊 API Endpoints
 
-📄 License
-This project is licensed under the MIT License. See the LICENSE file for more information.
+### Agent Management
+- `POST /api/agent/start` - Start a new campaign
+- `GET /api/agent/:id/status` - Get agent status
+- `GET /api/agent/:id/logs` - Get agent logs
+- `POST /api/agent/:id/feedback` - Provide feedback
 
-🆘 Support
-If you have any questions or need support, please open an issue on GitHub.
+### Campaign Management
+- `GET /api/campaigns` - List campaigns
+- `POST /api/campaigns` - Create campaign
+- `PUT /api/campaigns/:id` - Update campaign
+- `DELETE /api/campaigns/:id` - Delete campaign
+
+### Health & Monitoring
+- `GET /api/health` - Health check
+- `GET /api/metrics` - System metrics
+
+## 🔧 Configuration
+
+### Agent Configuration
+
+\`\`\`typescript
+const config: AgentConfig = {
+  id: "my-agent",
+  name: "Marketing Campaign",
+  maxConcurrentTasks: 3,
+  retryAttempts: 3,
+  timeoutMs: 300000,
+  metadata: {
+    targetAudience: "Tech enthusiasts",
+    channels: ["twitter", "X"],
+    contentTopics: ["AI", "Technology"],
+    schedule: {
+      postsPerDay: 5,
+      timezone: "UTC"
+    }
+  }
+}
+\`\`\`
+
+### Skills System
+
+Add custom skills by implementing the `Skill` interface:
+
+\`\`\`typescript
+export class CustomSkill implements Skill {
+  name = "custom-skill"
+  description = "A custom skill"
+
+  async execute(payload: any): Promise<SkillResult> {
+    // Your custom logic here
+    return {
+      data: { result: "success" },
+      metadata: { tokensUsed: 100, apiCalls: 1 }
+    }
+  }
+}
+\`\`\`
+
+## 📈 Monitoring
+
+Nexa includes built-in monitoring and observability:
+
+- **Health Checks**: Automated system health monitoring
+- **Metrics Collection**: Performance and usage metrics
+- **Structured Logging**: JSON-formatted logs with correlation IDs
+- **Error Tracking**: Integration with Sentry for error monitoring
+
+## 🚀 Deployment
+
+### Vercel (Recommended)
+
+1. Connect your GitHub repository to Vercel
+2. Set environment variables in Vercel dashboard
+3. Deploy automatically on push to main branch
+
+### Docker
+
+\`\`\`bash
+# Production build
+docker build -t nexa .
+docker run -p 3000:3000 nexa
+\`\`\`
+
+### Manual Deployment
+
+\`\`\`bash
+npm run build
+npm start
+\`\`\`
+
+## 🤝 Contributing
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for development guidelines.
+
+## 📄 License
+
+MIT License - see [LICENSE](./LICENSE) for details.
+
+## 🆘 Support
+
+- 📖 [Documentation](./docs/)
+- 🐛 [Issue Tracker](https://github.com/your-username/nexa/issues)
+- 💬 [Discussions](https://github.com/your-username/nexa/discussions)
