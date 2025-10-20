@@ -76,7 +76,7 @@ DATABASE_URL=file:./dev.db
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 SUPABASE_URL=your_supabase_url
-SUPABASE_KEY=your_supabase_key
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 
 # Optional
 REDIS_URL=redis://localhost:6379
