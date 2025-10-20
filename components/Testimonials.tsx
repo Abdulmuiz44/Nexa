@@ -1,7 +1,9 @@
 import React from 'react';
 import { Card, CardContent } from './ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
-import { Star } from 'lucide-react';
+import { Star, ArrowRight } from 'lucide-react';
+import { Button } from './ui/button';
+import Link from 'next/link';
 
 const testimonials = [
   {
@@ -28,18 +30,21 @@ const testimonials = [
 ];
 
 const Testimonials = () => {
-  return (
-    <section className="py-24">
-      <div className="container mx-auto px-6">
-        <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-bold mb-4">Loved by Founders & Marketers</h2>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Don't just take our word for it. Here's what our users are saying.
+return (
+<section className="py-24 bg-secondary/30">
+<div className="container mx-auto px-4 sm:px-6">
+<div className="text-center mb-16">
+<div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-6 backdrop-blur-sm">
+  <span className="text-sm font-semibold text-primary">⭐ 4.9/5 Average Rating</span>
+</div>
+<h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 leading-tight">Loved by Founders & Marketers</h2>
+  <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+    Don't just take our word for it. Here's what our users are saying.
           </p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
           {testimonials.map((testimonial, idx) => (
-            <Card key={idx} className="bg-card/50 backdrop-blur-sm border-border hover:border-primary/50 transition-all duration-300 group hover:shadow-neon">
+            <Card key={idx} className="bg-card/50 backdrop-blur-sm border-border hover:border-primary/50 hover:scale-105 transition-all duration-300 group hover:shadow-neon opacity-0 animate-in fade-in slide-in-from-bottom-4 duration-700" style={{ animationDelay: `${idx * 0.2}s` }}>
               <CardContent className="pt-6">
                 <div className="flex mb-4">
                   {Array(testimonial.rating).fill(0).map((_, i) => (
@@ -60,6 +65,16 @@ const Testimonials = () => {
               </CardContent>
             </Card>
           ))}
+        </div>
+
+        <div className="text-center mt-16">
+          <Button variant="hero" size="lg" className="group" asChild>
+            <Link href="/pricing">
+              Join the Success Stories
+              <ArrowRight className="group-hover:translate-x-1 transition-transform" />
+            </Link>
+          </Button>
+          <p className="text-sm text-muted-foreground mt-4">Start your 14-day free trial today</p>
         </div>
       </div>
     </section>

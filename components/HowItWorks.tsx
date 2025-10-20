@@ -24,17 +24,17 @@ const steps = [
 
 const HowItWorks = () => {
   return (
-    <section className="py-24 bg-secondary/50">
-      <div className="container mx-auto px-6">
+  <section id="how-it-works" className="py-24 bg-secondary/50">
+    <div className="container mx-auto px-4 sm:px-6">
         <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-bold mb-4">How It Works</h2>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Get started with your AI growth agent in three simple steps.
-          </p>
+        <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 leading-tight">How It Works</h2>
+        <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+        Get started with your AI growth agent in three simple steps.
+        </p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 mb-16">
           {steps.map((step, idx) => (
-            <Card key={idx} className="text-center bg-card/50 backdrop-blur-sm border-border hover:border-primary/50 transition-all duration-300 group hover:shadow-neon">
+            <Card key={idx} className="text-center bg-card/50 backdrop-blur-sm border-border hover:border-primary/50 hover:scale-105 transition-all duration-300 group hover:shadow-neon opacity-0 animate-in fade-in slide-in-from-bottom-4 duration-700" style={{ animationDelay: `${idx * 0.15}s` }}>
               <CardHeader>
                 <div className="mx-auto bg-primary/10 rounded-full p-4 w-fit mb-4">{step.icon}</div>
                 <CardTitle>{step.title}</CardTitle>

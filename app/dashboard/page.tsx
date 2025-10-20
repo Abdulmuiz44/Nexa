@@ -83,22 +83,22 @@ const Dashboard = () => {
             </Button>
           </div>
 
-          <Card className="p-6 mb-8 bg-gradient-to-br from-card to-primary/5 border-primary/50">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="relative">
-                  <Bot className="h-12 w-12 text-primary animate-pulse-glow" />
-                  <div className="absolute inset-0 blur-xl bg-primary/50" />
-                </div>
-                <div>
-                  <h2 className="text-2xl font-bold mb-1">Agent Status: Active</h2>
-                  <p className="text-muted-foreground">Your AI agent is working 24/7</p>
-                </div>
-              </div>
-              <Badge className="bg-success text-success-foreground px-4 py-2 text-sm font-semibold">
-                Online
-              </Badge>
-            </div>
+          <Card className="p-4 sm:p-6 mb-8 bg-gradient-to-br from-card to-primary/5 border-primary/50">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-center gap-4">
+          <div className="relative">
+          <Bot className="h-10 w-10 sm:h-12 sm:w-12 text-primary animate-pulse-glow" />
+          <div className="absolute inset-0 blur-xl bg-primary/50" />
+          </div>
+          <div>
+          <h2 className="text-xl sm:text-2xl font-bold mb-1">Agent Status: Active</h2>
+          <p className="text-sm sm:text-base text-muted-foreground">Your AI agent is working 24/7</p>
+          </div>
+          </div>
+          <Badge className="bg-success text-success-foreground px-4 py-2 text-sm font-semibold self-start sm:self-center">
+          Online
+          </Badge>
+          </div>
           </Card>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -125,11 +125,11 @@ const Dashboard = () => {
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
-            <TabsList className="grid w-full max-w-md grid-cols-3">
-              <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="generator"><Sparkles className="h-4 w-4 mr-2" />AI Generator</TabsTrigger>
-              <TabsTrigger value="analytics">Analytics</TabsTrigger>
-            </TabsList>
+          <TabsList className="grid w-full grid-cols-3 md:max-w-md md:grid-cols-3 flex-wrap">
+          <TabsTrigger value="overview" className="text-xs sm:text-sm">Overview</TabsTrigger>
+          <TabsTrigger value="generator" className="text-xs sm:text-sm"><Sparkles className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />AI Generator</TabsTrigger>
+          <TabsTrigger value="analytics" className="text-xs sm:text-sm">Analytics</TabsTrigger>
+          </TabsList>
 
             <TabsContent value="overview" className="mt-6">
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

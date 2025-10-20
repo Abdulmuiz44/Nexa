@@ -44,9 +44,7 @@ function LoginComponent() {
     }
   }
 
-  const handleGoogleSignIn = () => {
-    signIn("google", { callbackUrl: "/dashboard" })
-  }
+
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
@@ -83,10 +81,9 @@ function LoginComponent() {
             </Button>
           </form>
 
-          <p className="text-center text-sm text-muted-foreground">
-            Don't have an account?{" "}
-            <Link href="/signup" className="underline">Sign up</Link>
-          </p>
+          <div className="text-center text-sm text-muted-foreground">
+          Don't have an account? <Link href="/signup" className="underline">Sign up</Link>
+          </div>
         </CardContent>
       </Card>
     </div>

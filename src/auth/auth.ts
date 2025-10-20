@@ -1,5 +1,4 @@
 import type { NextAuthOptions } from "next-auth"
-import GoogleProvider from "next-auth/providers/google"
 import CredentialsProvider from "next-auth/providers/credentials";
 import { supabaseServer } from "@/src/lib/supabaseServer"
 import { generateApiKey } from "@/lib/utils"
@@ -28,6 +27,10 @@ export const authOptions: NextAuthOptions = {
         console.log("user", user);
 
         if (error || !user) {
+          return null;
+        }
+
+        if (user.status !== 'active') {
           return null;
         }
 
@@ -105,5 +108,5 @@ export const authOptions: NextAuthOptions = {
   session: {
     strategy: "jwt",
   },
-  secret: process.env.NEXTAUTH_SECRET || require("crypto").randomBytes(32).toString("hex"),
+  secret: process.env.NEXTAUTH_SECRET || "fallback-secret-key-change-in-production",
 }

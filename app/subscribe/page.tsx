@@ -1,5 +1,6 @@
 'use client';
 
+import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import { PaymentForm } from '@/components/payment-form';
@@ -23,7 +24,7 @@ const pricingPlans = [
   },
 ];
 
-const SubscribePage = () => {
+const SubscribeForm = () => {
   const searchParams = useSearchParams();
   const planId = searchParams.get('plan');
   const selectedPlan = pricingPlans.find(p => p.planId === planId);
@@ -70,5 +71,13 @@ const SubscribePage = () => {
     </div>
   );
 };
+
+function SubscribePage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <SubscribeForm />
+    </Suspense>
+  );
+}
 
 export default SubscribePage;
