@@ -1,0 +1,66 @@
+
+> nexa@1.0.0 dev /data/data/com.termux/files/home/projects/Nexa
+> next dev
+
+   ▲ Next.js 15.2.4
+   - Local:        http://localhost:3000
+   - Network:      http://10.217.2.121:3000
+   - Environments: .env
+
+ ✓ Starting...
+ ✓ Ready in 19.1s
+ ○ Compiling /middleware ...
+ ✓ Compiled /middleware in 24s (366 modules)
+ ○ Compiling /api/mcp/.well-known/oauth-protected-resource ...
+ ✓ Compiled /api/mcp/.well-known/oauth-protected-resource in 30.3s (404 modules)
+ GET /api/mcp/.well-known/oauth-protected-resource 200 in 32451ms
+ ○ Compiling /api/mcp/[transport] ...
+ ✓ Compiled /api/mcp/[transport] in 25.1s (1182 modules)
+ GET /api/mcp/.well-known/oauth-protected-resource 200 in 177ms
+ POST /api/mcp/streamable-http 404 in 39093ms
+ POST /api/mcp/streamable-http 404 in 2047ms
+ GET /api/mcp/.well-known/oauth-protected-resource 200 in 125ms
+ POST /api/mcp/streamable-http 404 in 209ms
+ GET /api/mcp/.well-known/oauth-protected-resource 200 in 59ms
+ GET /api/mcp/streamable-http 404 in 222ms
+ GET /api/mcp/streamable-http 404 in 66ms
+ GET /api/mcp/.well-known/oauth-protected-resource 200 in 126ms
+ GET /api/mcp/streamable-http 404 in 295ms
+ GET /api/mcp/streamable-http 404 in 54ms
+ GET /api/mcp/.well-known/oauth-protected-resource 200 in 64ms
+ GET /api/mcp/.well-known/oauth-protected-resource 200 in 73ms
+ GET /api/mcp/streamable-http 404 in 186ms
+ GET /api/mcp/.well-known/oauth-protected-resource 200 in 67ms
+ GET /api/mcp/.well-known/oauth-protected-resource 200 in 48ms
+ GET /api/mcp/streamable-http 404 in 119ms
+ GET /api/mcp/.well-known/oauth-protected-resource 200 in 78ms
+ GET /api/mcp/streamable-http 404 in 180ms
+ GET /api/mcp/.well-known/oauth-protected-resource 200 in 55ms
+ GET /api/mcp/streamable-http 404 in 125ms
+ GET /api/mcp/.well-known/oauth-protected-resource 200 in 76ms
+ GET /api/mcp/.well-known/oauth-protected-resource 200 in 70ms
+ GET /api/mcp/.well-known/oauth-protected-resource 200 in 53ms
+ POST /api/mcp/streamable-http 404 in 151ms
+ GET /api/mcp/.well-known/oauth-protected-resource 200 in 81ms
+ ○ Compiling /api/health ...
+ ✓ Compiled /api/health in 3.4s (406 modules)
+ GET /api/health 200 in 3774ms
+ ○ Compiling /api/mcp/[transport] ...
+ ✓ Compiled /api/mcp/[transport] in 2.6s (910 modules)
+ GET /api/mcp/streamable-http 404 in 6195ms
+ GET /api/mcp/.well-known/oauth-protected-resource 200 in 114ms
+ GET /api/mcp/streamable-http 404 in 49ms
+ GET /api/health 200 in 59ms
+ GET /api/mcp/streamable-http 404 in 303ms
+ GET /api/mcp/.well-known/oauth-protected-resource 200 in 63ms
+ GET /api/mcp/streamable-http 404 in 185ms
+ GET /api/mcp/streamable-http 404 in 53ms
+ GET /api/health 200 in 58ms
+ GET /api/mcp/streamable-http 404 in 161ms
+ GET /api/mcp/.well-known/oauth-protected-resource 200 in 59ms
+ GET /api/mcp/.well-known/oauth-protected-resource 200 in 97ms
+ POST /api/mcp/streamable-http 404 in 164ms
+ ○ Compiling /api/[...nextauth] ...
+ ✓ Compiled /api/[...nextauth] in 19s (1478 modules)
+ GET /api/mcp/[transport]/route.ts 400 in 28506ms
+[?25h

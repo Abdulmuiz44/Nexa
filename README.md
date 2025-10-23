@@ -38,7 +38,7 @@ Nexa is a production-ready autonomous AI agent designed for marketing and conten
 
 - Node.js 18+ and npm 8+
 - OpenAI API key
-- Optional: Redis for production job queue
+- Optional: Redis for production job queue and SSE chat sessions
 
 ### Installation
 
@@ -82,6 +82,12 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 REDIS_URL=redis://localhost:6379
 SENTRY_DSN=your_sentry_dsn
 JWT_SECRET=your_jwt_secret
+
+# MCP Server (for OAuth and API access)
+TWITTER_CLIENT_ID=your_twitter_client_id
+TWITTER_CLIENT_SECRET=your_twitter_client_secret
+REDDIT_CLIENT_ID=your_reddit_client_id
+REDDIT_CLIENT_SECRET=your_reddit_client_secret
 \`\`\`
 
 ## 🧪 Testing
@@ -128,6 +134,10 @@ docker-compose up -d
 ### Health & Monitoring
 - `GET /api/health` - Health check
 - `GET /api/metrics` - System metrics
+
+### MCP Server
+- `GET/POST /api/mcp/[transport]` - MCP endpoint for real-time chat and tools
+- `GET /api/mcp/.well-known/oauth-protected-resource` - OAuth metadata endpoint
 
 ## 🔧 Configuration
 
@@ -180,13 +190,106 @@ Nexa includes built-in monitoring and observability:
 - **Structured Logging**: JSON-formatted logs with correlation IDs
 - **Error Tracking**: Integration with Sentry for error monitoring
 
+## 🔗 MCP Server
+
+Nexa includes a Model Context Protocol (MCP) server that enables real-time chat and content posting to X (Twitter) and Reddit.
+
+### Features
+
+- **Real-time Chat**: SSE-based chat sessions with Redis pub/sub
+- **OAuth Integration**: Secure access to X and Reddit APIs
+- **Content Tools**: Post messages to Twitter and submit content to Reddit subreddits
+
+### Setup OAuth Credentials
+
+1. **Twitter/X API**:
+   - Go to [Twitter Developer Portal](https://developer.twitter.com/)
+   - Create an app and get Client ID and Client Secret
+   - Set `TWITTER_CLIENT_ID` and `TWITTER_CLIENT_SECRET` in environment variables
+
+2. **Reddit API**:
+   - Go to [Reddit Apps](https://www.reddit.com/prefs/apps)
+   - Create a "script" app and get Client ID and Client Secret
+   - Set `REDDIT_CLIENT_ID` and `REDDIT_CLIENT_SECRET` in environment variables
+
+### Using the MCP Server
+
+The MCP endpoint is available at `/api/mcp-api/[transport]` where `[transport]` can be:
+- `sse` for Server-Sent Events (with Redis for persistence)
+- `streamable-http` for HTTP streaming
+
+Clients should authenticate with a Bearer token containing base64-encoded JSON:
+```json
+{
+  "twitterToken": "your_twitter_access_token",
+  "redditToken": "your_reddit_access_token"
+}
+```
+
+### Available Tools
+
+- `post_to_x`: Post a message to the user's Twitter account
+- `post_to_reddit`: Submit a post to a subreddit
+
+### Testing the MCP Server
+
+1. **Start the development server**:
+   ```bash
+   pnpm dev
+   ```
+
+2. **Run the basic connectivity test**:
+   ```bash
+   node scripts/test-basic.mjs
+   ```
+
+   This tests:
+   - OAuth metadata endpoint accessibility
+   - MCP transport endpoint with basic JSON-RPC call
+
+3. **Run the full MCP client test**:
+   ```bash
+   node scripts/test-mcp.mjs
+   ```
+
+   This uses the MCP SDK to:
+   - Connect to the MCP server at `http://localhost:3000/api/mcp-api/streamable-http`
+   - List available tools
+   - Test both `post_to_x` and `post_to_reddit` tools
+   - Report success/failure
+
+### Using Real OAuth Tokens
+
+For production testing with real API access:
+
+1. Get OAuth tokens from Twitter and Reddit APIs
+2. Create a base64-encoded JSON token:
+```bash
+echo '{"twitterToken":"YOUR_TWITTER_TOKEN","redditToken":"YOUR_REDDIT_TOKEN"}' | base64
+```
+3. Set this as the `MCP_SERVER_URL` environment variable and run the test
+
+### Testing Without MCP Client
+
+For basic connectivity testing, you can also test the OAuth metadata endpoint directly:
+
+```bash
+curl http://localhost:3000/api/mcp-api/.well-known/oauth-protected-resource
+```
+
+This should return JSON with OAuth server information.
+
 ## 🚀 Deployment
 
 ### Vercel (Recommended)
 
 1. Connect your GitHub repository to Vercel
-2. Set environment variables in Vercel dashboard
-3. Deploy automatically on push to main branch
+2. Set environment variables in Vercel dashboard (including MCP OAuth credentials)
+3. Enable Redis if using SSE transport
+4. Enable Fluid Compute for optimal performance
+5. Deploy automatically on push to main branch
+
+The MCP endpoint will be available at `https://your-app.vercel.app/api/mcp/[transport]`
 
 ### Docker
 
