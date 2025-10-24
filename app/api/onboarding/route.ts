@@ -4,7 +4,14 @@ import { cookies } from 'next/headers';
 
 export async function POST(req: Request) {
   try {
-    const supabase = createServerClient({ cookies });
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error('Missing Supabase environment variables: NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY');
+    }
+
+    const supabase = createServerClient(supabaseUrl, supabaseKey, { cookies });
 
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user?.id) {
