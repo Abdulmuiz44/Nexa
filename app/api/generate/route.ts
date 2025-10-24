@@ -17,7 +17,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const userId = (session.user as any).id;
+    const userId = (session.user as { id: string }).id;
 
     const body = await req.json();
     const {
@@ -77,8 +77,8 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true, content, saved: true });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('API Error:', error);
-    return NextResponse.json({ error: error.message || 'An unexpected error occurred' }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'An unexpected error occurred' }, { status: 500 });
   }
 }

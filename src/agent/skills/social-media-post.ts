@@ -1,6 +1,7 @@
 import type { Skill, SkillResult } from "./registry"
 import { TaskType } from "../../types/agent"
 import type { LLMWrapper } from "../llm/wrapper"
+import { composio } from "@/lib/composio"
 
 export class SocialMediaPostSkill implements Skill {
   name = "Social Media Post"

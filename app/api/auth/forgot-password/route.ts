@@ -11,7 +11,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Email is required' }, { status: 400 });
     }
 
-    const { data: user, error: userError } = await supabaseServer
+    const { data: user } = await supabaseServer
       .from('users')
       .select('id')
       .eq('email', email)
@@ -56,8 +56,8 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ message: 'If an account with this email exists, a password reset link has been sent.' });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('API Error:', error);
-    return NextResponse.json({ error: error.message || 'An unexpected error occurred' }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'An unexpected error occurred' }, { status: 500 });
   }
 }

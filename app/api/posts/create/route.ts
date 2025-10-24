@@ -68,17 +68,17 @@ export async function POST(req: Request) {
     if (scheduledAt) {
       // Schedule post
       const { data: post, error: postError } = await supabaseServer
-        .from('posts')
-        .insert({
-          user_id: session.user.id,
-          campaign_id: campaignId,
-          platform: platform as any,
-          content,
-          composio_connection_id: connection.id,
-          status: 'scheduled',
-          scheduled_at: new Date(scheduledAt),
-          meta: { idempotencyKey },
-        })
+      .from('posts')
+      .insert({
+      user_id: session.user.id,
+      campaign_id: campaignId,
+      platform: platform as 'twitter' | 'reddit',
+      content,
+      composio_connection_id: connection.id,
+      status: 'scheduled',
+      scheduled_at: new Date(scheduledAt),
+      meta: { idempotencyKey },
+      })
         .select()
         .single();
 
@@ -126,7 +126,7 @@ export async function POST(req: Request) {
         .insert({
           user_id: session.user.id,
           campaign_id: campaignId,
-          platform: platform as any,
+          platform: platform as 'twitter' | 'reddit',
           content,
           composio_connection_id: connection.id,
           status: 'published',
@@ -156,7 +156,7 @@ export async function POST(req: Request) {
         .insert({
           user_id: session.user.id,
           campaign_id: campaignId,
-          platform: platform as any,
+          platform: platform as 'twitter' | 'reddit',
           content,
           composio_connection_id: connection.id,
           status: 'failed',

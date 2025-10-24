@@ -11,7 +11,7 @@ const contentSchema = z.object({
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const body = await request.json()
-    const { type, contentId, feedback, editedContent } = contentSchema.parse(body)
+    const { type, contentId, feedback } = contentSchema.parse(body)
 
     switch (type) {
       case "approve":

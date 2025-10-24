@@ -13,7 +13,7 @@ export async function POST(req: Request) {
 
     const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
 
-    const { data: user, error: userError } = await supabaseServer
+    const { data: user } = await supabaseServer
       .from('users')
       .select('id, password_reset_token_expires_at')
       .eq('password_reset_token', hashedToken)
@@ -48,8 +48,8 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true, message: 'Password has been reset successfully.' });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('API Error:', error);
-    return NextResponse.json({ error: error.message || 'An unexpected error occurred' }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'An unexpected error occurred' }, { status: 500 });
   }
 }

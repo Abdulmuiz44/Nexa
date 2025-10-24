@@ -1,7 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { supabaseServer } from "@/src/lib/supabaseServer"
 import { FlutterwavePayment } from "@/src/payments/flutterwave"
-import crypto from 'crypto';
 
 export async function POST(request: NextRequest) {
   const secretHash = process.env.FLUTTERWAVE_WEBHOOK_SECRET_HASH;

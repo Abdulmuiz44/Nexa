@@ -48,10 +48,10 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: 'Failed to generate content' }, { status: 500 });
       }
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Content generation error:', error);
     return NextResponse.json({
-      error: error.message || 'Failed to generate content'
+      error: error instanceof Error ? error.message : 'Failed to generate content'
     }, { status: 500 });
   }
 }

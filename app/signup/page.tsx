@@ -1,20 +1,18 @@
 "use client";
 
 import type React from "react"
-import { useState, useEffect, Suspense } from "react"
-import { signIn } from "next-auth/react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useState, Suspense } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
 import Link from "next/link"
 
 function SignUpForm() {
 const router = useRouter();
-const searchParams = useSearchParams();
 
   const [formData, setFormData] = useState({
   name: "",
@@ -72,9 +70,7 @@ const handleSubmit = async (e: React.FormEvent) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }))
   }
 
-  const handleCountryChange = (value: string) => {
-    setFormData((prev) => ({ ...prev, country: value }))
-  }
+
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">

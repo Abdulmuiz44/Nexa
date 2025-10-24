@@ -2,7 +2,7 @@ import { createMcpHandler, withMcpAuth } from "mcp-handler";
 import { z } from "zod";
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import { TwitterApi } from "twitter-api-v2";
-import * as snoowrap from "snoowrap";
+import snoowrap from "snoowrap";
 
 // Define auth info type
 interface MyAuthInfo extends AuthInfo {
@@ -53,25 +53,40 @@ const handler = createMcpHandler(
         body: z.string().optional(),
       },
       async ({ subreddit, title, body }, { authInfo }) => {
-        const userAuth = authInfo as MyAuthInfo;
-        if (!userAuth.redditToken) {
-          return {
-            content: [{ type: "text", text: "Reddit token not available" }],
-          };
-        }
+      const userAuth = authInfo as MyAuthInfo;
+      if (!userAuth.redditToken) {
+      return {
+      content: [{ type: "text", text: "Reddit token not available" }],
+      };
+      }
 
-        try {
-          // TODO: Implement Reddit API call with proper promise handling
-          // For now, mock the response
-          if (userAuth.redditToken === 'mock_reddit_token') {
-            return {
-              content: [{ type: "text", text: `Mock: Successfully posted to r/${subreddit}` }],
-            };
-          }
+      try {
+      if (userAuth.redditToken === 'mock_reddit_token') {
+        return {
+          content: [{ type: "text", text: `Mock: Successfully posted to r/${subreddit}` }],
+      };
+      }
 
-          // Real implementation would go here
+      // Initialize snoowrap with access token
+      const reddit = new snoowrap({
+      accessToken: userAuth.redditToken,
+      });
+
+      // Submit the post - use text post if body is provided, otherwise link post
+        const submission = body
+          ? await reddit.submitSelfPost({
+              subredditName: subreddit,
+                title: title,
+                text: body,
+              })
+            : await reddit.submitLink({
+                subredditName: subreddit,
+                title: title,
+                url: 'https://example.com', // Placeholder URL for link posts
+              });
+
           return {
-            content: [{ type: "text", text: `Successfully posted to r/${subreddit}` }],
+            content: [{ type: "text", text: `Successfully posted to r/${subreddit}: https://reddit.com${submission.permalink}` }],
           };
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -149,6 +164,4 @@ export async function GET() {
   return Response.json({ message: "MCP transport endpoint working", transport: "streamable-http" });
 }
 
-export async function POST() {
-  return Response.json({ message: "MCP POST endpoint working" });
-}
+export const POST = authenticatedHandler;

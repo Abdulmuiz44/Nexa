@@ -24,8 +24,8 @@ export async function POST(req: Request) {
       redirectUrl: authSession.redirectUrl,
       sessionId: authSession.id,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Composio start auth error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Composio auth failed' }, { status: 500 });
   }
 }

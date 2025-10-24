@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { NexaAgentFactory } from '@/src/services/nexaAgent';
 
-export async function POST(req: Request) {
+export async function POST() {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
@@ -33,10 +33,10 @@ export async function POST(req: Request) {
       }, { status: 400 });
     }
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Agent start error:', error);
     return NextResponse.json({
-      error: error.message || 'Failed to start agent'
+      error: error instanceof Error ? error.message : 'Failed to start agent'
     }, { status: 500 });
   }
 }

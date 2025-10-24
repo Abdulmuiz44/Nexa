@@ -2,13 +2,6 @@ import { NextResponse } from 'next/server';
 import { supabaseServer } from '@/src/lib/supabaseServer';
 import bcrypt from 'bcryptjs';
 import { generateApiKey } from '@/lib/utils';
-import { FlutterwavePayment } from '@/src/payments/flutterwave';
-
-const planPrices: { [key: string]: number } = {
-    growth: 49,
-    scale: 149,
-    enterprise: 499,
-};
 
 export async function POST(req: Request) {
   try {
@@ -26,7 +19,7 @@ export async function POST(req: Request) {
     const password_hash = await bcrypt.hash(password, 10);
     const api_key = generateApiKey();
 
-    const { data: newUser, error: insertError } = await supabaseServer.from('users').insert({
+    const { error: insertError } = await supabaseServer.from('users').insert({
       name,
       email,
       password_hash,
@@ -41,8 +34,8 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('API Error:', error);
-    return NextResponse.json({ error: error.message || 'An unexpected error occurred' }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'An unexpected error occurred' }, { status: 500 });
   }
 }
