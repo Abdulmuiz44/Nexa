@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server';
-import { supabaseServer } from '@/src/lib/supabaseServer';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
 
 export async function POST(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    const supabase = createRouteHandlerClient({ cookies });
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -22,17 +23,19 @@ export async function POST(req: Request) {
       sample_caption: sampleCaption,
     };
 
-    const { error } = await supabaseServer
+    const { data, error } = await supabase
       .from('users')
       .update({
         onboarding_data: onboardingData,
-        status: 'onboarding_complete',
+        status: 'active',
+        updated_at: new Date(),
       })
-      .eq('id', session.user.id);
+      .eq('id', user.id)
+      .select();
 
     if (error) {
-      console.error('Error updating onboarding:', error);
-      return NextResponse.json({ error: 'Failed to save onboarding data' }, { status: 500 });
+      console.error('Onboarding save error:', error.message);
+      return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
     return NextResponse.json({ success: true });

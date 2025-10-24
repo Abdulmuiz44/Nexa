@@ -60,7 +60,8 @@ export default function OnboardingPage() {
       if (response.ok) {
         router.push('/pricing');
       } else {
-        alert('Error saving onboarding data');
+        const errorData = await response.json();
+        alert(`Error saving onboarding data: ${errorData.error || 'Unknown error'}`);
       }
     } catch (error) {
       alert('Error saving onboarding data');
