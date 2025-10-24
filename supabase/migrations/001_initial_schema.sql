@@ -14,12 +14,18 @@ CREATE TYPE message_role AS ENUM ('user', 'assistant', 'system');
 -- Users table
 CREATE TABLE users (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name TEXT,
     email TEXT UNIQUE NOT NULL,
+    password_hash TEXT,
     phone TEXT UNIQUE,
+    country TEXT,
+    api_key TEXT,
     plan user_plan DEFAULT 'growth',
     subscription_status subscription_status DEFAULT 'active',
     subscription_id TEXT,
     stripe_customer_id TEXT,
+    status TEXT DEFAULT 'onboarding',
+    onboarding_data JSONB DEFAULT '{}',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -65,6 +71,7 @@ CREATE TABLE posts (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     campaign_id UUID REFERENCES campaigns(id) ON DELETE SET NULL,
+    composio_connection_id UUID REFERENCES composio_connections(id),
     platform platform_type NOT NULL,
     content TEXT NOT NULL,
     status post_status DEFAULT 'draft',
@@ -132,6 +139,32 @@ CREATE TABLE oauth_states (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Subscriptions table
+CREATE TABLE subscriptions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    plan TEXT NOT NULL, -- growth, scale, enterprise
+    status TEXT NOT NULL DEFAULT 'active', -- active, cancelled, past_due
+    stripe_subscription_id TEXT,
+    flutterwave_subscription_id TEXT,
+    amount INTEGER NOT NULL,
+    currency TEXT DEFAULT 'USD',
+    interval TEXT DEFAULT 'month', -- month, year
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Composio connections table
+CREATE TABLE composio_connections (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    composio_connection_id TEXT NOT NULL UNIQUE,
+    toolkit_slug TEXT NOT NULL,
+    meta JSONB DEFAULT '{}',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Create indexes for performance
 CREATE INDEX idx_connected_accounts_user_id ON connected_accounts(user_id);
 CREATE INDEX idx_conversations_user_id ON conversations(user_id);
@@ -145,6 +178,8 @@ CREATE INDEX idx_analytics_post_id ON analytics(post_id);
 CREATE INDEX idx_activity_log_user_id ON activity_log(user_id);
 CREATE INDEX idx_oauth_states_state ON oauth_states(state);
 CREATE INDEX idx_oauth_states_expires_at ON oauth_states(expires_at);
+CREATE INDEX idx_subscriptions_user_id ON subscriptions(user_id);
+CREATE INDEX idx_composio_connections_user_id ON composio_connections(user_id);
 
 -- Create updated_at trigger function
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -161,6 +196,8 @@ CREATE TRIGGER update_connected_accounts_updated_at BEFORE UPDATE ON connected_a
 CREATE TRIGGER update_conversations_updated_at BEFORE UPDATE ON conversations FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_posts_updated_at BEFORE UPDATE ON posts FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_campaigns_updated_at BEFORE UPDATE ON campaigns FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_subscriptions_updated_at BEFORE UPDATE ON subscriptions FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_composio_connections_updated_at BEFORE UPDATE ON composio_connections FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Row Level Security (RLS) policies
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
@@ -172,6 +209,8 @@ ALTER TABLE campaigns ENABLE ROW LEVEL SECURITY;
 ALTER TABLE analytics ENABLE ROW LEVEL SECURITY;
 ALTER TABLE activity_log ENABLE ROW LEVEL SECURITY;
 ALTER TABLE oauth_states ENABLE ROW LEVEL SECURITY;
+ALTER TABLE subscriptions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE composio_connections ENABLE ROW LEVEL SECURITY;
 
 -- Users can only access their own data
 CREATE POLICY "Users can view own profile" ON users FOR SELECT USING (auth.uid() = id);
@@ -221,6 +260,17 @@ CREATE POLICY "Users can insert own activity log" ON activity_log FOR INSERT WIT
 CREATE POLICY "Users can view own oauth states" ON oauth_states FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Users can insert oauth states" ON oauth_states FOR INSERT WITH CHECK (true);
 CREATE POLICY "Users can delete own oauth states" ON oauth_states FOR DELETE USING (auth.uid() = user_id);
+
+-- Subscriptions policies
+CREATE POLICY "Users can view own subscriptions" ON subscriptions FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert own subscriptions" ON subscriptions FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update own subscriptions" ON subscriptions FOR UPDATE USING (auth.uid() = user_id);
+
+-- Composio connections policies
+CREATE POLICY "Users can view own composio connections" ON composio_connections FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert own composio connections" ON composio_connections FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update own composio connections" ON composio_connections FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can delete own composio connections" ON composio_connections FOR DELETE USING (auth.uid() = user_id);
 
 -- Create a function to clean up expired OAuth states
 CREATE OR REPLACE FUNCTION cleanup_expired_oauth_states()
