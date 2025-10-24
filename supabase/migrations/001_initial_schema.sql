@@ -3,7 +3,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- Create enum types
-CREATE TYPE user_plan AS ENUM ('free', 'pro', 'enterprise');
+CREATE TYPE user_plan AS ENUM ('growth', 'scale', 'enterprise');
 CREATE TYPE subscription_status AS ENUM ('active', 'inactive', 'cancelled', 'past_due');
 CREATE TYPE platform_type AS ENUM ('twitter', 'reddit');
 CREATE TYPE post_status AS ENUM ('draft', 'scheduled', 'published', 'failed');
@@ -16,7 +16,7 @@ CREATE TABLE users (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     email TEXT UNIQUE NOT NULL,
     phone TEXT UNIQUE,
-    plan user_plan DEFAULT 'free',
+    plan user_plan DEFAULT 'growth',
     subscription_status subscription_status DEFAULT 'active',
     subscription_id TEXT,
     stripe_customer_id TEXT,
