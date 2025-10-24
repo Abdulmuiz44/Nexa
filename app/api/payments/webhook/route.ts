@@ -16,20 +16,37 @@ export async function POST(request: NextRequest) {
 
     if (payload.status === 'successful') {
       const tx_ref = payload.tx_ref;
-      const userId = tx_ref.split('_')[1]; // tx_ref is nexa_<user_id>_<timestamp>
+      const parts = tx_ref.split('_');
+      const userId = parts[1];
+      const planId = parts[2] || 'growth'; // Default to growth if not specified
 
       const flutterwave = new FlutterwavePayment();
       const verificationResult = await flutterwave.verifyPayment(payload.id.toString());
 
       if (verificationResult.status === 'success') {
-        const { error: updateError } = await supabaseServer
+        // Update user status
+        const { error: userError } = await supabaseServer
           .from('users')
-          .update({ status: 'active', subscription_tier: 'standard' })
+          .update({ status: 'active' })
           .eq('id', userId);
 
-        if (updateError) {
-          console.error('Webhook: Error updating user', updateError);
-          // Still return 200 to acknowledge webhook receipt
+        if (userError) {
+          console.error('Webhook: Error updating user', userError);
+        }
+
+        // Create subscription
+        const { error: subError } = await supabaseServer
+          .from('subscriptions')
+          .insert({
+            user_id: userId,
+            plan: planId,
+            amount: payload.amount,
+            currency: payload.currency,
+            flutterwave_subscription_id: payload.id.toString(),
+          });
+
+        if (subError) {
+          console.error('Webhook: Error creating subscription', subError);
         }
       }
     }

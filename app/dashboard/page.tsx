@@ -13,27 +13,41 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/use-toast";
 
 const Dashboard = () => {
-  const { data: session } = useSession();
-  const { toast } = useToast();
-  const [stats, setStats] = useState({ totalPosts: 0, engagements: 0, thisWeek: 0, aiScore: 0 });
-  const [recentActivity, setRecentActivity] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+const { data: session } = useSession();
+const { toast } = useToast();
+const [stats, setStats] = useState({ totalPosts: 0, engagements: 0, thisWeek: 0, aiScore: 0 });
+const [recentActivity, setRecentActivity] = useState<any[]>([]);
+const [onboardingData, setOnboardingData] = useState<any>(null);
+const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
 
   useEffect(() => {
-    const fetchData = async () => {
-      if (session?.user) {
-        setLoading(true);
-        const { data, error } = await supabase
-          .from("generated_contents")
-          .select("*")
-          .order("created_at", { ascending: false })
-          .limit(5);
+  const fetchData = async () => {
+  if (session?.user) {
+  setLoading(true);
 
-        if (error) {
-          console.error("Error fetching dashboard data:", error);
+  // Fetch onboarding data
+  const { data: userData, error: userError } = await supabase
+  .from('users')
+  .select('onboarding_data')
+          .eq('id', session.user.id)
+    .single();
+
+  if (!userError && userData?.onboarding_data) {
+  setOnboardingData(userData.onboarding_data);
+  }
+
+  // Fetch recent activity
+  const { data, error } = await supabase
+  .from("generated_contents")
+  .select("*")
+  .order("created_at", { ascending: false })
+    .limit(5);
+
+    if (error) {
+        console.error("Error fetching dashboard data:", error);
         } else {
-          setRecentActivity(data);
+        setRecentActivity(data);
           // Placeholder for stats calculation
           setStats({
             totalPosts: data.length,
@@ -100,6 +114,44 @@ const Dashboard = () => {
           </Badge>
           </div>
           </Card>
+
+          {onboardingData && (
+            <Card className="p-6 mb-8 bg-card/50 backdrop-blur-sm">
+              <h3 className="text-xl font-bold mb-4">Your Profile</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">Business</p>
+                  <p className="font-medium">{onboardingData.business_name}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Type</p>
+                  <p className="font-medium">{onboardingData.business_type}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Goals</p>
+                  <p className="font-medium">{onboardingData.promotion_goals?.join(', ')}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Posting Frequency</p>
+                  <p className="font-medium">{onboardingData.posting_frequency}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Brand Tone</p>
+                  <p className="font-medium">{onboardingData.brand_tone}</p>
+                </div>
+                {onboardingData.website_url && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Website</p>
+                    <p className="font-medium">{onboardingData.website_url}</p>
+                  </div>
+                )}
+              </div>
+              <Button variant="hero" size="lg" onClick={() => toast({ title: "Starting Growth Agent!", description: "Your AI agent is now active." })}>
+                <Bot className="mr-2" />
+                Start Growth Agent
+              </Button>
+            </Card>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <Card className="p-6 bg-card/50 backdrop-blur-sm">

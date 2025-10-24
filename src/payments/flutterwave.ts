@@ -34,7 +34,7 @@ export class FlutterwavePayment {
   async initializePayment(paymentData: PaymentData): Promise<PaymentResponse> {
     try {
       const payload = {
-        tx_ref: `nexa_${paymentData.campaignId}_${Date.now()}`,
+        tx_ref: `nexa_${paymentData.campaignId}_${paymentData.planId}_${Date.now()}`,
         amount: paymentData.amount,
         currency: paymentData.currency,
         redirect_url: `${process.env.NEXT_PUBLIC_APP_URL}/payment/callback`,

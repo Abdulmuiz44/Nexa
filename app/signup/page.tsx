@@ -13,55 +13,51 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import Link from "next/link"
 
 function SignUpForm() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const plan = searchParams.get("plan") || "growth"; // Default to growth plan
+const router = useRouter();
+const searchParams = useSearchParams();
 
   const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    password: "",
-    country: "",
-    plan: plan,
-  })
-  const [countries, setCountries] = useState<any[]>([]);
-  const [error, setError] = useState("")
-  const [loading, setLoading] = useState(false)
+  name: "",
+email: "",
+password: "",
+confirmPassword: "",
+})
+const [error, setError] = useState("")
+const [loading, setLoading] = useState(false)
 
-  useEffect(() => {
-    const fetchCountries = async () => {
-      try {
-        const response = await fetch("https://restcountries.com/v3.1/all?fields=name");
-        const data = await response.json();
-        const countryNames = data.map((c: any) => c.name.common).sort();
-        setCountries(countryNames);
-      } catch (error) {
-        console.error("Failed to fetch countries:", error);
-      }
-    };
-    fetchCountries();
-  }, []);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault()
     setLoading(true)
-    setError("")
+  setError("")
+
+    // Client-side validation
+    if (formData.password !== formData.confirmPassword) {
+    setError("Passwords do not match");
+    setLoading(false);
+    return;
+    }
+
+    if (formData.password.length < 8) {
+      setError("Password must be at least 8 characters long");
+    setLoading(false);
+    return;
+    }
 
     try {
-      const response = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+    const response = await fetch("/api/auth/register", {
+      method: "POST",
+    headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+          name: formData.name,
+        email: formData.email,
+          password: formData.password,
+      }),
       })
 
       const data = await response.json()
 
       if (response.ok) {
-        if (data.paymentLink) {
-          router.push(data.paymentLink);
-        } else {
-          router.push("/login?message=Account created successfully");
-        }
+        router.push("/onboarding");
       } else {
         setError(data.error || "Registration failed")
       }
@@ -106,20 +102,13 @@ function SignUpForm() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="country">Country</Label>
-              <Select onValueChange={handleCountryChange} defaultValue={formData.country}>
-                <SelectTrigger id="country">
-                  <SelectValue placeholder="Select a country" />
-                </SelectTrigger>
-                <SelectContent>
-                  {countries.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                </SelectContent>
-              </Select>
+            <Label htmlFor="password">Password</Label>
+            <Input id="password" name="password" type="password" value={formData.password} onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))} required minLength={8} />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input id="password" name="password" type="password" value={formData.password} onChange={handleChange} required minLength={8} />
+            <Label htmlFor="confirmPassword">Confirm Password</Label>
+            <Input id="confirmPassword" name="confirmPassword" type="password" value={formData.confirmPassword} onChange={(e) => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))} required />
             </div>
 
             <Button type="submit" className="w-full" disabled={loading}>

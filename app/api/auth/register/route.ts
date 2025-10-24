@@ -12,9 +12,9 @@ const planPrices: { [key: string]: number } = {
 
 export async function POST(req: Request) {
   try {
-    const { name, email, password, country, plan } = await req.json();
+    const { name, email, password } = await req.json();
 
-    if (!name || !email || !password || !country || !plan) {
+    if (!name || !email || !password) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
@@ -25,17 +25,13 @@ export async function POST(req: Request) {
 
     const password_hash = await bcrypt.hash(password, 10);
     const api_key = generateApiKey();
-    const subscription_tier = email === 'abdulmuizproject@gmail.com' ? 'scale' : plan;
-    const status = email === 'abdulmuizproject@gmail.com' ? 'active' : 'pending_payment';
 
     const { data: newUser, error: insertError } = await supabaseServer.from('users').insert({
       name,
       email,
       password_hash,
-      country,
       api_key,
-      subscription_tier,
-      status,
+      status: 'onboarding',
     }).select().single();
 
     if (insertError) {
@@ -43,26 +39,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Failed to create user' }, { status: 500 });
     }
 
-    if (email === 'abdulmuizproject@gmail.com') {
-        return NextResponse.json({ success: true, message: 'Admin account created successfully' });
-    }
-
-    const flutterwave = new FlutterwavePayment();
-    const paymentData = {
-        amount: planPrices[plan],
-        currency: 'USD',
-        email,
-        name,
-        campaignId: newUser.id, // Using user id as campaignId for tracking
-    };
-
-    const paymentResult = await flutterwave.initializePayment(paymentData);
-
-    if (paymentResult.status === 'success') {
-        return NextResponse.json({ success: true, paymentLink: paymentResult.data?.link });
-    } else {
-        return NextResponse.json({ error: 'Failed to initialize payment' }, { status: 500 });
-    }
+    return NextResponse.json({ success: true });
 
   } catch (error: any) {
     console.error('API Error:', error);

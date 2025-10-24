@@ -4,8 +4,6 @@ import { Button } from './ui/button';
 import { Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-import Link from 'next/link';
-
 interface PricingCardProps {
   title: string;
   tagline: string;
@@ -14,9 +12,10 @@ interface PricingCardProps {
   features: string[];
   planId: string;
   highlighted?: boolean;
+  onSelect?: (planId: string) => void;
 }
 
-const PricingCard: React.FC<PricingCardProps> = ({ title, tagline, price, period, features, planId, highlighted }) => {
+const PricingCard: React.FC<PricingCardProps> = ({ title, tagline, price, period, features, planId, highlighted, onSelect }) => {
   return (
     <Card className={cn('flex flex-col', highlighted ? 'border-primary' : '')}>
       <CardHeader>
@@ -38,11 +37,9 @@ const PricingCard: React.FC<PricingCardProps> = ({ title, tagline, price, period
         </ul>
       </CardContent>
       <div className="p-6">
-        <Button className="w-full" variant={highlighted ? 'default' : 'outline'} asChild>
-          <Link href={`/subscribe?plan=${planId}`}>
-            Choose Plan
-          </Link>
-        </Button>
+      <Button className="w-full" variant={highlighted ? 'default' : 'outline'} onClick={() => onSelect?.(planId)}>
+      Choose Plan
+      </Button>
       </div>
     </Card>
   );

@@ -22,21 +22,21 @@ export async function middleware(request: NextRequest) {
     return rateLimitResponse;
   }
 
-  // Protect dashboard, subscribe and pricing pages
-  if (pathname.startsWith("/dashboard") || pathname.startsWith("/subscribe") || pathname.startsWith("/pricing")) {
-    const onboardingResponse = await onboardingMiddleware(request);
-    if (onboardingResponse.status !== 200) {
-      return onboardingResponse;
-    }
+  // Protect onboarding, dashboard, subscribe and pricing pages
+  if (pathname.startsWith("/onboarding") || pathname.startsWith("/dashboard") || pathname.startsWith("/subscribe") || pathname.startsWith("/pricing")) {
+  const onboardingResponse = await onboardingMiddleware(request);
+  if (onboardingResponse.status !== 200) {
+  return onboardingResponse;
+  }
 
-    if (pathname.startsWith("/dashboard")) {
-      return subscriptionMiddleware(request);
-    }
+  if (pathname.startsWith("/dashboard")) {
+  return subscriptionMiddleware(request);
+  }
   }
 
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/api/:path*", "/subscribe/:path*", "/pricing/:path*"],
+matcher: ["/onboarding/:path*", "/dashboard/:path*", "/api/:path*", "/subscribe/:path*", "/pricing/:path*"],
 };

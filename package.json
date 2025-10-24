@@ -20,7 +20,8 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:watch": "jest --watch",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "workers": "tsx scripts/start-workers.ts"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
@@ -33,6 +34,7 @@
   },
   "dependencies": {
     "@auth/core": "latest",
+    "@composio/core": "^0.2.0",
     "@google/generative-ai": "^0.24.1",
     "@jest/globals": "latest",
     "@modelcontextprotocol/sdk": "^1.20.1",
@@ -124,6 +126,7 @@
     "prettier-plugin-tailwindcss": "^0.5.7",
     "supabase": "^2.51.0",
     "supertest": "^6.3.3",
+    "tsx": "^4.20.6",
     "typescript": "^5"
   },
   "engines": {
