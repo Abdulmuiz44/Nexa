@@ -34,6 +34,7 @@ export default function OnboardingPage() {
     sampleCaption: '',
   });
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   const router = useRouter();
 
   const handleNext = () => {
@@ -50,6 +51,7 @@ export default function OnboardingPage() {
 
   const handleSubmit = async () => {
     setLoading(true);
+    setErrorMessage('');
     try {
       const response = await fetch('/api/onboarding', {
         method: 'POST',
@@ -61,10 +63,10 @@ export default function OnboardingPage() {
         router.push('/pricing');
       } else {
         const errorData = await response.json();
-        alert(`Error saving onboarding data: ${errorData.error || 'Unknown error'}`);
+        setErrorMessage(errorData.error || 'Unknown error');
       }
     } catch (error) {
-      alert('Error saving onboarding data');
+      setErrorMessage('Network error occurred while saving onboarding data');
     } finally {
       setLoading(false);
     }
@@ -187,6 +189,11 @@ export default function OnboardingPage() {
         </CardHeader>
         <CardContent className="space-y-6">
           {renderStep()}
+          {errorMessage && (
+            <div className="p-4 border border-red-300 bg-red-50 text-red-700 rounded-md">
+              {errorMessage}
+            </div>
+          )}
           <div className="flex justify-between">
             <Button variant="outline" onClick={handlePrev} disabled={currentStep === 0}>
               Previous

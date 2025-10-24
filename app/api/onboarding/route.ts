@@ -11,7 +11,18 @@ export async function POST(req: Request) {
       throw new Error('Missing Supabase environment variables: NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY');
     }
 
-    const supabase = createServerClient(supabaseUrl, supabaseKey, { cookies });
+    const supabase = createServerClient(supabaseUrl, supabaseKey, {
+      cookies: {
+        getAll() {
+          return cookies().getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            // For API routes, we don't set cookies, but this is required
+          });
+        },
+      },
+    });
 
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user?.id) {
