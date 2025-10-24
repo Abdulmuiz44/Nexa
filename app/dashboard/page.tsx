@@ -18,6 +18,7 @@ const { toast } = useToast();
 const [stats, setStats] = useState({ totalPosts: 0, engagements: 0, thisWeek: 0, aiScore: 0 });
 const [recentActivity, setRecentActivity] = useState<any[]>([]);
 const [onboardingData, setOnboardingData] = useState<any>(null);
+const [userStatus, setUserStatus] = useState<string>('onboarding');
 const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
 
@@ -26,16 +27,19 @@ const [loading, setLoading] = useState(true);
   if (session?.user) {
   setLoading(true);
 
-  // Fetch onboarding data
+  // Fetch user data including status and onboarding
   const { data: userData, error: userError } = await supabase
   .from('users')
-  .select('onboarding_data')
-          .eq('id', session.user.id)
-    .single();
+  .select('status, onboarding_data')
+  .eq('id', session.user.id)
+  .single();
 
-  if (!userError && userData?.onboarding_data) {
-  setOnboardingData(userData.onboarding_data);
-  }
+  if (!userError && userData) {
+  setUserStatus(userData.status || 'onboarding');
+    if (userData.onboarding_data) {
+            setOnboardingData(userData.onboarding_data);
+          }
+        }
 
   // Fetch recent activity
   const { data, error } = await supabase
@@ -64,19 +68,53 @@ const [loading, setLoading] = useState(true);
   }, [session]);
 
   const handleQuickAction = (action: string) => {
-    switch (action) {
-      case "create_post":
-        setActiveTab("generator");
-        break;
-      case "view_analytics":
-        setActiveTab("analytics");
-        break;
-      case "schedule_campaign":
-      case "agent_settings":
-        toast({ title: "Coming Soon!", description: "This feature is under development." });
-        break;
-      default:
-        break;
+  switch (action) {
+  case "create_post":
+  setActiveTab("generator");
+  break;
+  case "view_analytics":
+  setActiveTab("analytics");
+  break;
+  case "schedule_campaign":
+  case "agent_settings":
+  toast({ title: "Coming Soon!", description: "This feature is under development." });
+  break;
+  default:
+  break;
+  }
+  };
+
+  const handleStartAgent = async () => {
+    try {
+      const response = await fetch('/api/agent/start', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        toast({
+          title: "Agent Started!",
+          description: data.message || "Your AI Growth Agent is now active.",
+        });
+        // Refresh page to update status
+        window.location.reload();
+      } else {
+        toast({
+          title: "Error",
+          description: data.error || "Failed to start agent.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to start agent. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -105,17 +143,29 @@ const [loading, setLoading] = useState(true);
           <div className="absolute inset-0 blur-xl bg-primary/50" />
           </div>
           <div>
-          <h2 className="text-xl sm:text-2xl font-bold mb-1">Agent Status: Active</h2>
-          <p className="text-sm sm:text-base text-muted-foreground">Your AI agent is working 24/7</p>
+          <h2 className="text-xl sm:text-2xl font-bold mb-1">
+            Agent Status: {userStatus === 'agent_active' ? 'Active' : userStatus === 'agent_paused' ? 'Paused' : 'Inactive'}
+          </h2>
+          <p className="text-sm sm:text-base text-muted-foreground">
+            {userStatus === 'agent_active' ? 'Your AI agent is working 24/7' :
+             userStatus === 'agent_paused' ? 'Your AI agent is paused' :
+             'Start your AI agent to begin automated growth'}
+          </p>
           </div>
           </div>
-          <Badge className="bg-success text-success-foreground px-4 py-2 text-sm font-semibold self-start sm:self-center">
-          Online
+          <Badge className={`px-4 py-2 text-sm font-semibold self-start sm:self-center ${
+            userStatus === 'agent_active'
+              ? 'bg-success text-success-foreground'
+              : userStatus === 'agent_paused'
+              ? 'bg-warning text-warning-foreground'
+              : 'bg-muted text-muted-foreground'
+          }`}>
+            {userStatus === 'agent_active' ? 'Online' : userStatus === 'agent_paused' ? 'Paused' : 'Offline'}
           </Badge>
           </div>
           </Card>
 
-          {onboardingData && (
+          {onboardingData && userStatus !== 'agent_active' && (
             <Card className="p-6 mb-8 bg-card/50 backdrop-blur-sm">
               <h3 className="text-xl font-bold mb-4">Your Profile</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -146,9 +196,9 @@ const [loading, setLoading] = useState(true);
                   </div>
                 )}
               </div>
-              <Button variant="hero" size="lg" onClick={() => toast({ title: "Starting Growth Agent!", description: "Your AI agent is now active." })}>
-                <Bot className="mr-2" />
-                Start Growth Agent
+              <Button variant="hero" size="lg" onClick={handleStartAgent}>
+              <Bot className="mr-2" />
+              Start Growth Agent
               </Button>
             </Card>
           )}
