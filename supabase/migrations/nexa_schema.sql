@@ -386,26 +386,33 @@ ALTER TABLE credit_transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE payment_history ENABLE ROW LEVEL SECURITY;
 
 -- RLS policies (user-only access for read/insert; admin/service role expected for balance updates)
-CREATE POLICY IF NOT EXISTS "Users can view own wallet" ON credits_wallet
+DROP POLICY IF EXISTS "Users can view own wallet" ON credits_wallet;
+CREATE POLICY "Users can view own wallet" ON credits_wallet
   FOR SELECT USING (auth.uid() = user_id);
 
-CREATE POLICY IF NOT EXISTS "Users can insert wallet" ON credits_wallet
+DROP POLICY IF EXISTS "Users can insert wallet" ON credits_wallet;
+CREATE POLICY "Users can insert wallet" ON credits_wallet
   FOR INSERT WITH CHECK (auth.uid() = user_id);
 
 -- Allow users to select their transactions and insert transactions they perform (in practice writes are made by server)
-CREATE POLICY IF NOT EXISTS "Users can view own credit transactions" ON credit_transactions
+DROP POLICY IF EXISTS "Users can view own credit transactions" ON credit_transactions;
+CREATE POLICY "Users can view own credit transactions" ON credit_transactions
   FOR SELECT USING (auth.uid() = user_id);
 
-CREATE POLICY IF NOT EXISTS "Users can insert own credit transactions" ON credit_transactions
+DROP POLICY IF EXISTS "Users can insert own credit transactions" ON credit_transactions;
+CREATE POLICY "Users can insert own credit transactions" ON credit_transactions
   FOR INSERT WITH CHECK (auth.uid() = user_id);
 
-CREATE POLICY IF NOT EXISTS "Users can view own payments" ON payment_history
+DROP POLICY IF EXISTS "Users can view own payments" ON payment_history;
+CREATE POLICY "Users can view own payments" ON payment_history
   FOR SELECT USING (auth.uid() = user_id);
 
-CREATE POLICY IF NOT EXISTS "Users can insert own payment histories" ON payment_history
+DROP POLICY IF EXISTS "Users can insert own payment histories" ON payment_history;
+CREATE POLICY "Users can insert own payment histories" ON payment_history
   FOR INSERT WITH CHECK (auth.uid() = user_id);
 
-CREATE POLICY IF NOT EXISTS "Users can update own payment histories" ON payment_history
+DROP POLICY IF EXISTS "Users can update own payment histories" ON payment_history;
+CREATE POLICY "Users can update own payment histories" ON payment_history
   FOR UPDATE USING (auth.uid() = user_id);
 
 -- Safe backfill: create wallets for existing users who don't have one yet, and grant 100 welcome credits
@@ -435,4 +442,4 @@ $$ LANGUAGE plpgsql;
 
 -- END CREDIT-SYSTEM-SQL
 
-COMMIT;
+
