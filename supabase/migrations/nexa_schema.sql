@@ -339,6 +339,8 @@ CREATE TABLE IF NOT EXISTS credit_transactions (
   credits INTEGER NOT NULL,
   description TEXT,
   reference_id UUID,
+  operation_type TEXT, -- e.g., 'CONTENT_GENERATION', 'CAMPAIGN_CREATION'
+  operation_id UUID,   -- links to specific operation records
   metadata JSONB DEFAULT '{}',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -357,10 +359,39 @@ CREATE TABLE IF NOT EXISTS payment_history (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- credit_usage_analytics: aggregated daily/weekly credit usage per user
+CREATE TABLE IF NOT EXISTS credit_usage_analytics (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  date DATE NOT NULL,
+  total_credits_spent INTEGER NOT NULL DEFAULT 0,
+  credits_purchased INTEGER NOT NULL DEFAULT 0,
+  credits_remaining INTEGER NOT NULL DEFAULT 0,
+  operation_breakdown JSONB DEFAULT '{}', -- breakdown by operation type
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(user_id, date)
+);
+
+-- credit_failures: log failed operations due to insufficient credits
+CREATE TABLE IF NOT EXISTS credit_failures (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  operation_type TEXT NOT NULL,
+  credits_required INTEGER NOT NULL,
+  credits_available INTEGER NOT NULL,
+  metadata JSONB DEFAULT '{}',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Indexes for performance
 CREATE INDEX IF NOT EXISTS idx_credits_wallet_user_id ON credits_wallet(user_id);
 CREATE INDEX IF NOT EXISTS idx_credit_transactions_user_id ON credit_transactions(user_id);
+CREATE INDEX IF NOT EXISTS idx_credit_transactions_operation_type ON credit_transactions(operation_type);
 CREATE INDEX IF NOT EXISTS idx_payment_history_user_id ON payment_history(user_id);
+CREATE INDEX IF NOT EXISTS idx_credit_usage_analytics_user_id ON credit_usage_analytics(user_id);
+CREATE INDEX IF NOT EXISTS idx_credit_usage_analytics_date ON credit_usage_analytics(date);
+CREATE INDEX IF NOT EXISTS idx_credit_failures_user_id ON credit_failures(user_id);
 
 -- Ensure updated_at trigger function exists (do not overwrite if present)
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -380,10 +411,78 @@ DROP TRIGGER IF EXISTS update_payment_history_updated_at ON payment_history;
 CREATE TRIGGER update_payment_history_updated_at BEFORE UPDATE ON payment_history
 FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_credit_usage_analytics_updated_at ON credit_usage_analytics;
+CREATE TRIGGER update_credit_usage_analytics_updated_at BEFORE UPDATE ON credit_usage_analytics
+FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Function to update credit analytics when transactions occur
+CREATE OR REPLACE FUNCTION update_credit_analytics()
+RETURNS TRIGGER AS $$
+DECLARE
+  today_date DATE := CURRENT_DATE;
+  tx_type TEXT;
+  credit_change INTEGER;
+BEGIN
+  -- Determine transaction type and credit change
+  IF NEW.tx_type = 'spend' THEN
+    tx_type := 'spent';
+    credit_change := NEW.credits;
+  ELSIF NEW.tx_type = 'purchase' THEN
+    tx_type := 'purchased';
+    credit_change := NEW.credits;
+  ELSE
+    -- Skip non-spend/purchase transactions for analytics
+    RETURN NEW;
+  END IF;
+
+  -- Insert or update analytics record
+  INSERT INTO credit_usage_analytics (
+    user_id,
+    date,
+    total_credits_spent,
+    credits_purchased,
+    operation_breakdown
+  ) VALUES (
+    NEW.user_id,
+    today_date,
+    CASE WHEN tx_type = 'spent' THEN credit_change ELSE 0 END,
+    CASE WHEN tx_type = 'purchased' THEN credit_change ELSE 0 END,
+    jsonb_build_object(
+      COALESCE(NEW.operation_type, 'unknown'),
+      credit_change
+    )
+  ) ON CONFLICT (user_id, date) DO UPDATE SET
+    total_credits_spent = CASE
+      WHEN tx_type = 'spent' THEN credit_usage_analytics.total_credits_spent + credit_change
+      ELSE credit_usage_analytics.total_credits_spent
+    END,
+    credits_purchased = CASE
+      WHEN tx_type = 'purchased' THEN credit_usage_analytics.credits_purchased + credit_change
+      ELSE credit_usage_analytics.credits_purchased
+    END,
+    operation_breakdown = jsonb_set(
+      COALESCE(credit_usage_analytics.operation_breakdown, '{}'),
+      ARRAY[COALESCE(NEW.operation_type, 'unknown')],
+      to_jsonb(COALESCE(credit_usage_analytics.operation_breakdown->>COALESCE(NEW.operation_type, 'unknown'), '0')::integer + credit_change)
+    ),
+    updated_at = NOW();
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger to automatically update analytics on credit transactions
+DROP TRIGGER IF EXISTS trigger_update_credit_analytics ON credit_transactions;
+CREATE TRIGGER trigger_update_credit_analytics
+  AFTER INSERT ON credit_transactions
+  FOR EACH ROW EXECUTE FUNCTION update_credit_analytics();
+
 -- Enable Row Level Security on new tables
 ALTER TABLE credits_wallet ENABLE ROW LEVEL SECURITY;
 ALTER TABLE credit_transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE payment_history ENABLE ROW LEVEL SECURITY;
+ALTER TABLE credit_usage_analytics ENABLE ROW LEVEL SECURITY;
+ALTER TABLE credit_failures ENABLE ROW LEVEL SECURITY;
 
 -- RLS policies (user-only access for read/insert; admin/service role expected for balance updates)
 DROP POLICY IF EXISTS "Users can view own wallet" ON credits_wallet;
@@ -413,7 +512,15 @@ CREATE POLICY "Users can insert own payment histories" ON payment_history
 
 DROP POLICY IF EXISTS "Users can update own payment histories" ON payment_history;
 CREATE POLICY "Users can update own payment histories" ON payment_history
-  FOR UPDATE USING (auth.uid() = user_id);
+FOR UPDATE USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can view own credit analytics" ON credit_usage_analytics;
+CREATE POLICY "Users can view own credit analytics" ON credit_usage_analytics
+  FOR SELECT USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can view own credit failures" ON credit_failures;
+CREATE POLICY "Users can view own credit failures" ON credit_failures
+  FOR SELECT USING (auth.uid() = user_id);
 
 -- Safe backfill: create wallets for existing users who don't have one yet, and grant 100 welcome credits
 -- (1 credit = $0.10, so 100 credits = $10 welcome credit)

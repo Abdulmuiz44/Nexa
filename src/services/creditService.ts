@@ -1,5 +1,27 @@
 import { SupabaseAdapter, CreditsWallet, CreditTransaction, PaymentHistory, CreditTxType } from '@/src/lib/db/supabase-adapter';
 
+export interface CreditFailure {
+  id: string;
+  user_id: string;
+  operation_type: string;
+  credits_required: number;
+  credits_available: number;
+  metadata?: Record<string, any>;
+  created_at: Date;
+}
+
+export interface CreditUsageAnalytics {
+  id: string;
+  user_id: string;
+  date: Date;
+  total_credits_spent: number;
+  credits_purchased: number;
+  credits_remaining: number;
+  operation_breakdown: Record<string, number>;
+  created_at: Date;
+  updated_at: Date;
+}
+
 class CreditService {
   private adapter: SupabaseAdapter;
 
