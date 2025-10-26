@@ -645,7 +645,9 @@ export class SupabaseAdapter {
     credits: number,
     description?: string,
     referenceId?: string,
-    metadata?: Record<string, any>
+    metadata?: Record<string, any>,
+    operationType?: string,
+    operationId?: string
   ): Promise<string> {
     const { data, error } = await this.supabase
       .from('credit_transactions')
@@ -655,6 +657,8 @@ export class SupabaseAdapter {
         credits,
         description,
         reference_id: referenceId,
+        operation_type: operationType,
+        operation_id: operationId,
         metadata
       })
       .select('id')
@@ -780,6 +784,105 @@ export class SupabaseAdapter {
       `Credit top-up: $${amountUsd}`,
       paymentId,
       { payment_provider: paymentProvider, provider_ref: providerRef }
+    );
+  }
+
+  // Analytics and failure logging methods
+  async getCreditUsageAnalytics(userId: string, days = 30): Promise<any[]> {
+    const { data, error } = await this.supabase
+      .from('credit_usage_analytics')
+      .select('*')
+      .eq('user_id', userId)
+      .gte('date', new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().split('T')[0])
+      .order('date', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching credit usage analytics:', error);
+      return [];
+    }
+
+    return data || [];
+  }
+
+  async logCreditFailure(
+    userId: string,
+    operationType: string,
+    creditsRequired: number,
+    creditsAvailable: number,
+    metadata?: Record<string, any>
+  ): Promise<string> {
+    const { data, error } = await this.supabase
+      .from('credit_failures')
+      .insert({
+        user_id: userId,
+        operation_type: operationType,
+        credits_required: creditsRequired,
+        credits_available: creditsAvailable,
+        metadata
+      })
+      .select('id')
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to log credit failure: ${error.message}`);
+    }
+
+    return data.id;
+  }
+
+  async getCreditFailures(userId: string, limit = 20): Promise<any[]> {
+    const { data, error } = await this.supabase
+      .from('credit_failures')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      console.error('Error fetching credit failures:', error);
+      return [];
+    }
+
+    return data || [];
+  }
+
+  // Enhanced spendCredits with operation tracking
+  async spendCreditsWithTracking(
+    userId: string,
+    credits: number,
+    description: string,
+    operationType: string,
+    operationId?: string,
+    referenceId?: string
+  ): Promise<void> {
+    // Check balance first
+    const wallet = await this.getCreditsWallet(userId);
+    if (!wallet) {
+      throw new Error('Credits wallet not found');
+    }
+
+    if (wallet.balance < credits) {
+      // Log the failure
+      await this.logCreditFailure(userId, operationType, credits, wallet.balance, {
+        operation_id: operationId,
+        description
+      });
+      throw new Error('Insufficient credits');
+    }
+
+    // Update balance
+    await this.updateCreditsBalance(userId, credits, 'subtract');
+
+    // Record transaction with operation details
+    await this.addCreditTransaction(
+      userId,
+      'spend',
+      credits,
+      description,
+      referenceId,
+      undefined,
+      operationType,
+      operationId
     );
   }
 }

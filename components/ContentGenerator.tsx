@@ -36,14 +36,16 @@ const ContentGenerator = () => {
 
     try {
     // Spend credits for content generation
-      const spendResponse = await fetch('/api/credits/spend', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          operation: 'CONTENT_GENERATION',
-          customDescription: `Content generation for ${toolName}`,
+    const spendResponse = await fetch('/api/credits/spend', {
+    method: 'POST',
+    headers: {
+    'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+    operation: 'CONTENT_GENERATION',
+    customDescription: `Content generation for ${toolName}`,
+      operationType: 'CONTENT_GENERATION',
+        operationId: `gen_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         }),
       });
 

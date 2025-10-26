@@ -7,10 +7,11 @@ import Navbar from "@/components/Navbar";
 import ContentGenerator from "@/components/ContentGenerator";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Bot, Calendar, TrendingUp, MessageSquare, Settings, Plus, Sparkles, CreditCard, DollarSign } from "lucide-react";
+import { Bot, Calendar, TrendingUp, MessageSquare, Settings, Plus, Sparkles, CreditCard, DollarSign, AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/use-toast";
+import { CreditAnalyticsCard } from "@/src/components/CreditAnalyticsCard";
 
 const Dashboard = () => {
 const { data: session } = useSession();
@@ -174,6 +175,50 @@ const [creditBalance, setCreditBalance] = useState<number>(0);
           </Badge>
           </div>
           </Card>
+
+          {/* Low Credit Balance Alert */}
+          {creditBalance <= 10 && creditBalance > 0 && (
+            <Card className="p-4 mb-8 bg-warning/10 border-warning/50">
+              <div className="flex items-center gap-3">
+                <AlertTriangle className="h-5 w-5 text-warning flex-shrink-0" />
+                <div className="flex-1">
+                  <h4 className="font-medium text-warning">Low Credit Balance</h4>
+                  <p className="text-sm text-muted-foreground">
+                    You have {creditBalance} credits remaining. Consider purchasing more credits to continue using AI features.
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  onClick={() => setActiveTab('credits')}
+                  className="bg-warning hover:bg-warning/90 text-warning-foreground"
+                >
+                  Buy Credits
+                </Button>
+              </div>
+            </Card>
+          )}
+
+          {/* No Credits Alert */}
+          {creditBalance === 0 && (
+            <Card className="p-4 mb-8 bg-destructive/10 border-destructive/50">
+              <div className="flex items-center gap-3">
+                <AlertTriangle className="h-5 w-5 text-destructive flex-shrink-0" />
+                <div className="flex-1">
+                  <h4 className="font-medium text-destructive">No Credits Available</h4>
+                  <p className="text-sm text-muted-foreground">
+                    You need credits to use AI features. Purchase credits to continue.
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  onClick={() => setActiveTab('credits')}
+                  className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+                >
+                  Buy Credits
+                </Button>
+              </div>
+            </Card>
+          )}
 
           {onboardingData && userStatus !== 'agent_active' && (
             <Card className="p-6 mb-8 bg-card/50 backdrop-blur-sm">
@@ -359,6 +404,11 @@ const [creditBalance, setCreditBalance] = useState<number>(0);
                   </div>
                 </Card>
               </div>
+
+              {/* Credit Analytics */}
+              {session?.user?.id && (
+                <CreditAnalyticsCard userId={session.user.id} />
+              )}
 
               {/* Credit Packages */}
               <Card className="mt-6 p-6 bg-card/50 backdrop-blur-sm">

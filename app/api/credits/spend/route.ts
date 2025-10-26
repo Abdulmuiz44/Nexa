@@ -7,6 +7,8 @@ interface SpendCreditsRequest {
   operation: keyof typeof CreditService.CREDIT_COSTS;
   referenceId?: string;
   customDescription?: string;
+  operationType?: string;
+  operationId?: string;
 }
 
 export async function POST(request: NextRequest) {
@@ -45,7 +47,14 @@ export async function POST(request: NextRequest) {
     // Spend the credits
     const description = body.customDescription || `${body.operation.replace(/_/g, ' ')} - ${creditsRequired} credits`;
 
-    await creditService.spendCredits(userId, creditsRequired, description, body.referenceId);
+    await creditService.spendCreditsWithTracking(
+      userId,
+      creditsRequired,
+      description,
+      body.operationType || body.operation,
+      body.operationId,
+      body.referenceId
+    );
 
     // Get updated balance
     const newBalance = await creditService.getCreditBalance(userId);

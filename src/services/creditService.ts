@@ -65,6 +65,25 @@ class CreditService {
     return await this.adapter.spendCredits(userId, credits, description, referenceId);
   }
 
+  // Enhanced spending with operation tracking
+  async spendCreditsWithTracking(
+    userId: string,
+    credits: number,
+    description: string,
+    operationType: string,
+    operationId?: string,
+    referenceId?: string
+  ): Promise<void> {
+    return await this.adapter.spendCreditsWithTracking(
+      userId,
+      credits,
+      description,
+      operationType,
+      operationId,
+      referenceId
+    );
+  }
+
   // Earn credits (referrals, bonuses, etc.)
   async earnCredits(
     userId: string,
@@ -115,6 +134,64 @@ class CreditService {
       totalPurchased: wallet?.total_purchased || 0,
       totalSpent: wallet?.total_spent || 0,
       recentTransactions: transactions
+    };
+  }
+
+  // Get credit usage analytics
+  async getCreditUsageAnalytics(userId: string, days = 30): Promise<CreditUsageAnalytics[]> {
+    return await this.adapter.getCreditUsageAnalytics(userId, days);
+  }
+
+  // Log credit failure
+  async logCreditFailure(
+    userId: string,
+    operationType: string,
+    creditsRequired: number,
+    creditsAvailable: number,
+    metadata?: Record<string, any>
+  ): Promise<string> {
+    return await this.adapter.logCreditFailure(userId, operationType, creditsRequired, creditsAvailable, metadata);
+  }
+
+  // Get credit failures
+  async getCreditFailures(userId: string, limit = 20): Promise<CreditFailure[]> {
+    return await this.adapter.getCreditFailures(userId, limit);
+  }
+
+  // Get comprehensive credit analytics
+  async getCreditAnalytics(userId: string, days = 30): Promise<{
+    balance: number;
+    totalPurchased: number;
+    totalSpent: number;
+    recentTransactions: CreditTransaction[];
+    usageAnalytics: CreditUsageAnalytics[];
+    recentFailures: CreditFailure[];
+    topOperations: Record<string, number>;
+  }> {
+    const [balance, transactions, analytics, failures, wallet] = await Promise.all([
+      this.getCreditBalance(userId),
+      this.getCreditTransactions(userId, 20),
+      this.getCreditUsageAnalytics(userId, days),
+      this.getCreditFailures(userId, 10),
+      this.getCreditsWallet(userId)
+    ]);
+
+    // Calculate top operations from analytics
+    const topOperations: Record<string, number> = {};
+    analytics.forEach(day => {
+      Object.entries(day.operation_breakdown || {}).forEach(([op, count]) => {
+        topOperations[op] = (topOperations[op] || 0) + (count as number);
+      });
+    });
+
+    return {
+      balance,
+      totalPurchased: wallet?.total_purchased || 0,
+      totalSpent: wallet?.total_spent || 0,
+      recentTransactions: transactions,
+      usageAnalytics: analytics,
+      recentFailures: failures,
+      topOperations
     };
   }
 
