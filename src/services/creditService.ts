@@ -195,6 +195,188 @@ class CreditService {
     };
   }
 
+  // Admin Functions
+  async isUserAdmin(userId: string): Promise<boolean> {
+    const user = await this.adapter.getUser(userId);
+    return user?.is_admin || false;
+  }
+
+  async setUserAdminStatus(userId: string, isAdmin: boolean): Promise<void> {
+    await this.adapter.updateUser(userId, { is_admin: isAdmin });
+  }
+
+  async getAllUsersWithCredits(limit = 100, offset = 0): Promise<{
+    users: Array<{
+      id: string;
+      email: string;
+      name?: string;
+      balance: number;
+      total_purchased: number;
+      total_spent: number;
+      is_admin: boolean;
+      created_at: Date;
+    }>;
+    total: number;
+  }> {
+    const { data: users, error, count } = await this.supabase
+      .from('users')
+      .select(`
+        id,
+        email,
+        name,
+        is_admin,
+        created_at,
+        credits_wallet (
+          balance,
+          total_purchased,
+          total_spent
+        )
+      `, { count: 'exact' })
+      .range(offset, offset + limit - 1)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching users with credits:', error);
+      return { users: [], total: 0 };
+    }
+
+    const formattedUsers = users?.map(user => ({
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      balance: user.credits_wallet?.[0]?.balance || 0,
+      total_purchased: user.credits_wallet?.[0]?.total_purchased || 0,
+      total_spent: user.credits_wallet?.[0]?.total_spent || 0,
+      is_admin: user.is_admin || false,
+      created_at: user.created_at
+    })) || [];
+
+    return { users: formattedUsers, total: count || 0 };
+  }
+
+  async getAdminCreditOverview(): Promise<{
+    totalUsers: number;
+    totalCreditsInCirculation: number;
+    totalCreditsPurchased: number;
+    totalCreditsSpent: number;
+    averageUserBalance: number;
+    topSpendingUsers: Array<{
+      user_id: string;
+      email: string;
+      total_spent: number;
+    }>;
+    recentTransactions: CreditTransaction[];
+    dailyUsage: Array<{
+      date: string;
+      total_spent: number;
+      total_purchased: number;
+    }>;
+  }> {
+    // Get all wallets
+    const { data: wallets } = await this.supabase
+      .from('credits_wallet')
+      .select('balance, total_purchased, total_spent');
+
+    // Get recent transactions
+    const { data: transactions } = await this.supabase
+      .from('credit_transactions')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    // Get daily usage
+    const { data: dailyUsage } = await this.supabase
+      .from('credit_usage_analytics')
+      .select('date, total_credits_spent, credits_purchased')
+      .gte('date', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0])
+      .order('date', { ascending: false });
+
+    // Get top spending users
+    const { data: topUsers } = await this.supabase
+      .from('credits_wallet')
+      .select(`
+        user_id,
+        total_spent,
+        users!inner(email)
+      `)
+      .order('total_spent', { ascending: false })
+      .limit(10);
+
+    const totalCreditsInCirculation = wallets?.reduce((sum, w) => sum + w.balance, 0) || 0;
+    const totalCreditsPurchased = wallets?.reduce((sum, w) => sum + w.total_purchased, 0) || 0;
+    const totalCreditsSpent = wallets?.reduce((sum, w) => sum + w.total_spent, 0) || 0;
+    const averageUserBalance = wallets && wallets.length > 0 ? totalCreditsInCirculation / wallets.length : 0;
+
+    return {
+      totalUsers: wallets?.length || 0,
+      totalCreditsInCirculation,
+      totalCreditsPurchased,
+      totalCreditsSpent,
+      averageUserBalance,
+      topSpendingUsers: topUsers?.map(u => ({
+        user_id: u.user_id,
+        email: (u.users as any).email,
+        total_spent: u.total_spent
+      })) || [],
+      recentTransactions: transactions || [],
+      dailyUsage: dailyUsage?.map(d => ({
+        date: d.date,
+        total_spent: d.total_credits_spent,
+        total_purchased: d.credits_purchased
+      })) || []
+    };
+  }
+
+  async adjustUserCredits(
+    adminUserId: string,
+    targetUserId: string,
+    credits: number,
+    reason: string,
+    adjustmentType: 'adjust' | 'refund' = 'adjust'
+  ): Promise<void> {
+    // Verify admin status
+    const isAdmin = await this.isUserAdmin(adminUserId);
+    if (!isAdmin) {
+      throw new Error('Unauthorized: Admin access required');
+    }
+
+    // Create wallet if it doesn't exist
+    let wallet = await this.getCreditsWallet(targetUserId);
+    if (!wallet) {
+      await this.createCreditsWallet(targetUserId);
+      wallet = await this.getCreditsWallet(targetUserId);
+    }
+
+    if (!wallet) {
+      throw new Error('Failed to create or find user wallet');
+    }
+
+    // For adjustments, credits can be positive (add) or negative (subtract)
+    // For refunds, credits should be positive (add back)
+    const actualCredits = adjustmentType === 'refund' ? Math.abs(credits) : credits;
+
+    if (actualCredits < 0 && wallet.balance < Math.abs(actualCredits)) {
+      throw new Error('Cannot subtract more credits than user has');
+    }
+
+    // Update balance
+    await this.updateCreditsBalance(targetUserId, actualCredits, actualCredits >= 0 ? 'add' : 'subtract');
+
+    // Record transaction
+    await this.addCreditTransaction(
+      targetUserId,
+      adjustmentType,
+      actualCredits,
+      `${adjustmentType === 'refund' ? 'Refund' : 'Admin adjustment'}: ${reason}`,
+      `admin_${adminUserId}_${Date.now()}`,
+      {
+        admin_id: adminUserId,
+        adjustment_reason: reason,
+        previous_balance: wallet.balance
+      }
+    );
+  }
+
   // Credit costs for different operations
   static CREDIT_COSTS = {
     CONTENT_GENERATION: 5,     // 5 credits per content generation

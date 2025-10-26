@@ -85,6 +85,7 @@ CREATE TABLE users (
     stripe_customer_id TEXT,
     status TEXT DEFAULT 'onboarding',
     onboarding_data JSONB DEFAULT '{}',
+    is_admin BOOLEAN DEFAULT false,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

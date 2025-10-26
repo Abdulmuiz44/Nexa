@@ -13,6 +13,7 @@ export interface User {
   phone?: string;
   plan: 'free' | 'pro' | 'enterprise';
   subscription_status: 'active' | 'inactive' | 'cancelled' | 'past_due';
+  is_admin?: boolean;
 }
 
 export interface ConnectedAccount {
