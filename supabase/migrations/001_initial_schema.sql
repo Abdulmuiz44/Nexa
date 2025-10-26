@@ -310,3 +310,129 @@ BEGIN
     DELETE FROM oauth_states WHERE expires_at < NOW();
 END;
 $$ LANGUAGE plpgsql;
+
+-- START CREDIT-SYSTEM-SQL
+-- Add credit_tx_type enum (if missing)
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'credit_tx_type') THEN
+    CREATE TYPE credit_tx_type AS ENUM ('earn','spend','purchase','refund','adjust');
+  END IF;
+END $$;
+
+-- credits_wallet table: integer credits (1 credit = $0.10)
+CREATE TABLE IF NOT EXISTS credits_wallet (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  balance INTEGER NOT NULL DEFAULT 0,                -- integer credits
+  total_purchased INTEGER NOT NULL DEFAULT 0,
+  total_spent INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- credit_transactions: audit log for earnings/spends/purchases
+CREATE TABLE IF NOT EXISTS credit_transactions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  tx_type credit_tx_type NOT NULL,
+  credits INTEGER NOT NULL,
+  description TEXT,
+  reference_id UUID,
+  metadata JSONB DEFAULT '{}',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- payment_history: external payment records for top-ups
+CREATE TABLE IF NOT EXISTS payment_history (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  amount_usd NUMERIC(10,2) NOT NULL,
+  credits_issued INTEGER NOT NULL,
+  payment_provider TEXT NOT NULL,
+  provider_ref TEXT,
+  status TEXT NOT NULL DEFAULT 'pending', -- pending/completed/failed
+  metadata JSONB DEFAULT '{}',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Indexes for performance
+CREATE INDEX IF NOT EXISTS idx_credits_wallet_user_id ON credits_wallet(user_id);
+CREATE INDEX IF NOT EXISTS idx_credit_transactions_user_id ON credit_transactions(user_id);
+CREATE INDEX IF NOT EXISTS idx_payment_history_user_id ON payment_history(user_id);
+
+-- Ensure updated_at trigger function exists (do not overwrite if present)
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Add triggers for updated_at on new tables
+DROP TRIGGER IF EXISTS update_credits_wallet_updated_at ON credits_wallet;
+CREATE TRIGGER update_credits_wallet_updated_at BEFORE UPDATE ON credits_wallet
+FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_payment_history_updated_at ON payment_history;
+CREATE TRIGGER update_payment_history_updated_at BEFORE UPDATE ON payment_history
+FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Enable Row Level Security on new tables
+ALTER TABLE credits_wallet ENABLE ROW LEVEL SECURITY;
+ALTER TABLE credit_transactions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE payment_history ENABLE ROW LEVEL SECURITY;
+
+-- RLS policies (user-only access for read/insert; admin/service role expected for balance updates)
+CREATE POLICY IF NOT EXISTS "Users can view own wallet" ON credits_wallet
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY IF NOT EXISTS "Users can insert wallet" ON credits_wallet
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+-- Allow users to select their transactions and insert transactions they perform (in practice writes are made by server)
+CREATE POLICY IF NOT EXISTS "Users can view own credit transactions" ON credit_transactions
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY IF NOT EXISTS "Users can insert own credit transactions" ON credit_transactions
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY IF NOT EXISTS "Users can view own payments" ON payment_history
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY IF NOT EXISTS "Users can insert own payment histories" ON payment_history
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY IF NOT EXISTS "Users can update own payment histories" ON payment_history
+  FOR UPDATE USING (auth.uid() = user_id);
+
+-- Safe backfill: create wallets for existing users who don't have one yet, and grant 100 welcome credits
+-- (1 credit = $0.10, so 100 credits = $10 welcome credit)
+DO $$
+BEGIN
+  -- create missing wallets
+  INSERT INTO credits_wallet (user_id, balance, total_purchased, total_spent, created_at, updated_at)
+  SELECT u.id, 100, 0, 0, NOW(), NOW()
+  FROM users u
+  LEFT JOIN credits_wallet w ON w.user_id = u.id
+  WHERE w.user_id IS NULL;
+
+  -- create matching earn transactions, avoid duplicates by checking for existing welcome tx
+  INSERT INTO credit_transactions (user_id, tx_type, credits, description, created_at)
+  SELECT u.id, 'earn', 100, 'Welcome bonus: $10 free credits', NOW()
+  FROM users u
+  LEFT JOIN LATERAL (
+    SELECT 1 FROM credit_transactions t
+    WHERE t.user_id = u.id AND t.tx_type = 'earn' AND t.description ILIKE '%Welcome bonus%'
+    LIMIT 1
+  ) prev ON prev IS NOT NULL
+  WHERE prev IS NULL;
+
+END;
+$$ LANGUAGE plpgsql;
+
+-- END CREDIT-SYSTEM-SQL
+
+COMMIT;
