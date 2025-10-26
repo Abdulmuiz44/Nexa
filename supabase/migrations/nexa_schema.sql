@@ -385,6 +385,24 @@ CREATE TABLE IF NOT EXISTS credit_failures (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- billing_reports: automated monthly billing and analytics reports
+CREATE TABLE IF NOT EXISTS billing_reports (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE, -- NULL for admin/platform reports
+  period_start DATE NOT NULL,
+  period_end DATE NOT NULL,
+  total_credits_spent INTEGER NOT NULL DEFAULT 0,
+  total_credits_purchased INTEGER NOT NULL DEFAULT 0,
+  total_credits_refunded INTEGER NOT NULL DEFAULT 0,
+  total_credits_earned INTEGER NOT NULL DEFAULT 0,
+  net_balance_change INTEGER NOT NULL DEFAULT 0,
+  report_type TEXT NOT NULL CHECK (report_type IN ('user', 'admin')),
+  report_json JSONB DEFAULT '{}',
+  email_sent BOOLEAN DEFAULT false,
+  generated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(user_id, period_start, report_type)
+);
+
 -- Indexes for performance
 CREATE INDEX IF NOT EXISTS idx_credits_wallet_user_id ON credits_wallet(user_id);
 CREATE INDEX IF NOT EXISTS idx_credit_transactions_user_id ON credit_transactions(user_id);
@@ -393,6 +411,9 @@ CREATE INDEX IF NOT EXISTS idx_payment_history_user_id ON payment_history(user_i
 CREATE INDEX IF NOT EXISTS idx_credit_usage_analytics_user_id ON credit_usage_analytics(user_id);
 CREATE INDEX IF NOT EXISTS idx_credit_usage_analytics_date ON credit_usage_analytics(date);
 CREATE INDEX IF NOT EXISTS idx_credit_failures_user_id ON credit_failures(user_id);
+CREATE INDEX IF NOT EXISTS idx_billing_reports_user_id ON billing_reports(user_id);
+CREATE INDEX IF NOT EXISTS idx_billing_reports_period ON billing_reports(period_start, period_end);
+CREATE INDEX IF NOT EXISTS idx_billing_reports_type ON billing_reports(report_type);
 
 -- Ensure updated_at trigger function exists (do not overwrite if present)
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -484,6 +505,7 @@ ALTER TABLE credit_transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE payment_history ENABLE ROW LEVEL SECURITY;
 ALTER TABLE credit_usage_analytics ENABLE ROW LEVEL SECURITY;
 ALTER TABLE credit_failures ENABLE ROW LEVEL SECURITY;
+ALTER TABLE billing_reports ENABLE ROW LEVEL SECURITY;
 
 -- RLS policies (user-only access for read/insert; admin/service role expected for balance updates)
 DROP POLICY IF EXISTS "Users can view own wallet" ON credits_wallet;
@@ -521,7 +543,21 @@ CREATE POLICY "Users can view own credit analytics" ON credit_usage_analytics
 
 DROP POLICY IF EXISTS "Users can view own credit failures" ON credit_failures;
 CREATE POLICY "Users can view own credit failures" ON credit_failures
+FOR SELECT USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can view own billing reports" ON billing_reports;
+CREATE POLICY "Users can view own billing reports" ON billing_reports
   FOR SELECT USING (auth.uid() = user_id);
+
+-- Allow admins to view all billing reports
+DROP POLICY IF EXISTS "Admins can view all billing reports" ON billing_reports;
+CREATE POLICY "Admins can view all billing reports" ON billing_reports
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM users
+      WHERE id = auth.uid() AND is_admin = true
+    )
+  );
 
 -- Safe backfill: create wallets for existing users who don't have one yet, and grant 100 welcome credits
 -- (1 credit = $0.10, so 100 credits = $10 welcome credit)
