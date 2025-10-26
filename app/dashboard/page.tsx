@@ -7,7 +7,7 @@ import Navbar from "@/components/Navbar";
 import ContentGenerator from "@/components/ContentGenerator";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Bot, Calendar, TrendingUp, MessageSquare, Settings, Plus, Sparkles } from "lucide-react";
+import { Bot, Calendar, TrendingUp, MessageSquare, Settings, Plus, Sparkles, CreditCard, DollarSign } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/use-toast";
@@ -20,7 +20,9 @@ const [recentActivity, setRecentActivity] = useState<any[]>([]);
 const [onboardingData, setOnboardingData] = useState<any>(null);
 const [userStatus, setUserStatus] = useState<string>('onboarding');
 const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("overview");
+const [creditBalance, setCreditBalance] = useState<number>(0);
+ const [creditTransactions, setCreditTransactions] = useState<any[]>([]);
+   const [activeTab, setActiveTab] = useState("overview");
 
   useEffect(() => {
   const fetchData = async () => {
@@ -46,7 +48,15 @@ const [loading, setLoading] = useState(true);
   .from("generated_contents")
   .select("*")
   .order("created_at", { ascending: false })
-    .limit(5);
+  .limit(5);
+
+  // Fetch credit balance and transactions
+  const creditResponse = await fetch('/api/credits/balance');
+  if (creditResponse.ok) {
+    const creditData = await creditResponse.json();
+    setCreditBalance(creditData.balance || 0);
+    setCreditTransactions(creditData.transactions || []);
+  }
 
     if (error) {
         console.error("Error fetching dashboard data:", error);
@@ -220,17 +230,23 @@ const [loading, setLoading] = useState(true);
               <div className="text-sm text-muted-foreground">This Week</div>
             </Card>
             <Card className="p-6 bg-card/50 backdrop-blur-sm">
-              <div className="flex items-center justify-between mb-4"><Bot className="h-5 w-5 text-primary" /></div>
-              <div className="text-3xl font-bold mb-1">{stats.aiScore}/100</div>
-              <div className="text-sm text-muted-foreground">AI Score</div>
+            <div className="flex items-center justify-between mb-4"><Bot className="h-5 w-5 text-primary" /></div>
+            <div className="text-3xl font-bold mb-1">{stats.aiScore}/100</div>
+            <div className="text-sm text-muted-foreground">AI Score</div>
+            </Card>
+            <Card className="p-6 bg-card/50 backdrop-blur-sm">
+              <div className="flex items-center justify-between mb-4"><CreditCard className="h-5 w-5 text-primary" /></div>
+              <div className="text-3xl font-bold mb-1">{creditBalance}</div>
+              <div className="text-sm text-muted-foreground">Credits</div>
             </Card>
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
-          <TabsList className="grid w-full grid-cols-3 md:max-w-md md:grid-cols-3 flex-wrap">
+          <TabsList className="grid w-full grid-cols-4 md:max-w-lg md:grid-cols-4 flex-wrap">
           <TabsTrigger value="overview" className="text-xs sm:text-sm">Overview</TabsTrigger>
           <TabsTrigger value="generator" className="text-xs sm:text-sm"><Sparkles className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />AI Generator</TabsTrigger>
           <TabsTrigger value="analytics" className="text-xs sm:text-sm">Analytics</TabsTrigger>
+          <TabsTrigger value="credits" className="text-xs sm:text-sm"><CreditCard className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />Credits</TabsTrigger>
           </TabsList>
 
             <TabsContent value="overview" className="mt-6">
@@ -268,10 +284,115 @@ const [loading, setLoading] = useState(true);
             </TabsContent>
 
             <TabsContent value="analytics" className="mt-6">
-              <Card className="p-8 text-center bg-card/50 backdrop-blur-sm">
-                <TrendingUp className="h-12 w-12 text-primary mx-auto mb-4" />
-                <h3 className="text-xl font-bold mb-2">Advanced Analytics</h3>
-                <p className="text-muted-foreground mb-4">Detailed performance metrics coming soon</p>
+            <Card className="p-8 text-center bg-card/50 backdrop-blur-sm">
+            <TrendingUp className="h-12 w-12 text-primary mx-auto mb-4" />
+            <h3 className="text-xl font-bold mb-2">Advanced Analytics</h3>
+            <p className="text-muted-foreground mb-4">Detailed performance metrics coming soon</p>
+            </Card>
+            </TabsContent>
+
+            <TabsContent value="credits" className="mt-6">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Credit Balance Card */}
+                <Card className="p-6 bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
+                  <div className="flex items-center justify-between mb-4">
+                    <CreditCard className="h-8 w-8 text-primary" />
+                    <Badge className={`px-3 py-1 ${creditBalance > 10 ? 'bg-success' : creditBalance > 0 ? 'bg-warning' : 'bg-destructive'}`}>
+                      {creditBalance > 10 ? 'Good' : creditBalance > 0 ? 'Low' : 'Empty'}
+                    </Badge>
+                  </div>
+                  <div className="text-4xl font-bold mb-2">{creditBalance}</div>
+                  <div className="text-sm text-muted-foreground mb-4">Available Credits</div>
+                  <div className="text-xs text-muted-foreground">1 credit = $0.10</div>
+                  <div className="mt-4">
+                    <Button
+                      className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+                      onClick={() => window.open('/pricing', '_blank')}
+                    >
+                      <DollarSign className="h-4 w-4 mr-2" />
+                      Buy Credits
+                    </Button>
+                  </div>
+                </Card>
+
+                {/* Recent Transactions */}
+                <Card className="lg:col-span-2 p-6 bg-card/50 backdrop-blur-sm">
+                  <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                    <MessageSquare className="h-5 w-5 text-primary" />
+                    Recent Transactions
+                  </h3>
+                  <div className="space-y-3 max-h-96 overflow-y-auto">
+                    {creditTransactions.length > 0 ? (
+                      creditTransactions.map((transaction) => (
+                        <div key={transaction.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/50">
+                          <div className="flex items-center gap-3">
+                            <div className={`h-2 w-2 rounded-full ${
+                              transaction.tx_type === 'earn' ? 'bg-success' :
+                              transaction.tx_type === 'spend' ? 'bg-destructive' :
+                              transaction.tx_type === 'purchase' ? 'bg-primary' :
+                              'bg-muted'
+                            }`} />
+                            <div>
+                              <p className="font-medium text-sm">{transaction.description}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {new Date(transaction.created_at).toLocaleDateString()}
+                              </p>
+                            </div>
+                          </div>
+                          <div className={`font-bold text-sm ${
+                            transaction.tx_type === 'earn' || transaction.tx_type === 'purchase' ? 'text-success' :
+                            transaction.tx_type === 'spend' ? 'text-destructive' :
+                            'text-muted-foreground'
+                          }`}>
+                            {transaction.tx_type === 'earn' || transaction.tx_type === 'purchase' ? '+' : '-'}
+                            {transaction.credits} credits
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-8">
+                        <CreditCard className="h-12 w-12 text-muted mx-auto mb-4" />
+                        <p className="text-muted-foreground">No transactions yet</p>
+                        <p className="text-sm text-muted-foreground">Your credit activity will appear here</p>
+                      </div>
+                    )}
+                  </div>
+                </Card>
+              </div>
+
+              {/* Credit Packages */}
+              <Card className="mt-6 p-6 bg-card/50 backdrop-blur-sm">
+                <h3 className="text-xl font-bold mb-4">Credit Packages</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                  {[
+                    { credits: 100, usd: 10, popular: false },
+                    { credits: 250, usd: 25, popular: false },
+                    { credits: 500, usd: 45, popular: true },
+                    { credits: 1000, usd: 80, popular: false },
+                    { credits: 2500, usd: 180, popular: false },
+                  ].map((pkg) => (
+                    <Card key={pkg.credits} className={`p-4 cursor-pointer transition-all hover:shadow-lg ${
+                      pkg.popular ? 'border-primary bg-primary/5' : 'hover:border-primary/50'
+                    }`}>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold mb-1">{pkg.credits}</div>
+                        <div className="text-sm text-muted-foreground mb-2">Credits</div>
+                        <div className="text-lg font-semibold mb-3">${pkg.usd}</div>
+                        {pkg.popular && (
+                          <Badge className="mb-3 bg-primary text-primary-foreground">Most Popular</Badge>
+                        )}
+                        <Button
+                          size="sm"
+                          className="w-full"
+                          variant={pkg.popular ? "default" : "outline"}
+                          onClick={() => window.open('/pricing', '_blank')}
+                        >
+                          Buy Now
+                        </Button>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
               </Card>
             </TabsContent>
           </Tabs>

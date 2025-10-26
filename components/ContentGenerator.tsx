@@ -35,6 +35,32 @@ const ContentGenerator = () => {
     setGeneratedContent("");
 
     try {
+    // Spend credits for content generation
+      const spendResponse = await fetch('/api/credits/spend', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          operation: 'CONTENT_GENERATION',
+          customDescription: `Content generation for ${toolName}`,
+        }),
+      });
+
+      const spendData = await spendResponse.json();
+
+      if (!spendResponse.ok) {
+        if (spendData.error === 'Insufficient credits') {
+          toast({
+            title: "Insufficient Credits",
+            description: "You need 5 credits to generate content. Please buy more credits.",
+            variant: "destructive",
+          });
+          return;
+        }
+        throw new Error(spendData.error || "Failed to process credits");
+      }
+
       const response = await fetch('/api/generate', {
         method: 'POST',
         headers: {

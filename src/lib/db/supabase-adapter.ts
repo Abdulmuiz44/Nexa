@@ -4,6 +4,8 @@ import { createClient as createServerClient } from '@/lib/supabaseServer';
 export type Platform = 'twitter' | 'reddit';
 export type PostStatus = 'draft' | 'scheduled' | 'published' | 'failed';
 export type CampaignStatus = 'draft' | 'active' | 'paused' | 'completed' | 'cancelled';
+export type CreditTxType = 'earn' | 'spend' | 'purchase' | 'refund' | 'adjust';
+export type PaymentStatus = 'pending' | 'completed' | 'failed';
 
 export interface User {
   id: string;
@@ -81,6 +83,40 @@ export interface Analytics {
   clicks: number;
   engagement_rate: number;
   fetched_at: Date;
+}
+
+export interface CreditsWallet {
+  id: string;
+  user_id: string;
+  balance: number;
+  total_purchased: number;
+  total_spent: number;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface CreditTransaction {
+  id: string;
+  user_id: string;
+  tx_type: CreditTxType;
+  credits: number;
+  description?: string;
+  reference_id?: string;
+  metadata?: Record<string, any>;
+  created_at: Date;
+}
+
+export interface PaymentHistory {
+  id: string;
+  user_id: string;
+  amount_usd: number;
+  credits_issued: number;
+  payment_provider: string;
+  provider_ref?: string;
+  status: PaymentStatus;
+  metadata?: Record<string, any>;
+  created_at: Date;
+  updated_at: Date;
 }
 
 export class SupabaseAdapter {
@@ -535,5 +571,215 @@ export class SupabaseAdapter {
       plan: user.plan,
       totalPosts: posts.length
     };
+  }
+
+  // Credit system methods
+  async getCreditsWallet(userId: string): Promise<CreditsWallet | null> {
+    const { data, error } = await this.supabase
+      .from('credits_wallet')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+
+    if (error) {
+      console.error('Error fetching credits wallet:', error);
+      return null;
+    }
+
+    return data;
+  }
+
+  async createCreditsWallet(userId: string): Promise<string> {
+    const { data, error } = await this.supabase
+      .from('credits_wallet')
+      .insert({
+        user_id: userId,
+        balance: 100, // Welcome credits
+        total_purchased: 0,
+        total_spent: 0
+      })
+      .select('id')
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to create credits wallet: ${error.message}`);
+    }
+
+    return data.id;
+  }
+
+  async updateCreditsBalance(userId: string, credits: number, operation: 'add' | 'subtract'): Promise<void> {
+    const wallet = await this.getCreditsWallet(userId);
+    if (!wallet) {
+      throw new Error('Credits wallet not found');
+    }
+
+    const newBalance = operation === 'add' ? wallet.balance + credits : wallet.balance - credits;
+    if (newBalance < 0) {
+      throw new Error('Insufficient credits');
+    }
+
+    const updates: Partial<CreditsWallet> = {
+      balance: newBalance
+    };
+
+    if (operation === 'add') {
+      updates.total_purchased = wallet.total_purchased + credits;
+    } else {
+      updates.total_spent = wallet.total_spent + credits;
+    }
+
+    const { error } = await this.supabase
+      .from('credits_wallet')
+      .update(updates)
+      .eq('user_id', userId);
+
+    if (error) {
+      throw new Error(`Failed to update credits balance: ${error.message}`);
+    }
+  }
+
+  async addCreditTransaction(
+    userId: string,
+    txType: CreditTxType,
+    credits: number,
+    description?: string,
+    referenceId?: string,
+    metadata?: Record<string, any>
+  ): Promise<string> {
+    const { data, error } = await this.supabase
+      .from('credit_transactions')
+      .insert({
+        user_id: userId,
+        tx_type: txType,
+        credits,
+        description,
+        reference_id: referenceId,
+        metadata
+      })
+      .select('id')
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to add credit transaction: ${error.message}`);
+    }
+
+    return data.id;
+  }
+
+  async getCreditTransactions(userId: string, limit = 50): Promise<CreditTransaction[]> {
+    const { data, error } = await this.supabase
+      .from('credit_transactions')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      console.error('Error fetching credit transactions:', error);
+      return [];
+    }
+
+    return data || [];
+  }
+
+  async recordPayment(
+    userId: string,
+    amountUsd: number,
+    creditsIssued: number,
+    paymentProvider: string,
+    providerRef?: string,
+    metadata?: Record<string, any>
+  ): Promise<string> {
+    const { data, error } = await this.supabase
+      .from('payment_history')
+      .insert({
+        user_id: userId,
+        amount_usd: amountUsd,
+        credits_issued: creditsIssued,
+        payment_provider: paymentProvider,
+        provider_ref: providerRef,
+        status: 'pending',
+        metadata
+      })
+      .select('id')
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to record payment: ${error.message}`);
+    }
+
+    return data.id;
+  }
+
+  async updatePaymentStatus(paymentId: string, status: PaymentStatus): Promise<void> {
+    const { error } = await this.supabase
+      .from('payment_history')
+      .update({ status })
+      .eq('id', paymentId);
+
+    if (error) {
+      throw new Error(`Failed to update payment status: ${error.message}`);
+    }
+  }
+
+  async getPaymentHistory(userId: string, limit = 20): Promise<PaymentHistory[]> {
+    const { data, error } = await this.supabase
+      .from('payment_history')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      console.error('Error fetching payment history:', error);
+      return [];
+    }
+
+    return data || [];
+  }
+
+  async spendCredits(userId: string, credits: number, description: string, referenceId?: string): Promise<void> {
+    // Update balance
+    await this.updateCreditsBalance(userId, credits, 'subtract');
+
+    // Record transaction
+    await this.addCreditTransaction(userId, 'spend', credits, description, referenceId);
+  }
+
+  async earnCredits(userId: string, credits: number, description: string, referenceId?: string): Promise<void> {
+    // Update balance
+    await this.updateCreditsBalance(userId, credits, 'add');
+
+    // Record transaction
+    await this.addCreditTransaction(userId, 'earn', credits, description, referenceId);
+  }
+
+  async processCreditTopUp(
+    userId: string,
+    amountUsd: number,
+    creditsIssued: number,
+    paymentProvider: string,
+    providerRef?: string,
+    metadata?: Record<string, any>
+  ): Promise<void> {
+    // Record the payment
+    const paymentId = await this.recordPayment(userId, amountUsd, creditsIssued, paymentProvider, providerRef, metadata);
+
+    // Update payment status to completed
+    await this.updatePaymentStatus(paymentId, 'completed');
+
+    // Add credits to wallet
+    await this.updateCreditsBalance(userId, creditsIssued, 'add');
+
+    // Record the credit transaction
+    await this.addCreditTransaction(
+      userId,
+      'purchase',
+      creditsIssued,
+      `Credit top-up: $${amountUsd}`,
+      paymentId,
+      { payment_provider: paymentProvider, provider_ref: providerRef }
+    );
   }
 }
