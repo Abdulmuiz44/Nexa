@@ -10,7 +10,7 @@ Nexa is an **AI Growth Agent** that autonomously promotes your SaaS or AI produc
 - **Backend:** Supabase (Auth, PostgreSQL, Edge Functions)
 - **AI Engine:** OpenAI GPT-4
 - **Integrations:** Composio SDK (Reddit, X, Flutterwave)
-- **Payments:** Flutterwave API
+- **Payments & Credits:** Flutterwave API (Credit-based monetization system)
 - **Hosting:** Vercel
 
 ## 🧠 System Architecture Overview
@@ -43,15 +43,18 @@ Frontend (Next.js)
 │   ├── Reddit API
 │   └── Flutterwave API
 └── Database (Supabase PostgreSQL)
- ├── users
- ├── connected_accounts
- ├── campaigns
- ├── posts
-    ├── analytics
-    ├── subscriptions
- ├── activity_log
- ├── composio_connections
- └── oauth_states
+├── users
+├── connected_accounts
+├── campaigns
+├── posts
+├── analytics
+├── subscriptions
+├── activity_log
+├── composio_connections
+├── oauth_states
+ ├── credits_wallet
+ ├── credit_transactions
+ └── payment_history
 ```
 
 ## 🔄 NEXA SYSTEM FLOW DIAGRAM
@@ -129,13 +132,14 @@ Frontend (Next.js)
 - Smart analytics tracking and adaptive feedback loop
 - Secure OAuth-based account linking via Composio
 - Transparent scheduling & moderation flow for user trust
+- Credit-based monetization system (1 credit = $0.10) with wallet management
 
 ## 🧾 Database Schema Summary
 
 Key tables:
-`users`, `connected_accounts`, `campaigns`, `posts`, `analytics`, `subscriptions`, `activity_log`, `composio_connections`, `oauth_states`
+`users`, `connected_accounts`, `campaigns`, `posts`, `analytics`, `subscriptions`, `activity_log`, `composio_connections`, `oauth_states`, `credits_wallet`, `credit_transactions`, `payment_history`
 
-Each record is protected by Row-Level Security and policy-based access rules.
+Each record is protected by Row-Level Security and policy-based access rules. The credit system uses integer credits (1 credit = $0.10) for all transactions.
 
 ## 🛠️ Quick Start
 
