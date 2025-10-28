@@ -1,59 +1,49 @@
-import { type NextRequest, NextResponse } from "next/server"
-import { supabaseServer } from "@/src/lib/supabaseServer"
-import { FlutterwavePayment } from "@/src/payments/flutterwave"
+import { NextRequest, NextResponse } from 'next/server';
+import { supabase } from '@/lib/supabaseClient';
+import flw from '@/lib/flutterwaveClient';
 
-export async function POST(request: NextRequest) {
-  const secretHash = process.env.FLUTTERWAVE_WEBHOOK_SECRET_HASH;
-  const signature = request.headers.get('verif-hash');
+export async function POST(req: NextRequest) {
+  const body = await req.json();
 
-  if (!signature || (signature !== secretHash)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  // Verify webhook
+  const secretHash = req.headers.get('verif-hash');
+  if (secretHash !== process.env.FLUTTERWAVE_WEBHOOK_SECRET) {
+    return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
   }
 
-  try {
-    const payload = await request.json();
+  if (body.event === 'charge.completed' && body.data.status === 'successful') {
+    const { tx_ref, amount, customer } = body.data;
 
-    if (payload.status === 'successful') {
-      const tx_ref = payload.tx_ref;
-      const parts = tx_ref.split('_');
-      const userId = parts[1];
-      const planId = parts[2] || 'growth'; // Default to growth if not specified
+    // Find payment_history entry
+    const { data: payment } = await supabase
+      .from('payment_history')
+      .select('*')
+      .eq('provider_ref', tx_ref)
+      .single();
 
-      const flutterwave = new FlutterwavePayment();
-      const verificationResult = await flutterwave.verifyPayment(payload.id.toString());
+    if (payment && payment.status === 'pending') {
+      // Update payment status
+      await supabase
+        .from('payment_history')
+        .update({ status: 'completed' })
+        .eq('id', payment.id);
 
-      if (verificationResult.status === 'success') {
-        // Update user status
-        const { error: userError } = await supabaseServer
-          .from('users')
-          .update({ status: 'active' })
-          .eq('id', userId);
+      // Add credits
+      const credits = payment.credits_issued;
+      await supabase
+        .from('credits_wallet')
+        .update({ balance: supabase.raw('balance + ?', [credits]), total_purchased: supabase.raw('total_purchased + ?', [credits]) })
+        .eq('user_id', payment.user_id);
 
-        if (userError) {
-          console.error('Webhook: Error updating user', userError);
-        }
-
-        // Create subscription
-        const { error: subError } = await supabaseServer
-          .from('subscriptions')
-          .insert({
-            user_id: userId,
-            plan: planId,
-            amount: payload.amount,
-            currency: payload.currency,
-            flutterwave_subscription_id: payload.id.toString(),
-          });
-
-        if (subError) {
-          console.error('Webhook: Error creating subscription', subError);
-        }
-      }
+      // Log transaction
+      await supabase.from('credit_transactions').insert({
+        user_id: payment.user_id,
+        tx_type: 'purchase',
+        credits,
+        description: 'Credit top-up',
+      });
     }
-
-    return NextResponse.json({ received: true });
-
-  } catch (error) {
-    console.error('Webhook processing error', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
+
+  return NextResponse.json({ status: 'ok' });
 }

@@ -20,7 +20,7 @@ const nextConfig = {
   webpack: (config) => {
     config.cache = false;
     config.watchOptions = {
-      ignored: ['/data/data', '/data', '/'],
+      ignored: ['**/node_modules', '**/.git', '**/.next', '/', '/data/data', '/data'],
     };
     return config;
   },
