@@ -1,8 +1,6 @@
 import { Inter } from 'next/font/google';
 import './globals.css';
 import Navbar from '@/components/Navbar';
-import { SessionContextProvider } from '@supabase/auth-helpers-nextjs';
-import { supabase } from '@/lib/supabaseClient';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -20,9 +18,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <Navbar />
-        <SessionContextProvider supabaseClient={supabase}>
-          {children}
-        </SessionContextProvider>
+        {children}
       </body>
     </html>
   );
