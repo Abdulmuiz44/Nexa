@@ -1,7 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabaseClient';
+import { useToast } from '@/components/ui/use-toast';
 
 const links = [
   { href: '/dashboard/chat', label: 'Chat' },
@@ -14,6 +16,17 @@ const links = [
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const { toast } = useToast();
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    toast({
+      title: "Logged Out",
+      description: "You have been logged out successfully.",
+    });
+    router.push('/auth/login');
+  };
 
   return (
     <div className="w-64 bg-gray-800 text-white min-h-screen">
@@ -29,6 +42,11 @@ export default function Sidebar() {
           </Link>
         ))}
       </nav>
+      <div className="mt-auto p-4">
+        <button onClick={handleLogout} className="w-full text-left p-4 hover:bg-gray-700">
+          Logout
+        </button>
+      </div>
     </div>
   );
 }

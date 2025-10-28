@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
+import { useToast } from '@/components/ui/use-toast';
 
 interface User {
   name: string;
@@ -11,6 +12,7 @@ interface User {
 export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null);
   const [credits, setCredits] = useState(0);
+  const { toast } = useToast();
 
   useEffect(() => {
     fetchUserData();
@@ -26,12 +28,26 @@ export default function DashboardPage() {
         .single();
       setUser(userData);
 
-      const { data: creditData } = await supabase
+      const { data: creditData, error: creditError } = await supabase
         .from('credits_wallet')
         .select('balance')
         .eq('user_id', session.user.id)
         .single();
-      setCredits(creditData?.balance || 0);
+      if (creditError) {
+        toast({
+          title: "Error Loading Credits",
+          description: creditError.message,
+          variant: "destructive",
+        });
+      } else {
+        setCredits(creditData?.balance || 0);
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to load dashboard data.",
+        variant: "destructive",
+      });
     }
   };
 

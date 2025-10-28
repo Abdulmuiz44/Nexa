@@ -3,12 +3,14 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
+import { useToast } from '@/components/ui/use-toast';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const { toast } = useToast();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -18,7 +20,11 @@ export default function LoginPage() {
       password,
     });
     if (error) {
-      alert(error.message);
+      toast({
+        title: "Login Failed",
+        description: error.message,
+        variant: "destructive",
+      });
     } else {
       // Check if user has completed onboarding
       const { data: { session } } = await supabase.auth.getSession();
@@ -29,8 +35,16 @@ export default function LoginPage() {
           .eq('id', session.user.id)
           .single();
         if (user && (!user.onboarding_data || Object.keys(user.onboarding_data).length === 0)) {
+          toast({
+            title: "Login Successful",
+            description: "Redirecting to onboarding...",
+          });
           router.push('/onboarding');
         } else {
+          toast({
+            title: "Login Successful",
+            description: "Welcome back!",
+          });
           router.push('/dashboard');
         }
       }

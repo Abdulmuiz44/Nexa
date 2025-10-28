@@ -3,12 +3,14 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
+import { useToast } from '@/components/ui/use-toast';
 
 export default function SignupPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const { toast } = useToast();
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -18,7 +20,11 @@ export default function SignupPage() {
       password,
     });
     if (error) {
-      alert(error.message);
+      toast({
+        title: "Signup Failed",
+        description: error.message,
+        variant: "destructive",
+      });
     } else {
       // Insert user profile if user was created
       if (data.user) {
@@ -34,6 +40,10 @@ export default function SignupPage() {
           console.error('Error inserting user:', insertError);
         }
       }
+      toast({
+        title: "Signup Successful",
+        description: "Welcome! Redirecting to onboarding...",
+      });
       router.push('/onboarding');
     }
     setLoading(false);
