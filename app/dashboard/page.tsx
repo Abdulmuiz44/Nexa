@@ -19,28 +19,30 @@ export default function DashboardPage() {
   }, []);
 
   const fetchUserData = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session?.user) {
-      const { data: userData } = await supabase
-        .from('users')
-        .select('name, email')
-        .eq('id', session.user.id)
-        .single();
-      setUser(userData);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        const { data: userData } = await supabase
+          .from('users')
+          .select('name, email')
+          .eq('id', session.user.id)
+          .single();
+        setUser(userData);
 
-      const { data: creditData, error: creditError } = await supabase
-        .from('credits_wallet')
-        .select('balance')
-        .eq('user_id', session.user.id)
-        .single();
-      if (creditError) {
-        toast({
-          title: "Error Loading Credits",
-          description: creditError.message,
-          variant: "destructive",
-        });
-      } else {
-        setCredits(creditData?.balance || 0);
+        const { data: creditData, error: creditError } = await supabase
+          .from('credits_wallet')
+          .select('balance')
+          .eq('user_id', session.user.id)
+          .single();
+        if (creditError) {
+          toast({
+            title: "Error Loading Credits",
+            description: creditError.message,
+            variant: "destructive",
+          });
+        } else {
+          setCredits(creditData?.balance || 0);
+        }
       }
     } catch (error) {
       toast({
