@@ -43,11 +43,14 @@ const Navbar = () => {
         <Link href="/pricing" className="text-muted-foreground hover:text-foreground transition-colors">
         Pricing
         </Link>
+        <Link href="/docs" className="text-muted-foreground hover:text-foreground transition-colors">
+        Docs
+        </Link>
         {status === "authenticated" && (
-        <Link href="/dashboard" className="text-muted-foreground hover:text-foreground transition-colors">
-          Dashboard
+          <Link href="/dashboard" className="text-muted-foreground hover:text-foreground transition-colors">
+            Dashboard
           </Link>
-          )}
+        )}
         </div>
 
         {/* Mobile Menu Button */}
@@ -119,20 +122,27 @@ const Navbar = () => {
               How It Works
             </Link>
             <Link
-              href="/pricing"
+            href="/pricing"
+            className="block text-muted-foreground hover:text-foreground transition-colors py-2"
+            onClick={() => setMobileMenuOpen(false)}
+            >
+            Pricing
+            </Link>
+            <Link
+              href="/docs"
               className="block text-muted-foreground hover:text-foreground transition-colors py-2"
               onClick={() => setMobileMenuOpen(false)}
             >
-              Pricing
+              Docs
             </Link>
             {status === "authenticated" && (
               <Link
                 href="/dashboard"
-                className="block text-muted-foreground hover:text-foreground transition-colors py-2"
-                onClick={() => setMobileMenuOpen(false)}
-              >
+              className="block text-muted-foreground hover:text-foreground transition-colors py-2"
+              onClick={() => setMobileMenuOpen(false)}
+            >
                 Dashboard
-              </Link>
+            </Link>
             )}
             <div className="pt-4 border-t border-border">
               {status === "authenticated" ? (

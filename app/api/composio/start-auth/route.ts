@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import { composio } from '@/lib/composio';
+import { authOptions } from '@/src/auth/auth';
 
 export async function POST(req: Request) {
   try {
@@ -15,10 +14,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Toolkit required' }, { status: 400 });
     }
 
-    const authSession = await composio.authSessions.create({
-      appName: toolkit,
-      userId: session.user.id,
-    });
+    // TODO: Implement Composio integration
+    // For now, return a placeholder response
+    const authSession = {
+      redirectUrl: `https://composio.ai/auth/${toolkit}`,
+      id: 'placeholder-session-id'
+    };
 
     return NextResponse.json({
       redirectUrl: authSession.redirectUrl,

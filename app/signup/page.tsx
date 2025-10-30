@@ -55,7 +55,7 @@ const handleSubmit = async (e: React.FormEvent) => {
       const data = await response.json()
 
       if (response.ok) {
-        router.push("/onboarding");
+        router.push("/login?message=Account created successfully. Please log in to continue.");
       } else {
         setError(data.error || "Registration failed")
       }

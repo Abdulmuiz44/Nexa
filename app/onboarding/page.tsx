@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -23,6 +24,7 @@ const postingFrequencies = ['Daily', 'Weekly', 'Custom'];
 const brandTones = ['Friendly', 'Professional', 'Bold', 'Fun', 'Chill'];
 
 export default function OnboardingPage() {
+  const { data: session, status } = useSession();
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState({
     businessName: '',
@@ -36,6 +38,29 @@ export default function OnboardingPage() {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const router = useRouter();
+
+  // Check authentication status
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!session) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <p className="text-muted-foreground mb-4">You need to be logged in to access this page.</p>
+          <Button onClick={() => router.push('/login')}>Go to Login</Button>
+        </div>
+      </div>
+    );
+  }
 
   const handleNext = () => {
     if (currentStep < steps.length - 1) {
@@ -53,19 +78,25 @@ export default function OnboardingPage() {
     setLoading(true);
     setErrorMessage('');
     try {
+      console.log('Submitting onboarding data:', formData);
       const response = await fetch('/api/onboarding', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       });
 
+      console.log('Response status:', response.status);
+      const responseData = await response.json();
+      console.log('Response data:', responseData);
+
       if (response.ok) {
-        router.push('/pricing');
+        console.log('Onboarding successful, redirecting to dashboard');
+        router.push('/chat');
       } else {
-        const errorData = await response.json();
-        setErrorMessage(errorData.error || 'Unknown error');
+        setErrorMessage(responseData.error || 'Unknown error');
       }
     } catch (error) {
+      console.error('Network error:', error);
       setErrorMessage('Network error occurred while saving onboarding data');
     } finally {
       setLoading(false);

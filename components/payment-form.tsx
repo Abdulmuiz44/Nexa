@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CreditCard, Loader2 } from "lucide-react";
-import { supabase } from '@/lib/db';
+import { createClient } from '@/utils/supabase';
 
 interface PaymentFormProps {
   amount: number;
@@ -33,6 +33,7 @@ export function PaymentForm({ amount, planId, onPaymentSuccess, onPaymentError }
     setIsLoading(true);
 
     try {
+      const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         throw new Error('User not found');

@@ -17,26 +17,41 @@ export async function middleware(request: NextRequest) {
     if (pathname.startsWith("/api/agent/")) {
       return authMiddleware(request);
     }
-    
+
     // For other API routes, continue with the response from the rate limiter
     return rateLimitResponse;
   }
 
-  // Protect onboarding, dashboard, subscribe and pricing pages
-  if (pathname.startsWith("/onboarding") || pathname.startsWith("/dashboard") || pathname.startsWith("/subscribe") || pathname.startsWith("/pricing")) {
-  const onboardingResponse = await onboardingMiddleware(request);
-  if (onboardingResponse.status !== 200) {
-  return onboardingResponse;
-  }
+  // Protect onboarding, dashboard, chat, subscribe and pricing pages
+  if (pathname.startsWith("/onboarding") ||
+      pathname.startsWith("/dashboard") ||
+      pathname.startsWith("/chat") ||
+      pathname.startsWith("/subscribe") ||
+      pathname.startsWith("/pricing") ||
+      pathname.startsWith("/docs")) {
 
-  if (pathname.startsWith("/dashboard")) {
-  return subscriptionMiddleware(request);
-  }
+    const onboardingResponse = await onboardingMiddleware(request);
+    if (onboardingResponse.status !== 200) {
+      return onboardingResponse;
+    }
+
+    // Role-based access for dashboard sections
+    if (pathname.startsWith("/dashboard")) {
+      return subscriptionMiddleware(request);
+    }
   }
 
   return NextResponse.next();
 }
 
 export const config = {
-matcher: ["/onboarding/:path*", "/dashboard/:path*", "/api/:path*", "/subscribe/:path*", "/pricing/:path*"],
+  matcher: [
+    "/onboarding/:path*",
+    "/dashboard/:path*",
+    "/chat/:path*",
+    "/docs/:path*",
+    "/api/:path*",
+    "/subscribe/:path*",
+    "/pricing/:path*"
+  ],
 };

@@ -30,7 +30,7 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
-        if (user.status !== 'active') {
+        if (user.status !== 'active' && user.status !== 'onboarding') {
           return null;
         }
 
@@ -38,7 +38,7 @@ export const authOptions: NextAuthOptions = {
           return null; // Or handle users who signed up with OAuth differently
         }
 
-        const isValid = await bcrypt.compare(credentials.password, user.password_hash);
+        const isValid = await bcrypt.compare(credentials.password, user.password_hash || '');
 
         console.log("isValid", isValid);
 
@@ -59,14 +59,15 @@ export const authOptions: NextAuthOptions = {
           if (email) {
             const { data: dbUser, error } = await supabaseServer
               .from('users')
-              .select('id, api_key, subscription_tier')
+              .select('id, api_key, plan, subscription_status')
               .eq('email', email)
               .single()
 
             if (error || !dbUser) {
               console.error('JWT callback DB lookup failed:', error)
             } else {
-              token.subscriptionTier = dbUser.subscription_tier
+              token.subscriptionTier = dbUser.plan
+              token.subscriptionStatus = dbUser.subscription_status
               token.apiKey = dbUser.api_key
               token.sub = dbUser.id
             }
@@ -77,12 +78,13 @@ export const authOptions: NextAuthOptions = {
         if (!token.apiKey && token.sub) {
           const { data: dbUser, error } = await supabaseServer
             .from('users')
-            .select('id, api_key, subscription_tier')
+            .select('id, api_key, plan, subscription_status')
             .eq('id', token.sub as string)
             .single()
 
           if (!error && dbUser) {
-            token.subscriptionTier = dbUser.subscription_tier
+            token.subscriptionTier = dbUser.plan
+            token.subscriptionStatus = dbUser.subscription_status
             token.apiKey = dbUser.api_key
           }
         }
@@ -97,6 +99,7 @@ export const authOptions: NextAuthOptions = {
         // Ensure session.user exists
         ;(session.user as any).id = token.sub!
         ;(session.user as any).subscriptionTier = token.subscriptionTier as string
+        ;(session.user as any).subscriptionStatus = token.subscriptionStatus as string
         ;(session.user as any).apiKey = token.apiKey as string
       }
       return session

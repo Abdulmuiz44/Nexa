@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Twitter, Linkedin } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { supabase } from '@/lib/db';
+import { createClient } from '@/utils/supabase';
 
 const OnboardingForm = () => {
   const [step, setStep] = useState(1);
@@ -35,6 +35,7 @@ const OnboardingForm = () => {
   const prevStep = () => setStep(step - 1);
 
   const handleFinish = async () => {
+    const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (user) {
