@@ -93,10 +93,10 @@ const Navbar = () => {
           ) : (
             <>
               <Button variant="ghost" asChild>
-                <Link href="/login">Sign In</Link>
+              <Link href="/auth/login">Sign In</Link>
               </Button>
               <Button variant="hero" asChild>
-                <Link href="/signup">Get Started</Link>
+              <Link href="/auth/signup">Get Started</Link>
               </Button>
             </>
           )}
@@ -159,10 +159,10 @@ const Navbar = () => {
               ) : (
                 <div className="space-y-2">
                   <Button variant="ghost" asChild className="w-full justify-start">
-                    <Link href="/login" onClick={() => setMobileMenuOpen(false)}>Sign In</Link>
+                  <Link href="/auth/login" onClick={() => setMobileMenuOpen(false)}>Sign In</Link>
                   </Button>
                   <Button variant="hero" asChild className="w-full">
-                    <Link href="/signup" onClick={() => setMobileMenuOpen(false)}>Get Started</Link>
+                  <Link href="/auth/signup" onClick={() => setMobileMenuOpen(false)}>Get Started</Link>
                   </Button>
                 </div>
               )}

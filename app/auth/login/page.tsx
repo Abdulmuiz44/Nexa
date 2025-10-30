@@ -1,8 +1,8 @@
 "use client"
 
 import type React from "react"
-import { useState, Suspense } from "react"
-import { signIn } from "next-auth/react"
+import { useState, Suspense, useEffect } from "react"
+import { signIn, useSession } from "next-auth/react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -12,13 +12,26 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import Link from "next/link"
 
 function LoginComponent() {
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [error, setError] = useState("")
-  const [loading, setLoading] = useState(false)
-  const router = useRouter()
-  const searchParams = useSearchParams();
+const { data: session, status } = useSession();
+const [email, setEmail] = useState("")
+const [password, setPassword] = useState("")
+const [error, setError] = useState("")
+const [loading, setLoading] = useState(false)
+const router = useRouter()
+const searchParams = useSearchParams();
   const message = searchParams.get('message');
+
+  useEffect(() => {
+    if (status === 'loading') return;
+
+    if (session) {
+      router.push('/dashboard');
+    }
+  }, [session, status, router]);
+
+  if (status === 'loading') {
+    return <div>Loading...</div>;
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -82,7 +95,7 @@ function LoginComponent() {
           </form>
 
           <div className="text-center text-sm text-muted-foreground">
-          Don't have an account? <Link href="/signup" className="underline">Sign up</Link>
+          Don't have an account? <Link href="/auth/signup" className="underline">Sign up</Link>
           </div>
         </CardContent>
       </Card>

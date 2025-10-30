@@ -48,7 +48,7 @@ export async function POST(req: Request) {
     }
 
     console.log('Onboarding completed successfully');
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, message: 'Onboarding completed successfully!' });
 
   } catch (error: unknown) {
     console.error('API Error:', error);

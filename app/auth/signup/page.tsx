@@ -55,7 +55,7 @@ const handleSubmit = async (e: React.FormEvent) => {
       const data = await response.json()
 
       if (response.ok) {
-        router.push("/login?message=Account created successfully. Please log in to continue.");
+        router.push("/auth/login?message=Account created successfully. Please log in to continue.");
       } else {
         setError(data.error || "Registration failed")
       }
@@ -114,7 +114,7 @@ const handleSubmit = async (e: React.FormEvent) => {
 
           <p className="text-center text-sm text-muted-foreground">
             Already have an account?{" "}
-            <Link href="/login" className="underline">Sign in</Link>
+            <Link href="/auth/login" className="underline">Sign in</Link>
           </p>
         </CardContent>
       </Card>

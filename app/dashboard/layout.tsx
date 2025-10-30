@@ -190,7 +190,7 @@ export default function DashboardLayout({
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
           <p className="text-muted-foreground mb-4">You need to be logged in to access this page.</p>
-          <Button onClick={() => window.location.href = "/login"}>Go to Login</Button>
+          <Button onClick={() => window.location.href = "/auth/login"}>Go to Login</Button>
         </div>
       </div>
     );

@@ -56,7 +56,7 @@ export default function OnboardingPage() {
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
           <p className="text-muted-foreground mb-4">You need to be logged in to access this page.</p>
-          <Button onClick={() => router.push('/login')}>Go to Login</Button>
+          <Button onClick={() => router.push('/auth/login')}>Go to Login</Button>
         </div>
       </div>
     );
@@ -91,7 +91,7 @@ export default function OnboardingPage() {
 
       if (response.ok) {
         console.log('Onboarding successful, redirecting to dashboard');
-        router.push('/chat');
+        router.push('/dashboard');
       } else {
         setErrorMessage(responseData.error || 'Unknown error');
       }
