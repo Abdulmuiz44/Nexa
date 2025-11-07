@@ -1,0 +1,10 @@
+ignoredBuiltDependencies:
+  - '@prisma/client'
+  - '@prisma/engines'
+  - '@sentry/cli'
+  - esbuild
+  - msgpackr-extract
+  - prisma
+  - sharp
+  - supabase
+  - unrs-resolver
