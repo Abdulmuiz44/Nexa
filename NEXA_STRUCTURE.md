@@ -1,6 +1,9 @@
 app/
- ├─ layout.tsx
- ├─ page.tsx                        → Landing Page
+ ├─ layout.tsx                      → Root layout (no Navbar)
+ ├─ page.tsx                        → Landing Page (renders Navbar)
+ │
+ ├─ chat/
+ │   └─ page.tsx                    → Chat interface (primary)
  │
  ├─ auth/
  │   ├─ signup/page.tsx             → Sign-up (Supabase Auth)
@@ -13,9 +16,8 @@ app/
  │   └─ page.tsx                    → Pricing modal/page
  │
  ├─ dashboard/
- │   ├─ layout.tsx                  → Sidebar layout
- │   ├─ page.tsx                    → Default chat with Nexa
- │   ├─ chat/page.tsx               → Chat interface
+ │   ├─ layout.tsx                  → Uses shared sticky AppSidebar
+ │   ├─ page.tsx                    → Redirects to /chat
  │   ├─ campaigns/page.tsx          → Campaign manager
  │   ├─ analytics/page.tsx          → Analytics dashboard
  │   ├─ connections/page.tsx        → Composio connections
@@ -43,12 +45,10 @@ app/
  │   ├─ ui/                         → Shadcn atomic components
  │   ├─ charts/                     → Recharts/Plotly charts (new)
  │   ├─ widgets/                    → Dashboard KPIs, trends (new)
- │   ├─ Navbar.tsx
- │   ├─ Sidebar.tsx
+ │   ├─ Navbar.tsx                  → Homepage only
+ │   ├─ layout/
+ │   │   └─ AppSidebar.tsx          → Shared sticky sidebar (internal pages)
  │   ├─ ChatUI.tsx
- │   ├─ OnboardingForm.tsx
- │   ├─ PricingIntro.tsx
- │   ├─ DashboardHeader.tsx
  │
  ├─ lib/
  │   ├─ supabaseClient.ts
@@ -71,6 +71,11 @@ app/
  ├─ theme.config.ts                 → UI theme and tokens (new)
  ├─ globals.css
 
+
+Behavioral Notes
+- /dashboard always redirects to /chat.
+- Navbar is shown only on the homepage (rendered in app/page.tsx, not in RootLayout).
+- AppSidebar is sticky across internal pages (chat and all dashboard pages); internal pages do not render a header bar; on mobile the sidebar opens via a sheet.
 
 User (Dashboard/Chat) 
    ↓

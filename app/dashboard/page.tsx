@@ -1,5 +1,5 @@
-import ChatUI from "@/components/ChatUI";
+import { redirect } from "next/navigation";
 
 export default function DashboardPage() {
-  return <ChatUI />;
+  redirect("/chat");
 }

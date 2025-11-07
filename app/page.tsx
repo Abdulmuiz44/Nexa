@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Navbar from '@/components/Navbar';
 import Hero from '@/components/Hero';
 import Features from '@/components/Features';
 import HowItWorks from '@/components/HowItWorks';
@@ -81,13 +82,15 @@ const pricingPlans = [
 
 export default function LandingPage() {
   return (
-    <main className="relative min-h-screen overflow-hidden bg-background pt-24 sm:pt-28">
-      <div className="pointer-events-none absolute -top-32 left-1/2 hidden h-[32rem] w-[32rem] -translate-x-1/2 rounded-full bg-gradient-to-br from-primary/30 via-primary/10 to-transparent blur-3xl lg:block" />
-      <div className="pointer-events-none absolute bottom-0 right-[-10%] hidden h-[28rem] w-[28rem] rounded-full bg-gradient-to-tl from-secondary/40 via-secondary/10 to-transparent blur-3xl lg:block" />
+    <>
+      <Navbar />
+      <main className="relative min-h-screen overflow-hidden bg-background pt-24 sm:pt-28">
+        <div className="pointer-events-none absolute -top-32 left-1/2 hidden h-[32rem] w-[32rem] -translate-x-1/2 rounded-full bg-gradient-to-br from-primary/30 via-primary/10 to-transparent blur-3xl lg:block" />
+        <div className="pointer-events-none absolute bottom-0 right-[-10%] hidden h-[28rem] w-[28rem] rounded-full bg-gradient-to-tl from-secondary/40 via-secondary/10 to-transparent blur-3xl lg:block" />
 
-      <div className="relative flex flex-col gap-20 sm:gap-24">
-        <Hero />
-        <TrustedBy />
+        <div className="relative flex flex-col gap-20 sm:gap-24">
+          <Hero />
+          <TrustedBy />
 
         <section className="relative">
           <div className="container mx-auto px-4 sm:px-6">
@@ -204,7 +207,8 @@ export default function LandingPage() {
         </section>
 
         <Footer />
-      </div>
-    </main>
+        </div>
+      </main>
+    </>
   );
 }
