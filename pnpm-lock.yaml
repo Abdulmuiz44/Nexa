@@ -12,8 +12,8 @@ importers:
         specifier: latest
         version: 0.41.0(nodemailer@7.0.9)
       '@composio/core':
-        specifier: ^0.2.0
-        version: 0.2.0(ws@8.18.3)(zod@3.25.76)
+        specifier: ^0.2.3
+        version: 0.2.3(ws@8.18.3)(zod@3.25.76)
       '@google/generative-ai':
         specifier: ^0.24.1
         version: 0.24.1
@@ -523,18 +523,18 @@ packages:
   '@bcoe/v8-coverage@0.2.3':
     resolution: {integrity: sha512-0hYQ8SB4Db5zvZB4axdMHGwEaQjkZzFjQiN9LVYvIFB2nSUHW9tYpxWriPrWDASIxiaXax83REcLxuSdnGPZtw==}
 
-  '@composio/client@0.1.0-alpha.37':
-    resolution: {integrity: sha512-2YzXiRXlxqOgEz7nEh1aKdJ9vwQRb69+RX6UH+LTDmuTwW+pOjI2qbhIBxTbP2z9e2SyHVG0/AtMxc9tR5jU0w==}
+  '@composio/client@0.1.0-alpha.38':
+    resolution: {integrity: sha512-+Gm5EQdFCu408YqPb9rKdVK7QD9eLS5wJTeYw1QH9eA6hfLmTBKVHFLc32tbLlY9nFwmClyF7KIB6y4NUfYcQw==}
 
-  '@composio/core@0.2.0':
-    resolution: {integrity: sha512-RecWGqTtJhdpdJL7b+VSY3MaRmqScN8PeG8YQO6QD7iBK+PmCynolUavIYqtb/l34zEQO3oAvqVcoCvdQbo18w==}
+  '@composio/core@0.2.3':
+    resolution: {integrity: sha512-IvlfhVHdOGKZvduELw+AhAzoHps2OK/7waQsH2v+VMv59KsnmuFpMsB7Ykd2+rx2aNK1zj3qw/dPzMtqjGLjaw==}
     peerDependencies:
       zod: '>=3.25.76 <5'
 
-  '@composio/json-schema-to-zod@0.1.17':
-    resolution: {integrity: sha512-eD7FOLZnvVebCTeQW4Y7gTwM6ENXXNwxJcfMEH1KCDavaHO1RhAlPVgQXFKkuygw68y/IYbqrYpcbAQNXgbOvg==}
+  '@composio/json-schema-to-zod@0.1.18':
+    resolution: {integrity: sha512-y/1AXznIZE92KTKmDCFa2S4/+WulfdrO1RH65fy8CG7sXJVxOExktUiQUrvatnZZ5LzXUJqke9W+fMxLBvm5jw==}
     peerDependencies:
-      zod: '>=3.25.76 <5'
+      zod: '>=3.25.76 <4 || >=4.1 <5'
 
   '@emnapi/core@1.5.0':
     resolution: {integrity: sha512-sbP8GzB1WDzacS8fgNPpHlp6C9VZe+SJP3F90W9rLemaQj2PzIuTEl1qDOYQf58YIpyjViI24y9aPWCjEzY2cg==}
@@ -6240,12 +6240,12 @@ snapshots:
 
   '@bcoe/v8-coverage@0.2.3': {}
 
-  '@composio/client@0.1.0-alpha.37': {}
+  '@composio/client@0.1.0-alpha.38': {}
 
-  '@composio/core@0.2.0(ws@8.18.3)(zod@3.25.76)':
+  '@composio/core@0.2.3(ws@8.18.3)(zod@3.25.76)':
     dependencies:
-      '@composio/client': 0.1.0-alpha.37
-      '@composio/json-schema-to-zod': 0.1.17(zod@3.25.76)
+      '@composio/client': 0.1.0-alpha.38
+      '@composio/json-schema-to-zod': 0.1.18(zod@3.25.76)
       '@types/json-schema': 7.0.15
       chalk: 4.1.2
       openai: 5.23.2(ws@8.18.3)(zod@3.25.76)
@@ -6257,7 +6257,7 @@ snapshots:
     transitivePeerDependencies:
       - ws
 
-  '@composio/json-schema-to-zod@0.1.17(zod@3.25.76)':
+  '@composio/json-schema-to-zod@0.1.18(zod@3.25.76)':
     dependencies:
       zod: 3.25.76
 
