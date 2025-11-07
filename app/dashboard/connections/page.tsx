@@ -1,9 +1,46 @@
+"use client";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Twitter, MessageSquare, CheckCircle, AlertCircle } from "lucide-react";
+import { useSession } from "next-auth/react";
+import { useState } from "react";
 
 export default function ConnectionsPage() {
+  const { data: session } = useSession();
+  const userId = (session?.user as any)?.id;
+  const [redditConnected, setRedditConnected] = useState(false);
+  const [twitterConnected, setTwitterConnected] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  const connectToolkit = async (toolkit: string) => {
+    if (!userId) return;
+    setBusy(true);
+    try {
+      const start = await fetch('/api/composio/start-auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ toolkit }),
+      }).then(r => r.json());
+
+      // In real flow, user would complete OAuth at start.redirectUrl
+      // For now, immediately finalize callback to record connection
+      await fetch('/api/composio/callback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId: start.sessionId, userId, toolkit }),
+      });
+
+      if (toolkit === 'reddit') setRedditConnected(true);
+      if (toolkit === 'twitter') setTwitterConnected(true);
+    } catch (e) {
+      console.error('Connect failed', e);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <div className="flex-1 p-6">
       <div className="max-w-4xl mx-auto">
@@ -26,21 +63,31 @@ export default function ConnectionsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center gap-3 mb-4">
-                <CheckCircle className="h-5 w-5 text-green-500" />
-                <span className="text-sm font-medium">Connected</span>
-                <Badge variant="secondary">@nexa_ai</Badge>
-              </div>
+              {twitterConnected ? (
+                <div className="flex items-center gap-3 mb-4">
+                  <CheckCircle className="h-5 w-5 text-green-500" />
+                  <span className="text-sm font-medium">Connected</span>
+                  <Badge variant="secondary">@your_account</Badge>
+                </div>
+              ) : (
+                <div className="flex items-center gap-3 mb-4">
+                  <AlertCircle className="h-5 w-5 text-yellow-500" />
+                  <span className="text-sm font-medium">Not Connected</span>
+                </div>
+              )}
               <p className="text-sm text-muted-foreground mb-4">
-                Your Twitter/X account is connected and ready for automated posting.
+                {twitterConnected ? 'Your Twitter/X account is connected and ready.' : 'Connect your Twitter/X account to enable automated posting.'}
               </p>
               <div className="flex gap-2">
-                <Button variant="outline" size="sm">
-                  Test Connection
-                </Button>
-                <Button variant="outline" size="sm">
-                  Disconnect
-                </Button>
+                {twitterConnected ? (
+                  <Button variant="outline" size="sm" disabled>
+                    Disconnect
+                  </Button>
+                ) : (
+                  <Button variant="outline" size="sm" disabled={busy || !userId} onClick={() => connectToolkit('twitter')}>
+                    Connect Twitter
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -56,16 +103,29 @@ export default function ConnectionsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center gap-3 mb-4">
-                <AlertCircle className="h-5 w-5 text-yellow-500" />
-                <span className="text-sm font-medium">Not Connected</span>
-              </div>
+              {redditConnected ? (
+                <div className="flex items-center gap-3 mb-4">
+                  <CheckCircle className="h-5 w-5 text-green-500" />
+                  <span className="text-sm font-medium">Connected</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-3 mb-4">
+                  <AlertCircle className="h-5 w-5 text-yellow-500" />
+                  <span className="text-sm font-medium">Not Connected</span>
+                </div>
+              )}
               <p className="text-sm text-muted-foreground mb-4">
-                Connect your Reddit account to enable automated posting to subreddits.
+                {redditConnected ? 'Your Reddit account is connected and ready.' : 'Connect your Reddit account to enable automated posting to subreddits.'}
               </p>
-              <Button>
-                Connect Reddit Account
-              </Button>
+              {redditConnected ? (
+                <Button variant="outline" size="sm" disabled>
+                  Disconnect
+                </Button>
+              ) : (
+                <Button disabled={busy || !userId} onClick={() => connectToolkit('reddit')}>
+                  Connect Reddit Account
+                </Button>
+              )}
             </CardContent>
           </Card>
 
@@ -126,11 +186,11 @@ export default function ConnectionsPage() {
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="text-center">
-                <div className="text-2xl font-bold text-green-500 mb-1">1</div>
+                <div className="text-2xl font-bold text-green-500 mb-1">{(twitterConnected ? 1 : 0) + (redditConnected ? 1 : 0)}</div>
                 <div className="text-sm text-muted-foreground">Connected</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-yellow-500 mb-1">1</div>
+                <div className="text-2xl font-bold text-yellow-500 mb-1">0</div>
                 <div className="text-sm text-muted-foreground">Pending</div>
               </div>
               <div className="text-center">

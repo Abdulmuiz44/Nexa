@@ -11,20 +11,20 @@ const logos = [
 
 const TrustedBy = () => {
   return (
-    <section className="py-16 bg-background">
-      <div className="container mx-auto px-6">
-        <h3 className="text-center text-lg font-medium text-muted-foreground mb-8">
+    <section className="bg-background py-12 sm:py-16">
+      <div className="container mx-auto px-4 sm:px-6">
+        <h3 className="mb-6 text-center text-base font-medium text-muted-foreground sm:mb-8 sm:text-lg">
           Trusted by the world's most innovative companies
         </h3>
-        <div className="flex flex-wrap justify-center items-center gap-x-12 gap-y-8">
+        <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-6 sm:gap-x-12 sm:gap-y-8">
           {logos.map((logo, idx) => (
             <Image
               key={idx}
               src={logo.src}
               alt={logo.alt}
-              width={120}
-              height={40}
-              className="opacity-60 hover:opacity-100 transition-opacity"
+              width={112}
+              height={36}
+              className="h-10 w-auto opacity-60 transition-opacity hover:opacity-100 sm:h-12"
             />
           ))}
         </div>

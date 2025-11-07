@@ -40,7 +40,7 @@ export class ContentGenerator {
 
     try {
       const response = await openai.chat.completions.create({
-        model: 'gpt-4',
+        model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
         messages: [
           {
             role: 'system',
@@ -185,7 +185,7 @@ Suggest an improved version that would perform better. Focus on:
 
     try {
       const response = await openai.chat.completions.create({
-        model: 'gpt-4',
+        model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
         messages: [
           {
             role: 'system',

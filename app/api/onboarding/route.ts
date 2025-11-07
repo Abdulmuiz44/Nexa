@@ -3,6 +3,35 @@ import { supabaseServer } from '@/src/lib/supabaseServer';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/src/auth/auth';
 
+export async function GET() {
+  try {
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { data, error } = await supabaseServer
+      .from('users')
+      .select('status, onboarding_data')
+      .eq('id', session.user.id)
+      .single();
+
+    if (error) {
+      console.error('Onboarding fetch error:', error.message);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({
+      status: data?.status,
+      onboarding_data: data?.onboarding_data ?? null,
+    });
+  } catch (error: unknown) {
+    console.error('Onboarding GET error:', error);
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'An unexpected error occurred' }, { status: 500 });
+  }
+}
+
 export async function POST(req: Request) {
   try {
     console.log('Onboarding API called');
@@ -37,7 +66,7 @@ export async function POST(req: Request) {
       .from('users')
       .update({
         onboarding_data: onboardingData,
-        status: 'active',
+        status: 'onboarding_complete',
         updated_at: new Date(),
       })
       .eq('id', session.user.id);

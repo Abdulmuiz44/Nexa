@@ -1,69 +1,89 @@
-import { type NextRequest, NextResponse } from "next/server"
-import { z } from "zod"
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/src/auth/auth';
+import { supabaseServer } from '@/src/lib/supabaseServer';
 
-const createCampaignSchema = z.object({
-  name: z.string().min(1),
-  description: z.string().optional(),
-  targetAudience: z.string().min(1),
-  channels: z.array(z.string()),
-  contentTopics: z.array(z.string()),
-  schedule: z.object({
-    postsPerDay: z.number().min(1).max(10),
-    timezone: z.string(),
-    startDate: z.string(),
-    endDate: z.string().optional(),
-  }),
-  budget: z.number().optional(),
-})
-
-export async function POST(request: NextRequest) {
+// GET /api/campaigns - List user's campaigns
+export async function GET() {
   try {
-    const body = await request.json()
-    const validatedData = createCampaignSchema.parse(body)
-
-    const campaign = {
-      id: `campaign-${Date.now()}`,
-      ...validatedData,
-      status: "draft",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    return NextResponse.json({
-      success: true,
-      campaign,
-    })
+    const { data: campaigns, error } = await supabaseServer
+      .from('campaigns')
+      .select('*')
+      .eq('user_id', session.user.id)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching campaigns:', error);
+      return NextResponse.json({ error: 'Failed to fetch campaigns' }, { status: 500 });
+    }
+
+    return NextResponse.json({ campaigns });
   } catch (error) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 400 })
+    console.error('Campaigns API error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
-export async function GET() {
+// POST /api/campaigns - Create new campaign
+export async function POST(req: NextRequest) {
   try {
-    const campaigns = [
-      {
-        id: "campaign-1",
-        name: "AI Tool Launch Campaign",
-        status: "active",
-        channels: ["twitter", "linkedin"],
-        postsPerDay: 5,
-        createdAt: "2024-01-15T10:00:00Z",
-      },
-      {
-        id: "campaign-2",
-        name: "SaaS Growth Campaign",
-        status: "paused",
-        channels: ["twitter", "linkedin", "facebook"],
-        postsPerDay: 3,
-        createdAt: "2024-01-10T10:00:00Z",
-      },
-    ]
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
-    return NextResponse.json({
-      success: true,
-      campaigns,
-    })
+    const body = await req.json();
+    const {
+      name,
+      description,
+      platforms,
+      duration_days,
+      posts_per_day,
+      topic,
+      start_date,
+      end_date,
+      metadata
+    } = body;
+
+    // Validate required fields
+    if (!name || !platforms || !Array.isArray(platforms) || platforms.length === 0) {
+      return NextResponse.json({
+        error: 'Name and at least one platform are required'
+      }, { status: 400 });
+    }
+
+    // Create campaign
+    const { data: campaign, error } = await supabaseServer
+      .from('campaigns')
+      .insert({
+        user_id: session.user.id,
+        name,
+        description,
+        platforms,
+        duration_days: duration_days || 7,
+        posts_per_day: posts_per_day || 1,
+        topic,
+        status: 'draft',
+        start_date,
+        end_date,
+        metadata: metadata || {}
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating campaign:', error);
+      return NextResponse.json({ error: 'Failed to create campaign' }, { status: 500 });
+    }
+
+    return NextResponse.json({ campaign }, { status: 201 });
   } catch (error) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 })
+    console.error('Create campaign API error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

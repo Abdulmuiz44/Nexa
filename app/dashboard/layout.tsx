@@ -75,7 +75,7 @@ const sidebarItems = [
   },
 ];
 
-function Sidebar() {
+function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
   const pathname = usePathname();
 
   return (
@@ -100,7 +100,8 @@ function Sidebar() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-foreground hover:bg-accent/50 ${
+                onClick={onNavigate}
+                className={`flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:bg-accent/50 hover:text-foreground ${
                   isActive ? "bg-accent text-accent-foreground" : ""
                 }`}
               >
@@ -118,17 +119,18 @@ function Sidebar() {
 function DashboardHeader() {
   const { data: session } = useSession();
   const router = useRouter();
+  const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <header className="flex h-16 items-center gap-4 border-b border-border bg-background/80 backdrop-blur-sm px-6">
-      <Sheet>
+    <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b border-border bg-background/80 px-4 backdrop-blur-sm sm:px-6">
+      <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
         <SheetTrigger asChild>
           <Button variant="ghost" size="icon" className="md:hidden">
             <Menu className="h-5 w-5" />
           </Button>
         </SheetTrigger>
-        <SheetContent side="left" className="p-0 w-64">
-          <Sidebar />
+        <SheetContent side="left" className="w-64 overflow-y-auto p-0">
+          <Sidebar onNavigate={() => setMenuOpen(false)} />
         </SheetContent>
       </Sheet>
 
@@ -136,8 +138,8 @@ function DashboardHeader() {
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="relative flex items-center gap-2 rounded-full px-3">
-            <Avatar className="h-8 w-8">
+          <Button variant="ghost" className="relative flex items-center gap-2 rounded-full px-2 sm:px-3">
+            <Avatar className="h-9 w-9 sm:h-8 sm:w-8">
               <AvatarImage src={session?.user?.image || "/placeholder-user.jpg"} alt={session?.user?.name || ""} />
               <AvatarFallback>{session?.user?.name?.[0]}</AvatarFallback>
             </Avatar>
@@ -168,39 +170,44 @@ function DashboardHeader() {
 }
 
 export default function DashboardLayout({
-  children,
+children,
 }: {
-  children: React.ReactNode;
+children: React.ReactNode;
 }) {
-  const { data: session, status } = useSession();
+const { data: session, status } = useSession();
 
-  if (status === "loading") {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading...</p>
-        </div>
+console.log('DashboardLayout: session status:', status, 'session:', session);
+
+if (status === "loading") {
+return (
+<div className="min-h-screen flex items-center justify-center bg-background">
+<div className="text-center">
+  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+    <p className="text-muted-foreground">Loading dashboard...</p>
+    </div>
+    </div>
+    );
+}
+
+if (!session) {
+console.log('DashboardLayout: No session, redirecting to login');
+return (
+<div className="min-h-screen flex items-center justify-center bg-background">
+<div className="text-center">
+    <p className="text-muted-foreground mb-4">You need to be logged in to access this page.</p>
+      <Button onClick={() => window.location.href = "/auth/login"}>Go to Login</Button>
+      </div>
       </div>
     );
   }
 
-  if (!session) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center">
-          <p className="text-muted-foreground mb-4">You need to be logged in to access this page.</p>
-          <Button onClick={() => window.location.href = "/auth/login"}>Go to Login</Button>
-        </div>
-      </div>
-    );
-  }
+  console.log('DashboardLayout: Session found, rendering dashboard');
 
   return (
     <div className="min-h-screen bg-background">
       <div className="hidden md:flex">
         <Sidebar />
-        <div className="flex-1 flex flex-col">
+        <div className="flex flex-1 flex-col">
           <DashboardHeader />
           <main className="flex-1 overflow-auto">
             {children}
@@ -209,7 +216,7 @@ export default function DashboardLayout({
       </div>
 
       {/* Mobile Layout */}
-      <div className="md:hidden flex flex-col min-h-screen">
+      <div className="flex min-h-screen flex-col md:hidden">
         <DashboardHeader />
         <main className="flex-1 overflow-auto">
           {children}

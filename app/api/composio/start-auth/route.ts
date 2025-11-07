@@ -14,16 +14,16 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Toolkit required' }, { status: 400 });
     }
 
-    // TODO: Implement Composio integration
-    // For now, return a placeholder response
+    // Placeholder auth session
     const authSession = {
       redirectUrl: `https://composio.ai/auth/${toolkit}`,
-      id: 'placeholder-session-id'
+      id: `mock-${toolkit}-${Date.now()}`,
     };
 
     return NextResponse.json({
       redirectUrl: authSession.redirectUrl,
       sessionId: authSession.id,
+      // Client should later POST to /api/composio/callback with { sessionId, userId: session.user.id, toolkit }
     });
   } catch (error: unknown) {
     console.error('Composio start auth error:', error);

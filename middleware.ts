@@ -22,23 +22,23 @@ export async function middleware(request: NextRequest) {
     return rateLimitResponse;
   }
 
-  // Protect onboarding, dashboard, chat, subscribe and pricing pages
+  // Protect onboarding, chat, subscribe and pricing pages
   if (pathname.startsWith("/onboarding") ||
-      pathname.startsWith("/dashboard") ||
-      pathname.startsWith("/chat") ||
-      pathname.startsWith("/subscribe") ||
-      pathname.startsWith("/pricing") ||
-      pathname.startsWith("/docs")) {
+  pathname.startsWith("/chat") ||
+  pathname.startsWith("/subscribe") ||
+  pathname.startsWith("/pricing") ||
+  pathname.startsWith("/docs")) {
 
     const onboardingResponse = await onboardingMiddleware(request);
-    if (onboardingResponse.status !== 200) {
-      return onboardingResponse;
-    }
+  if (onboardingResponse.status !== 200) {
+    return onboardingResponse;
+  }
+  }
 
-    // Role-based access for dashboard sections
-    if (pathname.startsWith("/dashboard")) {
-      return subscriptionMiddleware(request);
-    }
+  // Protect dashboard pages (let dashboard layout handle auth)
+  if (pathname.startsWith("/dashboard")) {
+  // Only check subscription for dashboard
+  return subscriptionMiddleware(request);
   }
 
   return NextResponse.next();

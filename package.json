@@ -34,7 +34,7 @@
   },
   "dependencies": {
     "@auth/core": "latest",
-    "@composio/core": "^0.2.0",
+    "@composio/core": "^0.2.3",
     "@google/generative-ai": "^0.24.1",
     "@jest/globals": "latest",
     "@modelcontextprotocol/sdk": "^1.20.1",

@@ -17,11 +17,11 @@ const nextConfig = {
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
     NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   },
-  webpack: (config) => {
-    config.cache = false;
-    config.watchOptions = {
-      ignored: ['/data/data', '/data', '/'],
-    };
+  // Use in-memory cache during development to avoid filesystem rename issues on some setups
+  webpack: (config, { dev }) => {
+    if (dev) {
+      config.cache = { type: 'memory' };
+    }
     return config;
   },
 }

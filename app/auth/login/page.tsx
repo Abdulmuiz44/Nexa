@@ -25,7 +25,7 @@ const searchParams = useSearchParams();
     if (status === 'loading') return;
 
     if (session) {
-      router.push('/dashboard');
+      router.push('/chat');
     }
   }, [session, status, router]);
 
@@ -48,7 +48,23 @@ const searchParams = useSearchParams();
       if (result?.error) {
         setError("Invalid credentials")
       } else {
-        router.push("/dashboard")
+        // Decide destination based on onboarding status
+        try {
+          const res = await fetch('/api/onboarding', { method: 'GET' })
+          if (res.ok) {
+            const data = await res.json()
+            if (data?.status === 'onboarding_complete' || data?.status === 'active' || data?.status === 'agent_active') {
+              router.replace('/chat')
+            } else {
+              router.replace('/onboarding')
+            }
+          } else {
+            // Fallback to chat if status check fails
+            router.replace('/chat')
+          }
+        } catch {
+          router.replace('/chat')
+        }
       }
     } catch (error) {
       setError("An error occurred. Please try again.")

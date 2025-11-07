@@ -91,9 +91,9 @@ const ContentGenerator = () => {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
       {/* Input Form */}
-      <Card className="p-6 bg-card/50 backdrop-blur-sm">
+      <Card className="bg-card/50 p-4 backdrop-blur-sm sm:p-6">
         <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
           <Sparkles className="h-5 w-5 text-primary" />
           Content Generator
@@ -201,8 +201,8 @@ const ContentGenerator = () => {
       </Card>
 
       {/* Output Display */}
-      <Card className="p-6 bg-card/50 backdrop-blur-sm">
-        <div className="flex items-center justify-between mb-4">
+      <Card className="bg-card/50 p-4 backdrop-blur-sm sm:p-6">
+        <div className="mb-4 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
           <h3 className="text-xl font-bold">Generated Content</h3>
           {generatedContent && (
             <Button variant="outline" size="sm" onClick={copyToClipboard}>
@@ -211,29 +211,24 @@ const ContentGenerator = () => {
             </Button>
           )}
         </div>
-
-        <div className="min-h-[400px] relative">
+        <div className="relative rounded-xl border border-border/60 bg-secondary/30 p-4">
           {loading ? (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="text-center">
-                <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-2" />
+            <div className="flex min-h-[260px] items-center justify-center text-center sm:min-h-[320px]">
+              <div>
+                <Loader2 className="mx-auto mb-2 h-8 w-8 animate-spin text-primary" />
                 <p className="text-sm text-muted-foreground">AI is crafting your content...</p>
               </div>
             </div>
           ) : generatedContent ? (
-            <div className="max-w-none">
-              <div className="bg-secondary/50 p-4 rounded-lg border border-border whitespace-pre-wrap">
-                {generatedContent}
-              </div>
+            <div className="max-h-[60vh] overflow-y-auto whitespace-pre-wrap text-sm leading-relaxed sm:text-base">
+              {generatedContent}
             </div>
           ) : (
-            <div className="absolute inset-0 flex items-center justify-center text-center">
-              <div className="max-w-xs">
-                <Sparkles className="h-12 w-12 text-muted-foreground mx-auto mb-3 opacity-50" />
-                <p className="text-muted-foreground">
-                  Fill in the details and click generate to create AI-powered content
-                </p>
-              </div>
+            <div className="flex min-h-[260px] flex-col items-center justify-center gap-3 text-center sm:min-h-[320px]">
+              <Sparkles className="h-10 w-10 text-muted-foreground opacity-60" />
+              <p className="text-sm text-muted-foreground sm:text-base">
+                Fill in the details and tap generate to create AI-powered content.
+              </p>
             </div>
           )}
         </div>

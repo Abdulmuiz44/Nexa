@@ -55,9 +55,16 @@ Always be helpful, professional, and focused on achieving the user's social medi
 
 For content creation, match the user's brand tone and business type. Be creative but authentic.`;
 
+    // Pre-check wallet
+    const { getCreditBalance, recordOpenAIUsage } = await import('@/lib/utils/credits');
+    const preBalance = await getCreditBalance(session.user.id);
+    if (preBalance <= 0) {
+      return NextResponse.json({ error: 'Insufficient credits. Please top up.' }, { status: 402 });
+    }
+
     // Use OpenAI to process the message and determine if action is needed
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4',
+      model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: message }
@@ -67,6 +74,17 @@ For content creation, match the user's brand tone and business type. Be creative
     });
 
     const aiResponse = completion.choices[0]?.message?.content || 'I apologize, but I couldn\'t process your request properly.';
+
+    // Deduct credits based on tokens
+    try {
+      const usage = (completion as any).usage || {};
+      const total = Number(usage.total_tokens || 0);
+      if (total > 0) {
+        await recordOpenAIUsage(session.user.id, { total_tokens: total }, { model: process.env.OPENAI_MODEL || 'gpt-4o-mini', response_ids: [(completion as any).id], endpoint: 'agent_chat_api' });
+      }
+    } catch (e) {
+      console.error('credit deduction (agent chat) error', e);
+    }
 
     // Check if the response indicates an action should be taken
     // For now, we'll return the AI response

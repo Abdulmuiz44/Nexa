@@ -1,14 +1,45 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FileText, Download, TrendingUp, TrendingDown, Calendar } from "lucide-react";
-import { useState } from "react";
 
 export default function ReportsPage() {
   const [timeRange, setTimeRange] = useState("30");
+  const [report, setReport] = useState<any | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      try {
+        const res = await fetch(`/api/reports?period=${timeRange}`);
+        const data = await res.json();
+        setReport(data.report || null);
+      } catch (e) {
+        console.error('Report fetch error', e);
+        setReport(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, [timeRange]);
+
+  const platformPercentages = useMemo(() => {
+    const pb = report?.platformBreakdown || {};
+    const totalEng = Object.values(pb).reduce((sum: number, p: any) => sum + (p.engagement || 0), 0) || 0;
+    const result: Record<string, number> = {};
+    Object.entries(pb).forEach(([k, v]: any) => {
+      result[k] = totalEng > 0 ? Math.round(((v.engagement || 0) / totalEng) * 1000) / 10 : 0;
+    });
+    return result;
+  }, [report]);
+
+  const fmt = (n: number) => new Intl.NumberFormat().format(Math.round(n));
 
   return (
     <div className="flex-1 p-6">
@@ -19,9 +50,7 @@ export default function ReportsPage() {
               <FileText className="h-8 w-8 text-primary" />
               Reports & Analytics
             </h1>
-            <p className="text-muted-foreground mt-2">
-              Comprehensive performance reports and insights
-            </p>
+            <p className="text-muted-foreground mt-2">Comprehensive performance reports and insights</p>
           </div>
           <div className="flex items-center gap-4">
             <Select value={timeRange} onValueChange={setTimeRange}>
@@ -34,65 +63,67 @@ export default function ReportsPage() {
                 <SelectItem value="90">Last 90 days</SelectItem>
               </SelectContent>
             </Select>
-            <Button>
+            <Button onClick={async () => {
+              const blob = new Blob([JSON.stringify(report || {}, null, 2)], { type: 'application/json' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `report-${timeRange}d.json`;
+              a.click();
+              URL.revokeObjectURL(url);
+            }}>
               <Download className="mr-2 h-4 w-4" />
               Export Report
             </Button>
           </div>
         </div>
 
-        {/* Summary Cards */}
+        {/* Summary Cards (real) */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Card className="p-6">
             <div className="flex items-center justify-between mb-4">
               <div className="text-sm text-muted-foreground">Total Posts</div>
               <Badge variant="secondary" className="text-green-600">
                 <TrendingUp className="h-3 w-3 mr-1" />
-                +12%
+                {report ? `${report.summary.totalPosts}` : '—'}
               </Badge>
             </div>
-            <div className="text-3xl font-bold mb-1">247</div>
-            <div className="text-sm text-muted-foreground">+23 from last period</div>
+            <div className="text-3xl font-bold mb-1">{report ? fmt(report.summary.totalPosts) : (loading ? '—' : '0')}</div>
+            <div className="text-sm text-muted-foreground">This period</div>
           </Card>
 
           <Card className="p-6">
             <div className="flex items-center justify-between mb-4">
-              <div className="text-sm text-muted-foreground">Engagement Rate</div>
+              <div className="text-sm text-muted-foreground">Avg Engagement Rate</div>
               <Badge variant="secondary" className="text-green-600">
                 <TrendingUp className="h-3 w-3 mr-1" />
-                +5.2%
               </Badge>
             </div>
-            <div className="text-3xl font-bold mb-1">8.4%</div>
-            <div className="text-sm text-muted-foreground">+0.4% from last period</div>
+            <div className="text-3xl font-bold mb-1">{report ? `${(report.summary.averageEngagementRate || 0).toFixed(1)}%` : (loading ? '—' : '0%')}</div>
+            <div className="text-sm text-muted-foreground">Across platforms</div>
           </Card>
 
           <Card className="p-6">
             <div className="flex items-center justify-between mb-4">
-              <div className="text-sm text-muted-foreground">Total Reach</div>
-              <Badge variant="secondary" className="text-red-600">
-                <TrendingDown className="h-3 w-3 mr-1" />
-                -2.1%
-              </Badge>
-            </div>
-            <div className="text-3xl font-bold mb-1">12.5K</div>
-            <div className="text-sm text-muted-foreground">-320 from last period</div>
-          </Card>
-
-          <Card className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="text-sm text-muted-foreground">Conversion Rate</div>
+              <div className="text-sm text-muted-foreground">Total Engagement</div>
               <Badge variant="secondary" className="text-green-600">
                 <TrendingUp className="h-3 w-3 mr-1" />
-                +8.7%
               </Badge>
             </div>
-            <div className="text-3xl font-bold mb-1">3.2%</div>
-            <div className="text-sm text-muted-foreground">+0.3% from last period</div>
+            <div className="text-3xl font-bold mb-1">{report ? fmt(report.summary.totalEngagement) : (loading ? '—' : '0')}</div>
+            <div className="text-sm text-muted-foreground">This period</div>
+          </Card>
+
+          <Card className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="text-sm text-muted-foreground">Top Platform</div>
+            </div>
+            <div className="text-3xl font-bold mb-1 capitalize">{report ? (report.summary.topPerformingPlatform || '—') : (loading ? '—' : '—')}</div>
+            <div className="text-sm text-muted-foreground">By post count</div>
           </Card>
         </div>
 
-        {/* Platform Performance */}
+        {/* Platform Performance (real) */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           <Card className="p-6">
             <CardHeader>
@@ -100,27 +131,21 @@ export default function ReportsPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                    <span className="font-medium">Twitter/X</span>
+                {Object.entries(report?.platformBreakdown || {}).map(([platform, data]: any) => (
+                  <div key={platform} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-3 h-3 rounded-full ${platform === 'twitter' ? 'bg-blue-500' : 'bg-orange-500'}`}></div>
+                      <span className="font-medium capitalize">{platform}</span>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-bold">{platformPercentages[platform] || 0}%</div>
+                      <div className="text-sm text-muted-foreground">of total engagement</div>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <div className="font-bold">68.5%</div>
-                    <div className="text-sm text-muted-foreground">of total engagement</div>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-3 h-3 rounded-full bg-orange-500"></div>
-                    <span className="font-medium">Reddit</span>
-                  </div>
-                  <div className="text-right">
-                    <div className="font-bold">31.5%</div>
-                    <div className="text-sm text-muted-foreground">of total engagement</div>
-                  </div>
-                </div>
+                ))}
+                {report && Object.keys(report.platformBreakdown || {}).length === 0 && (
+                  <div className="text-sm text-muted-foreground">No data</div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -131,76 +156,44 @@ export default function ReportsPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                    <span className="font-medium">Educational Posts</span>
+                {Object.entries(report?.contentPerformance || {}).map(([label, v]: any) => (
+                  <div key={label} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 rounded-full bg-muted"></div>
+                      <span className="font-medium capitalize">{label.replace(/([A-Z])/g, ' $1')}</span>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-bold">{v.percentage}%</div>
+                      <div className="text-sm text-muted-foreground">share</div>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <div className="font-bold">42%</div>
-                    <div className="text-sm text-muted-foreground">engagement rate</div>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-3 h-3 rounded-full bg-purple-500"></div>
-                    <span className="font-medium">Product Updates</span>
-                  </div>
-                  <div className="text-right">
-                    <div className="font-bold">38%</div>
-                    <div className="text-sm text-muted-foreground">engagement rate</div>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                    <span className="font-medium">Industry News</span>
-                  </div>
-                  <div className="text-right">
-                    <div className="font-bold">20%</div>
-                    <div className="text-sm text-muted-foreground">engagement rate</div>
-                  </div>
-                </div>
+                ))}
+                {report && Object.keys(report.contentPerformance || {}).length === 0 && (
+                  <div className="text-sm text-muted-foreground">No data</div>
+                )}
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Recent Reports */}
+        {/* Report generation info */}
         <Card className="p-6">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Calendar className="h-5 w-5" />
-              Recent Reports
+              Generated
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 border rounded-lg">
-                <div>
-                  <h4 className="font-medium">Weekly Performance Report</h4>
-                  <p className="text-sm text-muted-foreground">Generated on October 29, 2024</p>
-                </div>
-                <Button variant="outline" size="sm">
-                  <Download className="mr-2 h-4 w-4" />
-                  Download
-                </Button>
-              </div>
-
-              <div className="flex items-center justify-between p-4 border rounded-lg">
-                <div>
-                  <h4 className="font-medium">Monthly Analytics Summary</h4>
-                  <p className="text-sm text-muted-foreground">Generated on October 1, 2024</p>
-                </div>
-                <Button variant="outline" size="sm">
-                  <Download className="mr-2 h-4 w-4" />
-                  Download
-                </Button>
-              </div>
-
-              <div className="flex items-center justify-between p-4 border rounded-lg">
+            <div className="text-sm text-muted-foreground">
+              {report ? new Date(report.generatedAt).toLocaleString() : (loading ? 'Loading…' : '—')}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
                 <div>
                   <h4 className="font-medium">Q4 Campaign Report</h4>
                   <p className="text-sm text-muted-foreground">Generated on September 30, 2024</p>

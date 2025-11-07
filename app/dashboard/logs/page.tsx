@@ -1,17 +1,17 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Activity, Search, Filter, MessageSquare, Bot, AlertCircle, CheckCircle } from "lucide-react";
-import { useState } from "react";
+import { Activity, Search, MessageSquare, Bot, AlertCircle, CheckCircle } from "lucide-react";
 
 interface LogEntry {
   id: string;
-  timestamp: Date;
-  type: 'user_action' | 'ai_response' | 'system' | 'error';
+  timestamp: string; // ISO string from API
+  type: string;
   message: string;
   metadata?: Record<string, any>;
 }
@@ -19,45 +19,25 @@ interface LogEntry {
 export default function LogsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState("all");
+  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Mock log data
-  const logs: LogEntry[] = [
-    {
-      id: '1',
-      timestamp: new Date(Date.now() - 1000 * 60 * 5), // 5 minutes ago
-      type: 'user_action',
-      message: 'User requested content generation for Twitter',
-      metadata: { platform: 'twitter', contentType: 'post' }
-    },
-    {
-      id: '2',
-      timestamp: new Date(Date.now() - 1000 * 60 * 15), // 15 minutes ago
-      type: 'ai_response',
-      message: 'AI generated post content successfully',
-      metadata: { tokens: 245, model: 'gpt-4' }
-    },
-    {
-      id: '3',
-      timestamp: new Date(Date.now() - 1000 * 60 * 30), // 30 minutes ago
-      type: 'system',
-      message: 'Scheduled post published to Twitter',
-      metadata: { postId: '12345', platform: 'twitter' }
-    },
-    {
-      id: '4',
-      timestamp: new Date(Date.now() - 1000 * 60 * 60), // 1 hour ago
-      type: 'user_action',
-      message: 'User updated campaign settings',
-      metadata: { campaignId: '67890' }
-    },
-    {
-      id: '5',
-      timestamp: new Date(Date.now() - 1000 * 60 * 90), // 1.5 hours ago
-      type: 'error',
-      message: 'Failed to connect to Reddit API',
-      metadata: { error: 'Authentication timeout', platform: 'reddit' }
-    }
-  ];
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      try {
+        const res = await fetch('/api/logs');
+        const data = await res.json();
+        setLogs(data.logs || []);
+      } catch (e) {
+        console.error('Logs fetch error', e);
+        setLogs([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
 
   const getLogIcon = (type: string) => {
     switch (type) {
@@ -79,11 +59,13 @@ export default function LogsPage() {
     }
   };
 
-  const filteredLogs = logs.filter(log => {
-    const matchesSearch = log.message.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFilter = filterType === 'all' || log.type === filterType;
-    return matchesSearch && matchesFilter;
-  });
+  const filteredLogs = useMemo(() => {
+    return logs.filter(log => {
+      const matchesSearch = (log.message || '').toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesFilter = filterType === 'all' || log.type === filterType;
+      return matchesSearch && matchesFilter;
+    });
+  }, [logs, filterType, searchTerm]);
 
   return (
     <div className="flex-1 p-6">
@@ -93,9 +75,7 @@ export default function LogsPage() {
             <Activity className="h-8 w-8 text-primary" />
             Activity Logs
           </h1>
-          <p className="text-muted-foreground mt-2">
-            Track all system activities, user actions, and AI interactions
-          </p>
+          <p className="text-muted-foreground mt-2">Track all system activities, user actions, and AI interactions</p>
         </div>
 
         {/* Filters */}
@@ -143,15 +123,13 @@ export default function LogsPage() {
                           {log.type.replace('_', ' ')}
                         </Badge>
                         <span className="text-sm text-muted-foreground">
-                          {log.timestamp.toLocaleString()}
+                          {new Date(log.timestamp).toLocaleString()}
                         </span>
                       </div>
                       <p className="text-sm font-medium mb-2">{log.message}</p>
                       {log.metadata && Object.keys(log.metadata).length > 0 && (
                         <div className="text-xs text-muted-foreground bg-muted p-2 rounded">
-                          <pre className="whitespace-pre-wrap">
-                            {JSON.stringify(log.metadata, null, 2)}
-                          </pre>
+                          <pre className="whitespace-pre-wrap">{JSON.stringify(log.metadata, null, 2)}</pre>
                         </div>
                       )}
                     </div>
@@ -160,13 +138,11 @@ export default function LogsPage() {
               })}
             </div>
 
-            {filteredLogs.length === 0 && (
+            {!loading && filteredLogs.length === 0 && (
               <div className="text-center py-8">
                 <Activity className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <h3 className="text-lg font-medium mb-2">No logs found</h3>
-                <p className="text-muted-foreground">
-                  Try adjusting your search or filter criteria.
-                </p>
+                <p className="text-muted-foreground">Try adjusting your search or filter criteria.</p>
               </div>
             )}
           </CardContent>
@@ -175,19 +151,19 @@ export default function LogsPage() {
         {/* Log Statistics */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
           <Card className="p-4 text-center">
-            <div className="text-2xl font-bold text-blue-500 mb-1">{logs.filter(l => l.type === 'user_action').length}</div>
+            <div className="text-2xl font-bold text-blue-500 mb-1">{filteredLogs.filter(l => l.type === 'user_action').length}</div>
             <div className="text-sm text-muted-foreground">User Actions</div>
           </Card>
           <Card className="p-4 text-center">
-            <div className="text-2xl font-bold text-green-500 mb-1">{logs.filter(l => l.type === 'ai_response').length}</div>
+            <div className="text-2xl font-bold text-green-500 mb-1">{filteredLogs.filter(l => l.type === 'ai_response').length}</div>
             <div className="text-sm text-muted-foreground">AI Responses</div>
           </Card>
           <Card className="p-4 text-center">
-            <div className="text-2xl font-bold text-purple-500 mb-1">{logs.filter(l => l.type === 'system').length}</div>
+            <div className="text-2xl font-bold text-purple-500 mb-1">{filteredLogs.filter(l => l.type === 'system').length}</div>
             <div className="text-sm text-muted-foreground">System Events</div>
           </Card>
           <Card className="p-4 text-center">
-            <div className="text-2xl font-bold text-red-500 mb-1">{logs.filter(l => l.type === 'error').length}</div>
+            <div className="text-2xl font-bold text-red-500 mb-1">{filteredLogs.filter(l => l.type === 'error').length}</div>
             <div className="text-sm text-muted-foreground">Errors</div>
           </Card>
         </div>

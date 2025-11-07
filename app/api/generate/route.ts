@@ -19,6 +19,17 @@ export async function POST(req: Request) {
 
     const userId = (session.user as { id: string }).id;
 
+    // Verify user exists in database
+    const { data: userExists } = await supabaseServer
+      .from('users')
+      .select('id')
+      .eq('id', userId)
+      .single();
+
+    if (!userExists) {
+      return NextResponse.json({ error: 'User not found in database' }, { status: 404 });
+    }
+
     const body = await req.json();
     const {
       toolName,
@@ -45,12 +56,30 @@ export async function POST(req: Request) {
       Description: ${toolDescription}
     `;
 
+    // Pre-check wallet
+    const { getCreditBalance, recordOpenAIUsage } = await import('@/lib/utils/credits');
+    const preBalance = await getCreditBalance(userId);
+    if (preBalance <= 0) {
+      return NextResponse.json({ error: 'Insufficient credits. Please top up.' }, { status: 402 });
+    }
+
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
       messages: [{ role: 'user', content: prompt }],
     });
 
     const content = completion.choices[0]?.message?.content?.trim();
+
+    // Deduct credits based on tokens
+    try {
+      const usage = (completion as any).usage || {};
+      const total = Number(usage.total_tokens || 0);
+      if (total > 0) {
+        await recordOpenAIUsage(userId, { total_tokens: total }, { model: process.env.OPENAI_MODEL || 'gpt-4o-mini', response_ids: [(completion as any).id], endpoint: 'generate_api' });
+      }
+    } catch (e) {
+      console.error('credit deduction (generate) error', e);
+    }
 
     if (!content) {
       return NextResponse.json({ error: 'Failed to generate content' }, { status: 500 });

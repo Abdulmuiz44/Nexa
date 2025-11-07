@@ -1,3 +1,8 @@
+import '@/src/workers/scheduledPostsWorker'
+import '@/src/workers/postScheduler'
+
+console.log('[workers] Scheduled posts worker started')
+
 import { postSchedulerWorker, analyticsWorker } from '../src/workers/postScheduler';
 
 console.log('Starting workers...');

@@ -13,15 +13,29 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const Navbar = () => {
   const { data: session, status } = useSession();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [mobileMenuOpen]);
+
+  const handleNavClick = () => setMobileMenuOpen(false);
+
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border">
-      <div className="container mx-auto px-6 py-4 flex items-center justify-between">
+      <div className="container mx-auto flex items-center justify-between px-4 py-3 sm:px-6">
         <Link href="/" className="flex items-center gap-2 group">
           <div className="relative">
             <Zap className="h-8 w-8 text-primary group-hover:text-accent transition-colors" />
@@ -33,17 +47,17 @@ const Navbar = () => {
         </Link>
 
         {/* Desktop Navigation */}
-        <div className="hidden md:flex items-center gap-8">
-        <Link href="#features" className="text-muted-foreground hover:text-foreground transition-colors">
+        <div className="hidden items-center gap-8 md:flex">
+        <Link href="#features" className="text-muted-foreground transition-colors hover:text-foreground">
         Features
         </Link>
-        <Link href="#how-it-works" className="text-muted-foreground hover:text-foreground transition-colors">
+        <Link href="#how-it-works" className="text-muted-foreground transition-colors hover:text-foreground">
           How It Works
         </Link>
-        <Link href="/pricing" className="text-muted-foreground hover:text-foreground transition-colors">
+        <Link href="/pricing" className="text-muted-foreground transition-colors hover:text-foreground">
         Pricing
         </Link>
-        <Link href="/docs" className="text-muted-foreground hover:text-foreground transition-colors">
+        <Link href="/docs" className="text-muted-foreground transition-colors hover:text-foreground">
         Docs
         </Link>
         {status === "authenticated" && (
@@ -63,7 +77,7 @@ const Navbar = () => {
           {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
         </Button>
 
-        <div className="flex items-center gap-4">
+        <div className="hidden items-center gap-2 sm:gap-4 md:flex">
         {status === "authenticated" ? (
         <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -106,40 +120,40 @@ const Navbar = () => {
       {/* Mobile Menu */}
       {mobileMenuOpen && (
         <div className="md:hidden bg-background/95 backdrop-blur-xl border-t border-border">
-          <div className="container mx-auto px-6 py-4 space-y-4">
+          <div className="container mx-auto space-y-4 px-4 py-4 sm:px-6">
           <Link
           href="#features"
-          className="block text-muted-foreground hover:text-foreground transition-colors py-2"
-          onClick={() => setMobileMenuOpen(false)}
+          className="block rounded-lg px-2 py-3 text-base font-medium text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
+          onClick={handleNavClick}
           >
           Features
           </Link>
             <Link
               href="#how-it-works"
-              className="block text-muted-foreground hover:text-foreground transition-colors py-2"
-              onClick={() => setMobileMenuOpen(false)}
+              className="block rounded-lg px-2 py-3 text-base font-medium text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
+              onClick={handleNavClick}
             >
               How It Works
             </Link>
             <Link
             href="/pricing"
-            className="block text-muted-foreground hover:text-foreground transition-colors py-2"
-            onClick={() => setMobileMenuOpen(false)}
+            className="block rounded-lg px-2 py-3 text-base font-medium text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
+            onClick={handleNavClick}
             >
             Pricing
             </Link>
             <Link
               href="/docs"
-              className="block text-muted-foreground hover:text-foreground transition-colors py-2"
-              onClick={() => setMobileMenuOpen(false)}
+              className="block rounded-lg px-2 py-3 text-base font-medium text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
+              onClick={handleNavClick}
             >
               Docs
             </Link>
             {status === "authenticated" && (
               <Link
                 href="/dashboard"
-              className="block text-muted-foreground hover:text-foreground transition-colors py-2"
-              onClick={() => setMobileMenuOpen(false)}
+              className="block rounded-lg px-2 py-3 text-base font-medium text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
+              onClick={handleNavClick}
             >
                 Dashboard
             </Link>
@@ -159,10 +173,10 @@ const Navbar = () => {
               ) : (
                 <div className="space-y-2">
                   <Button variant="ghost" asChild className="w-full justify-start">
-                  <Link href="/auth/login" onClick={() => setMobileMenuOpen(false)}>Sign In</Link>
+                  <Link href="/auth/login" onClick={handleNavClick}>Sign In</Link>
                   </Button>
                   <Button variant="hero" asChild className="w-full">
-                  <Link href="/auth/signup" onClick={() => setMobileMenuOpen(false)}>Get Started</Link>
+                  <Link href="/auth/signup" onClick={handleNavClick}>Get Started</Link>
                   </Button>
                 </div>
               )}

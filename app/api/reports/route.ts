@@ -11,42 +11,23 @@ export async function GET(req: Request) {
     }
 
     const { searchParams } = new URL(req.url);
-    const period = searchParams.get('period') || '30'; // days
+    const period = parseInt(searchParams.get('period') || '30', 10);
 
-    // TODO: Generate actual reports from Supabase data
-    // For now, return mock report data
+    const { generatePerformanceSummary } = await import('@/lib/utils/reports');
+    const reportData = await generatePerformanceSummary(session.user.id, isNaN(period) ? 30 : period);
+
     const report = {
-      period: `${period} days`,
+      period: reportData.period,
       generatedAt: new Date().toISOString(),
       summary: {
-        totalPosts: 247,
-        totalEngagement: 12847,
-        averageEngagementRate: 8.4,
-        topPerformingPlatform: 'Twitter/X',
-        growthRate: 12.5
+        totalPosts: reportData.totalPosts,
+        totalEngagement: reportData.totalEngagement,
+        averageEngagementRate: reportData.averageEngagementRate,
+        topPerformingPlatform: reportData.topPlatform,
       },
-      platformBreakdown: {
-        twitter: {
-          posts: 156,
-          engagement: 8721,
-          engagementRate: 9.2
-        },
-        reddit: {
-          posts: 91,
-          engagement: 4126,
-          engagementRate: 7.1
-        }
-      },
-      contentPerformance: {
-        educational: { percentage: 42, engagement: 5400 },
-        productUpdates: { percentage: 28, engagement: 3600 },
-        industryNews: { percentage: 30, engagement: 3847 }
-      },
-      trends: {
-        engagement: 'up',
-        reach: 'up',
-        followers: 'up'
-      }
+      platformBreakdown: reportData.platformBreakdown,
+      contentPerformance: reportData.contentPerformance,
+      trends: reportData.trends,
     };
 
     return NextResponse.json({ report });

@@ -100,13 +100,13 @@ Human-AI strategy mode (review + execute)
 
 
 💰 Pricing Model
-Growth ($49/mo) — Solo founders (core AI + analytics)
+Starter ($49/mo) — Solo founders (core AI + analytics)
 
 
-Scale ($99/mo) — Startups/agencies (multi-agent + cross-platform)
+Growth ($99/mo) — Startups/agencies (multi-agent + cross-platform)
 
 
-Enterprise ($199/mo) — Agencies (dedicated instance + white-label + API)
+Scale ($199/mo) — Agencies (dedicated instance + white-label + API)
 
 
 

@@ -24,30 +24,35 @@ const steps = [
 
 const HowItWorks = () => {
   return (
-  <section id="how-it-works" className="py-24 bg-secondary/50">
-    <div className="container mx-auto px-4 sm:px-6">
-        <div className="text-center mb-16">
-        <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 leading-tight">How It Works</h2>
-        <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-        Get started with your AI growth agent in three simple steps.
-        </p>
+    <section id="how-it-works" className="bg-secondary/40 py-20 sm:py-24">
+      <div className="container mx-auto px-4 sm:px-6">
+        <div className="mb-14 text-center sm:mb-16">
+          <h2 className="text-3xl font-bold leading-tight sm:text-4xl md:text-5xl">How It Works</h2>
+          <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-xl">
+            Get started with your AI growth agent in three simple steps.
+          </p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 mb-16">
+
+        <div className="mb-14 grid grid-cols-1 gap-4 sm:grid-cols-3 sm:gap-6 md:gap-8 sm:mb-16">
           {steps.map((step, idx) => (
-            <Card key={idx} className="text-center bg-card/50 backdrop-blur-sm border-border hover:border-primary/50 hover:scale-105 transition-all duration-300 group hover:shadow-neon opacity-0 animate-in fade-in slide-in-from-bottom-4 duration-700" style={{ animationDelay: `${idx * 0.15}s` }}>
+            <Card
+              key={idx}
+              className="group flex h-full flex-col items-center justify-between rounded-3xl border-border bg-card/50 p-6 transition-all duration-300 hover:-translate-y-1 hover:scale-105 hover:border-primary/50 hover:shadow-neon"
+            >
               <CardHeader>
-                <div className="mx-auto bg-primary/10 rounded-full p-4 w-fit mb-4">{step.icon}</div>
+                <div className="mx-auto mb-4 w-fit rounded-full bg-primary/10 p-4">{step.icon}</div>
                 <CardTitle>{step.title}</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-muted-foreground">{step.description}</p>
+                <p className="text-sm leading-relaxed text-muted-foreground sm:text-base">{step.description}</p>
               </CardContent>
             </Card>
           ))}
         </div>
+
         <div className="text-center">
-          <Button variant="hero" size="lg" className="group" asChild>
-            <Link href="/pricing">
+          <Button variant="hero" size="lg" className="group w-full sm:w-auto" asChild>
+            <Link href="/auth/signup">
               Get Started Now
               <ArrowRight className="group-hover:translate-x-1 transition-transform" />
             </Link>

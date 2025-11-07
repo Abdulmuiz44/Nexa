@@ -9,19 +9,11 @@ export async function subscriptionMiddleware(request: NextRequest) {
 
   if (!token) {
     const url = request.nextUrl.clone();
-    url.pathname = '/login';
+    url.pathname = '/auth/login';
     return NextResponse.redirect(url);
   }
 
-  // Check subscription tier
-  const subscriptionTier = token.subscriptionTier as string;
-
-  // If user doesn't have a paid subscription, redirect to pricing
-  if (!subscriptionTier || subscriptionTier === 'free') {
-    const url = request.nextUrl.clone();
-    url.pathname = '/pricing';
-    return NextResponse.redirect(url);
-  }
-
+  // Allow free users to access dashboard; gate only specific premium routes if needed
+  // Currently, we do not enforce a redirect for 'free' tier here to avoid blocking onboarding flow to chat
   return response;
 }

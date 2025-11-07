@@ -102,15 +102,15 @@ export default function AgentChat() {
   };
 
   return (
-    <Card className="h-[600px] flex flex-col">
+      <Card className="flex h-[70vh] flex-col rounded-3xl border-border/60 bg-card/40 backdrop-blur md:h-[560px]">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Bot className="h-5 w-5" />
           Nexa AI Agent
         </CardTitle>
       </CardHeader>
-      <CardContent className="flex-1 flex flex-col gap-4">
-        <ScrollArea className="flex-1 pr-4" ref={scrollAreaRef}>
+        <CardContent className="flex-1 flex flex-col gap-4 p-4 sm:p-6">
+          <ScrollArea className="flex-1 pr-2 sm:pr-4" ref={scrollAreaRef}>
           <div className="space-y-4">
             {messages.map((message) => (
               <div
@@ -170,7 +170,7 @@ export default function AgentChat() {
           </div>
         </ScrollArea>
 
-        <div className="flex gap-2">
+        <div className="flex flex-col gap-3 sm:flex-row sm:gap-2">
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -182,9 +182,12 @@ export default function AgentChat() {
           <Button
             onClick={handleSendMessage}
             disabled={!input.trim() || isLoading}
-            size="icon"
+            size="lg"
+            className="w-full sm:w-auto"
           >
-            <Send className="h-4 w-4" />
+            <Send className="mr-2 hidden h-4 w-4 sm:inline" />
+            <span className="text-sm font-semibold sm:hidden">Send</span>
+            <span className="hidden sm:inline">Send</span>
           </Button>
         </div>
       </CardContent>

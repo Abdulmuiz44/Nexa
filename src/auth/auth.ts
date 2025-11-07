@@ -30,7 +30,8 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
-        if (user.status !== 'active' && user.status !== 'onboarding') {
+        // Allow users in onboarding, onboarding_complete, or active states
+        if (!['active', 'onboarding', 'onboarding_complete'].includes(user.status)) {
           return null;
         }
 
@@ -59,7 +60,7 @@ export const authOptions: NextAuthOptions = {
           if (email) {
             const { data: dbUser, error } = await supabaseServer
               .from('users')
-              .select('id, api_key, plan, subscription_status')
+              .select('id, api_key, plan, subscription_status, status')
               .eq('email', email)
               .single()
 
@@ -70,15 +71,16 @@ export const authOptions: NextAuthOptions = {
               token.subscriptionStatus = dbUser.subscription_status
               token.apiKey = dbUser.api_key
               token.sub = dbUser.id
+              ;(token as any).userStatus = dbUser.status
             }
           }
         }
 
         // For subsequent requests, if token is missing critical fields, refresh from DB using sub
-        if (!token.apiKey && token.sub) {
+        if ((!token.apiKey || !(token as any).userStatus) && token.sub) {
           const { data: dbUser, error } = await supabaseServer
             .from('users')
-            .select('id, api_key, plan, subscription_status')
+            .select('id, api_key, plan, subscription_status, status')
             .eq('id', token.sub as string)
             .single()
 
@@ -86,6 +88,7 @@ export const authOptions: NextAuthOptions = {
             token.subscriptionTier = dbUser.plan
             token.subscriptionStatus = dbUser.subscription_status
             token.apiKey = dbUser.api_key
+            ;(token as any).userStatus = dbUser.status
           }
         }
       } catch (err) {
@@ -101,12 +104,13 @@ export const authOptions: NextAuthOptions = {
         ;(session.user as any).subscriptionTier = token.subscriptionTier as string
         ;(session.user as any).subscriptionStatus = token.subscriptionStatus as string
         ;(session.user as any).apiKey = token.apiKey as string
+        ;(session.user as any).status = (token as any).userStatus as string
       }
       return session
     },
   },
   pages: {
-  signIn: "/login",
+    signIn: "/auth/login",
   },
   session: {
     strategy: "jwt",
