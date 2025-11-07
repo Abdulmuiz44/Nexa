@@ -106,6 +106,11 @@ export class AnalyticsEngine {
     toolkitSlug: string
   ): Promise<any> {
     try {
+      if (!composio) {
+        // Composio not configured, skip external analytics fetch
+        return null;
+      }
+
       let actionName: string;
       let input: any = {};
 

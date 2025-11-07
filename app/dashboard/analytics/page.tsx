@@ -10,7 +10,7 @@ interface Summary {
   timeframe: string;
   totalPosts: number;
   platforms: Record<string, any>;
-  overall: { impressions: number; engagements: number; avgEngagementRate: number };
+  overall: { impressions: number; engagements: number; avgEngagementRate: number | null };
 }
 
 interface RecentPostItem {
@@ -60,6 +60,13 @@ export default function AnalyticsPage() {
 
   const fmt = (n: number) => new Intl.NumberFormat().format(Math.round(n));
 
+  // Safely derive overall average engagement rate for display
+  const overallAvg = useMemo(() => {
+    const val = summary?.overall?.avgEngagementRate;
+    const num = typeof val === 'number' ? val : Number(val ?? 0);
+    return Number.isFinite(num) ? num : 0;
+  }, [summary]);
+
   return (
     <div className="flex-1 p-6">
       <div className="max-w-6xl mx-auto">
@@ -74,14 +81,14 @@ export default function AnalyticsPage() {
             <div className="flex items-center justify-between mb-4">
               <BarChart3 className="h-5 w-5 text-blue-500" />
               <Badge variant="secondary" className="text-green-600">
-                {summary && summary.overall.avgEngagementRate >= 0 ? (
-                  <>
+                <>
+                  {overallAvg > 0 ? (
                     <TrendingUp className="h-3 w-3 mr-1" />
-                    {summary.overall.avgEngagementRate.toFixed(1)}%
-                  </>
-                ) : (
-                  <TrendingDown className="h-3 w-3 mr-1" />
-                )}
+                  ) : (
+                    <TrendingDown className="h-3 w-3 mr-1" />
+                  )}
+                  {overallAvg.toFixed(1)}%
+                </>
               </Badge>
             </div>
             <div className="text-3xl font-bold mb-1">{summary ? fmt(summary.overall.impressions) : (loading ? '—' : '0')}</div>
@@ -147,9 +154,9 @@ export default function AnalyticsPage() {
                 <div key={platform} className="space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-sm capitalize">{platform}</span>
-                    <span className="font-medium">{(data.avgEngagementRate || 0).toFixed(1)}%</span>
+                    <span className="font-medium">{Number(data?.avgEngagementRate ?? 0).toFixed(1)}%</span>
                   </div>
-                  <Progress value={Math.min(100, data.avgEngagementRate || 0)} className="h-2" />
+                  <Progress value={Math.min(100, Number(data?.avgEngagementRate ?? 0))} className="h-2" />
                 </div>
               ))}
               {summary && Object.keys(summary.platforms).length === 0 && (
@@ -166,13 +173,14 @@ export default function AnalyticsPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {recent.map((p) => (
-                <div key={p.id} className="flex items-center justify-between p-4 border rounded-lg">
+{recent.map((p) => (
+                <a key={p.id} href={p.url || '#'} target={p.url ? '_blank' : undefined} rel={p.url ? 'noopener noreferrer' : undefined} className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/40 transition-colors">
                   <div className="flex-1 min-w-0">
                     <p className="font-medium mb-1 line-clamp-1">{p.content}</p>
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
                       <span className="capitalize">{p.platform}</span>
                       <span>{p.published_at ? new Date(p.published_at).toLocaleString() : '—'}</span>
+                      {p.url && <span className="text-primary underline underline-offset-4">Open</span>}
                     </div>
                   </div>
                   <div className="flex items-center gap-6 text-sm">
@@ -189,7 +197,7 @@ export default function AnalyticsPage() {
                       <div className="text-muted-foreground">Shares</div>
                     </div>
                   </div>
-                </div>
+                </a>
               ))}
 
               {!loading && recent.length === 0 && (
