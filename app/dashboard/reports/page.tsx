@@ -194,19 +194,3 @@ export default function ReportsPage() {
     </div>
   );
 }
-                <div>
-                  <h4 className="font-medium">Q4 Campaign Report</h4>
-                  <p className="text-sm text-muted-foreground">Generated on September 30, 2024</p>
-                </div>
-                <Button variant="outline" size="sm">
-                  <Download className="mr-2 h-4 w-4" />
-                  Download
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-  );
-}
