@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { CreditCard, Plus, Crown, Zap } from "lucide-react";
+import { CREDIT_VALUE_USD, MINIMUM_PURCHASE_CREDITS } from "@/lib/utils/credits";
 
 export default function BillingPage() {
   const { data: session, status } = useSession();
@@ -30,9 +31,12 @@ export default function BillingPage() {
 
   useEffect(() => { if (status === 'authenticated') load(); }, [status]);
 
+  const minUSD = useMemo(() => MINIMUM_PURCHASE_CREDITS * CREDIT_VALUE_USD, []);
+
   const startCheckout = async () => {
     const amt = Number(amountUSD);
     if (!amt || amt <= 0) { toast({ title: 'Enter a valid amount', variant: 'destructive' }); return; }
+    if (amt < minUSD) { toast({ title: `Minimum purchase is $${minUSD.toFixed(2)} (${MINIMUM_PURCHASE_CREDITS} credits)`, variant: 'destructive' }); return; }
     setBuying(true);
     try {
       const res = await fetch('/api/credits/initialize', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ amountUSD: amt }) });
@@ -86,7 +90,7 @@ export default function BillingPage() {
               <div className="text-3xl font-bold mb-2">{balance.toFixed(2)}</div>
               <p className="text-sm text-muted-foreground mb-4">Credits available</p>
               <div className="flex items-center gap-2">
-                <Input type="number" placeholder="Amount in USD" value={amountUSD} onChange={(e) => setAmountUSD(e.target.value)} />
+                <Input type="number" min={MINIMUM_PURCHASE_CREDITS * CREDIT_VALUE_USD} placeholder={`Min $${(MINIMUM_PURCHASE_CREDITS * CREDIT_VALUE_USD).toFixed(2)}`} value={amountUSD} onChange={(e) => setAmountUSD(e.target.value)} />
                 <Button className="min-w-[170px]" onClick={startCheckout} disabled={buying}>
                   <Plus className="mr-2 h-4 w-4" /> {buying ? 'Opening…' : 'Buy Credits'}
                 </Button>

@@ -49,7 +49,15 @@ export async function POST(req: Request) {
     })
 
     if (init.status === 'success') {
-      return NextResponse.json({ link: init.data?.link, reference: init.data?.reference })
+      // Store tx_ref on the pending record for robust matching later
+      const txRef = String(init.data?.reference || '')
+      if (txRef) {
+        await supabaseServer
+          .from('payment_history')
+          .update({ provider_tx_id: txRef })
+          .eq('id', rec.id)
+      }
+      return NextResponse.json({ link: init.data?.link, reference: txRef })
     }
 
     return NextResponse.json({ error: init.message || 'Failed to initialize payment' }, { status: 500 })
