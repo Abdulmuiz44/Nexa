@@ -68,3 +68,29 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Failed to init purchase' }, { status: 500 })
   }
 }
+
+export async function PUT(req: Request) {
+  // Update wallet preferences (auto_top_up, top_up_threshold)
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    const body = await req.json()
+    const autoTopUp = !!body?.autoTopUp
+    const topUpThreshold = Number(body?.topUpThreshold ?? 5)
+
+    const { error } = await supabaseServer
+      .from('credits_wallet')
+      .upsert({
+        user_id: session.user.id,
+        auto_top_up: autoTopUp,
+        top_up_threshold: topUpThreshold,
+      }, { onConflict: 'user_id' })
+
+    if (error) return NextResponse.json({ error: 'Failed to update wallet preferences' }, { status: 500 })
+
+    return NextResponse.json({ success: true })
+  } catch (e: any) {
+    return NextResponse.json({ error: 'Failed to update wallet preferences' }, { status: 500 })
+  }
+}

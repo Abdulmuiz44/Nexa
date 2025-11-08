@@ -2,13 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 import { useEffect, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import {
   MessageSquare,
-  Bot,
   BarChart3,
   FileText,
   Activity,
@@ -18,11 +17,18 @@ import {
   Calendar as CalendarIcon,
 } from "lucide-react";
 import { supabaseClient } from "@/lib/supabaseClient";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const navItems = [
   { title: "Chat", href: "/chat", icon: MessageSquare },
-  { title: "Dashboard", href: "/dashboard", icon: Bot },
-  { title: "Campaigns", href: "/dashboard/campaigns", icon: Bot },
+  { title: "Campaigns", href: "/dashboard/campaigns", icon: MessageSquare },
   { title: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
   { title: "Scheduled", href: "/dashboard/scheduled", icon: CalendarIcon },
   { title: "Reports", href: "/dashboard/reports", icon: FileText },
@@ -45,6 +51,7 @@ export default function AppSidebar({ onNavigate, onSelectConversation, selectedC
 
   const [scheduledCount, setScheduledCount] = useState<number>(0);
   const [conversations, setConversations] = useState<any[]>([]);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
 
   // Load scheduled pending count for badge
   useEffect(() => {
@@ -131,15 +138,42 @@ export default function AppSidebar({ onNavigate, onSelectConversation, selectedC
         </div>
       </div>
       <div className="border-t border-border p-4">
-        <div className="flex items-center gap-3">
-          <Avatar className="h-8 w-8">
-            <AvatarImage src={session?.user?.image || "/placeholder-user.jpg"} alt={session?.user?.name || ''} />
-            <AvatarFallback>{session?.user?.name?.[0]}</AvatarFallback>
-          </Avatar>
-          <div className="min-w-0">
-            <div className="truncate text-sm font-medium text-white">{session?.user?.name}</div>
-            <div className="truncate text-xs text-white/60">{session?.user?.email}</div>
-          </div>
+        <div
+          className="flex items-center gap-3"
+          onMouseEnter={() => setProfileMenuOpen(true)}
+          onMouseLeave={() => setProfileMenuOpen(false)}
+        >
+          <DropdownMenu open={profileMenuOpen} onOpenChange={setProfileMenuOpen}>
+            <DropdownMenuTrigger asChild>
+              <button className="flex w-full items-center gap-3 rounded-md p-1 hover:bg-accent/40 focus:outline-none">
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src={session?.user?.image || "/placeholder-user.jpg"} alt={session?.user?.name || ''} />
+                  <AvatarFallback>{session?.user?.name?.[0]}</AvatarFallback>
+                </Avatar>
+                <div className="min-w-0 text-left">
+                  <div className="truncate text-sm font-medium text-white">{session?.user?.name}</div>
+                  <div className="truncate text-xs text-white/60">{session?.user?.email}</div>
+                </div>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56" align="end" forceMount>
+              <DropdownMenuLabel>Account</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link href="/dashboard/settings">Settings</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/dashboard/billing">Billing</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/docs">Docs</Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => signOut({ callbackUrl: "/auth/login" })}>
+                Sign out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </div>
