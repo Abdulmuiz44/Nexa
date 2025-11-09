@@ -146,7 +146,7 @@ export class AnalyticsAgent extends NexaBase {
     }, {} as Record<string, number>);
 
     const topPlatform = Object.entries(platformCounts)
-      .sort(([,a], [,b]) => b - a)[0];
+      .sort(([,a], [,b]) => (b as number) - (a as number))[0];
 
     return topPlatform ? topPlatform[0] : 'none';
   }

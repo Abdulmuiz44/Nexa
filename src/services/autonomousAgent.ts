@@ -1,0 +1,508 @@
+import { ComposioIntegrationService } from './composioIntegration';
+import { supabaseServer } from '@/src/lib/supabaseServer';
+import { openaiClient } from '@/lib/openaiClient';
+
+interface AutonomousAgentConfig {
+  userId: string;
+  platforms: ('twitter' | 'reddit')[];
+  autoPostEnabled: boolean;
+  autoEngageEnabled: boolean;
+  postingFrequency: 'hourly' | 'daily' | 'twice_daily' | 'custom';
+  customSchedule?: string[]; // e.g., ['09:00', '15:00', '21:00']
+  engagementRules: {
+    autoLike: boolean;
+    autoRetweet: boolean;
+    autoReply: boolean;
+    minEngagementScore: number; // 0-100, threshold for auto-engagement
+  };
+  contentTopics: string[];
+  targetAudience: string;
+}
+
+interface EngagementOpportunity {
+  tweetId: string;
+  content: string;
+  author: string;
+  relevanceScore: number;
+  suggestedEngagement: 'like' | 'retweet' | 'reply';
+  suggestedReply?: string;
+}
+
+export class AutonomousAgent {
+  private config: AutonomousAgentConfig;
+  private composioService: ComposioIntegrationService;
+  private isRunning: boolean = false;
+
+  constructor(config: AutonomousAgentConfig) {
+    this.config = config;
+    this.composioService = new ComposioIntegrationService(config.userId);
+  }
+
+  /**
+   * Start the autonomous agent
+   */
+  async start(): Promise<void> {
+    if (this.isRunning) {
+      console.log('Agent already running');
+      return;
+    }
+
+    this.isRunning = true;
+    await this.logActivity('agent_started', 'Autonomous agent started');
+
+    // Start monitoring and engagement loop
+    this.runEngagementLoop();
+
+    // Start content generation and posting loop
+    if (this.config.autoPostEnabled) {
+      this.runPostingLoop();
+    }
+  }
+
+  /**
+   * Stop the autonomous agent
+   */
+  async stop(): Promise<void> {
+    this.isRunning = false;
+    await this.logActivity('agent_stopped', 'Autonomous agent stopped');
+  }
+
+  /**
+   * Main engagement loop - monitors and engages with relevant content
+   */
+  private async runEngagementLoop(): Promise<void> {
+    while (this.isRunning) {
+      try {
+        if (this.config.autoEngageEnabled && this.config.platforms.includes('twitter')) {
+          await this.performAutoEngagement();
+        }
+
+        // Wait before next check (e.g., every 10 minutes)
+        await this.sleep(10 * 60 * 1000);
+      } catch (error) {
+        console.error('Error in engagement loop:', error);
+        await this.sleep(60 * 1000); // Wait 1 minute on error
+      }
+    }
+  }
+
+  /**
+   * Main posting loop - generates and posts content according to schedule
+   */
+  private async runPostingLoop(): Promise<void> {
+    while (this.isRunning) {
+      try {
+        const shouldPost = await this.shouldPostNow();
+        
+        if (shouldPost) {
+          await this.generateAndPost();
+        }
+
+        // Check every hour
+        await this.sleep(60 * 60 * 1000);
+      } catch (error) {
+        console.error('Error in posting loop:', error);
+        await this.sleep(60 * 1000);
+      }
+    }
+  }
+
+  /**
+   * Determine if we should post now based on schedule
+   */
+  private async shouldPostNow(): Promise<boolean> {
+    const now = new Date();
+    const currentHour = now.getHours();
+    const currentMinute = now.getMinutes();
+
+    // Check if we already posted in the last hour
+    const recentPosts = await this.getRecentPosts(1);
+    if (recentPosts.length > 0) {
+      const lastPost = new Date(recentPosts[0].created_at);
+      const hoursSinceLastPost = (now.getTime() - lastPost.getTime()) / (1000 * 60 * 60);
+
+      switch (this.config.postingFrequency) {
+        case 'hourly':
+          if (hoursSinceLastPost < 1) return false;
+          break;
+        case 'daily':
+          if (hoursSinceLastPost < 24) return false;
+          break;
+        case 'twice_daily':
+          if (hoursSinceLastPost < 12) return false;
+          break;
+        case 'custom':
+          // Check against custom schedule
+          if (!this.config.customSchedule) return false;
+          const currentTime = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
+          const isScheduledTime = this.config.customSchedule.some(time => {
+            const [hour, minute] = time.split(':');
+            return Math.abs(parseInt(hour) - currentHour) === 0 && Math.abs(parseInt(minute) - currentMinute) < 30;
+          });
+          return isScheduledTime;
+      }
+    }
+
+    return true;
+  }
+
+  /**
+   * Generate and post content
+   */
+  private async generateAndPost(): Promise<void> {
+    try {
+      // Randomly select a platform
+      const platform = this.config.platforms[Math.floor(Math.random() * this.config.platforms.length)];
+
+      if (platform === 'twitter') {
+        await this.generateAndPostTweet();
+      } else if (platform === 'reddit') {
+        await this.generateAndPostReddit();
+      }
+    } catch (error) {
+      console.error('Error generating and posting:', error);
+      await this.logActivity('post_generation_failed', `Failed to generate and post: ${error}`);
+    }
+  }
+
+  /**
+   * Generate and post a tweet
+   */
+  private async generateAndPostTweet(): Promise<void> {
+    try {
+      // Select a random topic
+      const topic = this.config.contentTopics[Math.floor(Math.random() * this.config.contentTopics.length)];
+
+      // Generate tweet in user's style
+      const tweetContent = await this.composioService.generateTweetInUserStyle(
+        topic,
+        `Target audience: ${this.config.targetAudience}`
+      );
+
+      // Post the tweet
+      const result = await this.composioService.postTweet({ content: tweetContent });
+
+      if (result.success) {
+        // Save to database
+        await this.savePost('twitter', tweetContent, result.tweetId, result.url);
+        await this.logActivity('auto_tweet_posted', `Auto-posted tweet: ${tweetContent.substring(0, 50)}...`);
+      } else {
+        throw new Error(result.error || 'Failed to post tweet');
+      }
+    } catch (error) {
+      console.error('Error generating and posting tweet:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Generate and post to Reddit
+   */
+  private async generateAndPostReddit(): Promise<void> {
+    try {
+      // Generate Reddit post content
+      const topic = this.config.contentTopics[Math.floor(Math.random() * this.config.contentTopics.length)];
+      
+      const prompt = `Generate a Reddit post about "${topic}" for the audience: ${this.config.targetAudience}. 
+      
+      Provide a JSON response with:
+      {
+        "title": "engaging title",
+        "content": "detailed post content",
+        "subreddit": "suggested subreddit name (without r/)"
+      }`;
+
+      const response = await openaiClient.chat.completions.create({
+        model: 'gpt-4',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are an expert at creating engaging Reddit posts. Generate content that fits the platform culture.',
+          },
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        temperature: 0.7,
+        response_format: { type: 'json_object' },
+      });
+
+      const postData = JSON.parse(response.choices[0].message.content || '{}');
+
+      // Post to Reddit
+      const result = await this.composioService.postToReddit({
+        subreddit: postData.subreddit,
+        title: postData.title,
+        content: postData.content,
+      });
+
+      if (result.success) {
+        await this.savePost('reddit', postData.content, result.postId, result.url);
+        await this.logActivity('auto_reddit_post', `Auto-posted to r/${postData.subreddit}: ${postData.title}`);
+      } else {
+        throw new Error(result.error || 'Failed to post to Reddit');
+      }
+    } catch (error) {
+      console.error('Error generating and posting to Reddit:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Perform automatic engagement with relevant content
+   */
+  private async performAutoEngagement(): Promise<void> {
+    try {
+      // Find engagement opportunities
+      const opportunities = await this.findEngagementOpportunities();
+
+      for (const opportunity of opportunities) {
+        if (opportunity.relevanceScore < this.config.engagementRules.minEngagementScore) {
+          continue;
+        }
+
+        const { autoLike, autoRetweet, autoReply } = this.config.engagementRules;
+
+        // Perform engagement based on suggestion and rules
+        switch (opportunity.suggestedEngagement) {
+          case 'like':
+            if (autoLike) {
+              await this.composioService.autoEngageWithTweet(opportunity.tweetId, 'like');
+              await this.logActivity('auto_like', `Auto-liked tweet from ${opportunity.author}`);
+            }
+            break;
+
+          case 'retweet':
+            if (autoRetweet) {
+              await this.composioService.autoEngageWithTweet(opportunity.tweetId, 'retweet');
+              await this.logActivity('auto_retweet', `Auto-retweeted from ${opportunity.author}`);
+            }
+            break;
+
+          case 'reply':
+            if (autoReply && opportunity.suggestedReply) {
+              await this.composioService.autoEngageWithTweet(
+                opportunity.tweetId,
+                'reply',
+                opportunity.suggestedReply
+              );
+              await this.logActivity('auto_reply', `Auto-replied to ${opportunity.author}`);
+            }
+            break;
+        }
+
+        // Rate limiting - wait between engagements
+        await this.sleep(5000);
+      }
+    } catch (error) {
+      console.error('Error performing auto-engagement:', error);
+    }
+  }
+
+  /**
+   * Find engagement opportunities from user's feed
+   */
+  private async findEngagementOpportunities(): Promise<EngagementOpportunity[]> {
+    try {
+      // This would need to be implemented with Twitter API to get user's timeline
+      // For now, return empty array
+      // In a real implementation:
+      // 1. Fetch user's timeline/feed
+      // 2. Analyze each tweet for relevance
+      // 3. Determine best engagement type
+      // 4. Generate suggested replies if needed
+
+      // Placeholder implementation
+      const opportunities: EngagementOpportunity[] = [];
+
+      // Get recent tweets from topics of interest
+      // const tweets = await this.getRelevantTweets();
+      // for (const tweet of tweets) {
+      //   const analysis = await this.analyzeTweetForEngagement(tweet);
+      //   if (analysis.relevanceScore >= this.config.engagementRules.minEngagementScore) {
+      //     opportunities.push(analysis);
+      //   }
+      // }
+
+      return opportunities;
+    } catch (error) {
+      console.error('Error finding engagement opportunities:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Analyze a tweet to determine if and how to engage
+   */
+  private async analyzeTweetForEngagement(tweet: any): Promise<EngagementOpportunity> {
+    const prompt = `Analyze this tweet and determine engagement strategy:
+
+Tweet: "${tweet.text}"
+Author: ${tweet.author}
+Topics of interest: ${this.config.contentTopics.join(', ')}
+Target audience: ${this.config.targetAudience}
+
+Provide analysis in JSON format:
+{
+  "relevanceScore": 0-100,
+  "suggestedEngagement": "like|retweet|reply",
+  "suggestedReply": "reply text if engagement is reply, otherwise null",
+  "reasoning": "why this engagement makes sense"
+}`;
+
+    const response = await openaiClient.chat.completions.create({
+      model: 'gpt-4',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are an expert at social media engagement strategy. Determine optimal engagement approaches.',
+        },
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ],
+      temperature: 0.3,
+      response_format: { type: 'json_object' },
+    });
+
+    const analysis = JSON.parse(response.choices[0].message.content || '{}');
+
+    return {
+      tweetId: tweet.id,
+      content: tweet.text,
+      author: tweet.author,
+      relevanceScore: analysis.relevanceScore || 0,
+      suggestedEngagement: analysis.suggestedEngagement || 'like',
+      suggestedReply: analysis.suggestedReply,
+    };
+  }
+
+  /**
+   * Get recent posts
+   */
+  private async getRecentPosts(hours: number): Promise<any[]> {
+    const startTime = new Date(Date.now() - hours * 60 * 60 * 1000);
+
+    const { data } = await supabaseServer
+      .from('posts')
+      .select('*')
+      .eq('user_id', this.config.userId)
+      .gte('created_at', startTime.toISOString())
+      .order('created_at', { ascending: false });
+
+    return data || [];
+  }
+
+  /**
+   * Save a post to database
+   */
+  private async savePost(
+    platform: 'twitter' | 'reddit',
+    content: string,
+    platformPostId?: string,
+    url?: string
+  ): Promise<void> {
+    await supabaseServer.from('posts').insert({
+      user_id: this.config.userId,
+      platform,
+      content,
+      platform_post_id: platformPostId,
+      status: 'published',
+      published_at: new Date().toISOString(),
+      metadata: {
+        generated_by: 'autonomous_agent',
+        url,
+      },
+    });
+  }
+
+  /**
+   * Log activity
+   */
+  private async logActivity(action: string, description: string, metadata: any = {}): Promise<void> {
+    await supabaseServer.from('activity_log').insert({
+      user_id: this.config.userId,
+      action,
+      description,
+      metadata: {
+        ...metadata,
+        agent: 'autonomous_agent',
+      },
+    });
+  }
+
+  /**
+   * Sleep utility
+   */
+  private sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+}
+
+/**
+ * Factory to create and manage autonomous agents
+ */
+export class AutonomousAgentManager {
+  private static agents: Map<string, AutonomousAgent> = new Map();
+
+  static async createAgent(userId: string): Promise<AutonomousAgent> {
+    // Check if agent already exists
+    if (this.agents.has(userId)) {
+      return this.agents.get(userId)!;
+    }
+
+    // Get user config from database
+    const { data: user } = await supabaseServer
+      .from('users')
+      .select('onboarding_data')
+      .eq('id', userId)
+      .single();
+
+    if (!user?.onboarding_data) {
+      throw new Error('User onboarding data not found');
+    }
+
+    const onboarding = user.onboarding_data;
+
+    const config: AutonomousAgentConfig = {
+      userId,
+      platforms: ['twitter', 'reddit'],
+      autoPostEnabled: onboarding.auto_post_enabled ?? true,
+      autoEngageEnabled: onboarding.auto_engage_enabled ?? true,
+      postingFrequency: onboarding.posting_frequency || 'daily',
+      customSchedule: onboarding.custom_schedule,
+      engagementRules: {
+        autoLike: onboarding.auto_like ?? true,
+        autoRetweet: onboarding.auto_retweet ?? false,
+        autoReply: onboarding.auto_reply ?? true,
+        minEngagementScore: onboarding.min_engagement_score ?? 70,
+      },
+      contentTopics: onboarding.content_topics || onboarding.promotion_goals || [],
+      targetAudience: onboarding.target_audience || 'general',
+    };
+
+    const agent = new AutonomousAgent(config);
+    this.agents.set(userId, agent);
+
+    return agent;
+  }
+
+  static async startAgent(userId: string): Promise<void> {
+    const agent = await this.createAgent(userId);
+    await agent.start();
+  }
+
+  static async stopAgent(userId: string): Promise<void> {
+    const agent = this.agents.get(userId);
+    if (agent) {
+      await agent.stop();
+      this.agents.delete(userId);
+    }
+  }
+
+  static getAgent(userId: string): AutonomousAgent | undefined {
+    return this.agents.get(userId);
+  }
+}

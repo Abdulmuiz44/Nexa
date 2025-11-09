@@ -69,21 +69,22 @@ const handler = createMcpHandler(
 
       // Initialize snoowrap with access token
       const reddit = new snoowrap({
-      accessToken: userAuth.redditToken,
+        accessToken: userAuth.redditToken,
+        userAgent: 'Nexa AI Agent v1.0.0',
       });
 
       // Submit the post - use text post if body is provided, otherwise link post
-        const submission = body
-          ? await reddit.submitSelfPost({
-              subredditName: subreddit,
-                title: title,
-                text: body,
-              })
-            : await reddit.submitLink({
-                subredditName: subreddit,
-                title: title,
-                url: 'https://example.com', // Placeholder URL for link posts
-              });
+      const submission = body
+        ? await reddit.submitSelfpost({
+            subredditName: subreddit,
+            title: title,
+            text: body,
+          })
+        : await reddit.submitLink({
+            subredditName: subreddit,
+            title: title,
+            url: 'https://example.com', // Placeholder URL for link posts
+          });
 
           return {
             content: [{ type: "text", text: `Successfully posted to r/${subreddit}: https://reddit.com${submission.permalink}` }],

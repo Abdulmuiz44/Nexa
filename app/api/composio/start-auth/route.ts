@@ -1,25 +1,37 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/src/auth/auth';
-import { composioHelpers } from '@/lib/composioClient';
+import { ComposioIntegrationService } from '@/src/services/composioIntegration';
 
 async function buildAuthUrl(toolkit: string, userId: string) {
-  let redirectUrl = '';
-  let sessionId = '';
+  const composioService = new ComposioIntegrationService(userId);
+  
   try {
-    const real = await composioHelpers.initiateConnection(toolkit, userId);
-    sessionId = real.connectionId;
-    redirectUrl = real.authUrl;
+    let result;
+    if (toolkit === 'twitter') {
+      result = await composioService.initiateTwitterConnection();
+    } else if (toolkit === 'reddit') {
+      result = await composioService.initiateRedditConnection();
+    } else {
+      throw new Error(`Unsupported toolkit: ${toolkit}`);
+    }
+    
+    return {
+      url: result.authUrl,
+      sessionId: result.connectionId,
+    };
   } catch (e) {
-    sessionId = `mock-${toolkit}-${Date.now()}`;
-    redirectUrl = `https://app.composio.dev/connect/${toolkit}`;
+    console.error('Error building auth URL:', e);
+    // Fallback to mock URL
+    const sessionId = `mock-${toolkit}-${Date.now()}`;
+    const redirectUrl = `https://app.composio.dev/connect/${toolkit}`;
+    
+    const callbackUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/composio/callback?sessionId=${encodeURIComponent(sessionId)}&toolkit=${encodeURIComponent(toolkit)}&userId=${encodeURIComponent(String(userId))}`;
+    const url = new URL(redirectUrl);
+    url.searchParams.set('state', Buffer.from(JSON.stringify({ u: userId, tk: toolkit })).toString('base64'));
+    url.searchParams.set('redirect_uri', callbackUrl);
+    return { url: url.toString(), sessionId };
   }
-
-  const callbackUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/composio/callback?sessionId=${encodeURIComponent(sessionId)}&toolkit=${encodeURIComponent(toolkit)}&userId=${encodeURIComponent(String(userId))}`;
-  const url = new URL(redirectUrl);
-  url.searchParams.set('state', Buffer.from(JSON.stringify({ u: userId, tk: toolkit })).toString('base64'));
-  url.searchParams.set('redirect_uri', callbackUrl);
-  return { url: url.toString(), sessionId };
 }
 
 export async function GET(req: Request) {

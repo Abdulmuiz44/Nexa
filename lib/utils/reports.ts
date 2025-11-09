@@ -122,7 +122,7 @@ function calculateContentPerformance(posts: any[]) {
   };
 }
 
-function calculateTrends(posts: any[]) {
+function calculateTrends(posts: any[]): { engagement: 'up' | 'down' | 'stable'; reach: 'up' | 'down' | 'stable'; followers: 'up' | 'down' | 'stable' } {
   // Simplified trend calculation
   // In a real implementation, this would compare with previous periods
   const hasRecentPosts = posts.some(post =>
@@ -130,9 +130,9 @@ function calculateTrends(posts: any[]) {
   );
 
   return {
-    engagement: hasRecentPosts ? 'up' : 'stable',
-    reach: hasRecentPosts ? 'up' : 'stable',
-    followers: hasRecentPosts ? 'up' : 'stable'
+    engagement: (hasRecentPosts ? 'up' : 'stable') as 'up' | 'down' | 'stable',
+    reach: (hasRecentPosts ? 'up' : 'stable') as 'up' | 'down' | 'stable',
+    followers: (hasRecentPosts ? 'up' : 'stable') as 'up' | 'down' | 'stable'
   };
 }
 
@@ -143,7 +143,7 @@ function getTopPlatform(posts: any[]): string {
   }, {} as Record<string, number>);
 
   const topPlatform = Object.entries(platformCounts)
-    .sort(([,a], [,b]) => b - a)[0];
+    .sort(([,a], [,b]) => (b as number) - (a as number))[0];
 
   return topPlatform ? topPlatform[0] : 'none';
 }
