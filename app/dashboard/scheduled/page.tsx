@@ -25,6 +25,7 @@ type ScheduledPost = {
 }
 
 export default function ScheduledPostsPage() {
+  if (typeof window === 'undefined') return null as any;
   const { data, mutate, isLoading } = useSWR('/api/posts/scheduled', fetcher)
   const posts: ScheduledPost[] = data?.scheduled_posts || []
 

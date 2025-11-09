@@ -1,6 +1,41 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/src/auth/auth';
+import { composioHelpers } from '@/lib/composioClient';
+
+async function buildAuthUrl(toolkit: string, userId: string) {
+  let redirectUrl = '';
+  let sessionId = '';
+  try {
+    const real = await composioHelpers.initiateConnection(toolkit, userId);
+    sessionId = real.connectionId;
+    redirectUrl = real.authUrl;
+  } catch (e) {
+    sessionId = `mock-${toolkit}-${Date.now()}`;
+    redirectUrl = `https://app.composio.dev/connect/${toolkit}`;
+  }
+
+  const callbackUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/composio/callback?sessionId=${encodeURIComponent(sessionId)}&toolkit=${encodeURIComponent(toolkit)}&userId=${encodeURIComponent(String(userId))}`;
+  const url = new URL(redirectUrl);
+  url.searchParams.set('state', Buffer.from(JSON.stringify({ u: userId, tk: toolkit })).toString('base64'));
+  url.searchParams.set('redirect_uri', callbackUrl);
+  return { url: url.toString(), sessionId };
+}
+
+export async function GET(req: Request) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) return NextResponse.redirect(new URL('/auth/login', process.env.NEXTAUTH_URL || 'http://localhost:3000'));
+    const u = new URL(req.url);
+    const toolkit = u.searchParams.get('toolkit');
+    if (!toolkit) return NextResponse.redirect(new URL('/dashboard/connections?error=toolkit', u.origin));
+    const { url } = await buildAuthUrl(toolkit, String((session.user as any).id));
+    return NextResponse.redirect(url);
+  } catch (error) {
+    const u = new URL(req.url);
+    return NextResponse.redirect(new URL('/dashboard/connections?error=start_auth', u.origin));
+  }
+}
 
 export async function POST(req: Request) {
   try {
@@ -14,17 +49,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Toolkit required' }, { status: 400 });
     }
 
-    // Placeholder auth session
-    const authSession = {
-      redirectUrl: `https://composio.ai/auth/${toolkit}`,
-      id: `mock-${toolkit}-${Date.now()}`,
-    };
-
-    return NextResponse.json({
-      redirectUrl: authSession.redirectUrl,
-      sessionId: authSession.id,
-      // Client should later POST to /api/composio/callback with { sessionId, userId: session.user.id, toolkit }
-    });
+    const { url, sessionId } = await buildAuthUrl(toolkit, String((session.user as any).id));
+    return NextResponse.json({ redirectUrl: url, sessionId });
   } catch (error: unknown) {
     console.error('Composio start auth error:', error);
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Composio auth failed' }, { status: 500 });

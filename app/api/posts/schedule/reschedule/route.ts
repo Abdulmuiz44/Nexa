@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/src/auth/auth'
 import { supabaseServer } from '@/src/lib/supabaseServer'
-import { scheduledPostsQueue } from '@/src/queue/scheduledPosts'
 
 export async function POST(req: Request) {
   try {
@@ -26,9 +25,12 @@ export async function POST(req: Request) {
     if (error || !post) return NextResponse.json({ error: 'Not found' }, { status: 404 })
     if (post.status !== 'pending') return NextResponse.json({ error: 'Only pending posts can be rescheduled' }, { status: 409 })
 
-    // Remove existing job
-    const job = await scheduledPostsQueue.getJob(id)
-    if (job) await job.remove()
+    // Remove existing job (lazy)
+    try {
+      const { scheduledPostsQueue } = await import('@/src/queue/scheduledPosts')
+      const job = await scheduledPostsQueue.getJob(id)
+      if (job) await job.remove()
+    } catch {}
 
     // Update DB time
     const { error: upErr } = await supabaseServer
@@ -38,9 +40,12 @@ export async function POST(req: Request) {
 
     if (upErr) return NextResponse.json({ error: 'Failed to update schedule' }, { status: 500 })
 
-    // Enqueue again with same jobId
-    const delay = Math.max(0, newTime.getTime() - Date.now())
-    await scheduledPostsQueue.add('executeScheduledPost', { scheduledPostId: id }, { delay, jobId: id })
+    // Enqueue again with same jobId (lazy)
+    try {
+      const { scheduledPostsQueue } = await import('@/src/queue/scheduledPosts')
+      const delay = Math.max(0, newTime.getTime() - Date.now())
+      await scheduledPostsQueue.add('executeScheduledPost', { scheduledPostId: id }, { delay, jobId: id })
+    } catch {}
 
     return NextResponse.json({ success: true })
   } catch (err: any) {

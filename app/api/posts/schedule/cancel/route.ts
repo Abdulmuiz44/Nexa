@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/src/auth/auth'
 import { supabaseServer } from '@/src/lib/supabaseServer'
-import { scheduledPostsQueue } from '@/src/queue/scheduledPosts'
 
 export async function POST(req: Request) {
   try {
@@ -23,11 +22,12 @@ export async function POST(req: Request) {
     if (error || !post) return NextResponse.json({ error: 'Not found' }, { status: 404 })
     if (post.status !== 'pending') return NextResponse.json({ error: 'Only pending posts can be cancelled' }, { status: 409 })
 
-    // Remove queued job if exists
-    const job = await scheduledPostsQueue.getJob(id)
-    if (job) {
-      await job.remove()
-    }
+    // Remove queued job if exists (lazy)
+    try {
+      const { scheduledPostsQueue } = await import('@/src/queue/scheduledPosts')
+      const job = await scheduledPostsQueue.getJob(id)
+      if (job) await job.remove()
+    } catch {}
 
     // Mark as cancelled
     await supabaseServer

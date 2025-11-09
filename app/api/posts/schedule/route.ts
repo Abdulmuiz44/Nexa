@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/src/auth/auth'
 import { supabaseServer } from '@/src/lib/supabaseServer'
-import { scheduledPostsQueue } from '@/src/queue/scheduledPosts'
 
 export async function POST(req: Request) {
   try {
@@ -40,9 +39,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Failed to create schedule' }, { status: 500 })
     }
 
-    // Enqueue job
-    const delay = Math.max(0, when.getTime() - Date.now())
-    await scheduledPostsQueue.add('executeScheduledPost', { scheduledPostId: data.id }, { delay, jobId: data.id })
+    // Enqueue job (lazy import so dev without Redis doesn't crash)
+    try {
+      const { scheduledPostsQueue } = await import('@/src/queue/scheduledPosts')
+      const delay = Math.max(0, when.getTime() - Date.now())
+      await scheduledPostsQueue.add('executeScheduledPost', { scheduledPostId: data.id }, { delay, jobId: data.id })
+    } catch (e) {
+      console.warn('Queue unavailable, skipping enqueue', e)
+    }
 
     return NextResponse.json({ success: true, scheduled_post: data })
   } catch (err: any) {

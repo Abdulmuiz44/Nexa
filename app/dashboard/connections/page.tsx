@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Twitter, MessageSquare, CheckCircle, AlertCircle } from "lucide-react";
 import { useSession } from "next-auth/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function ConnectionsPage() {
   const { data: session } = useSession();
@@ -13,29 +13,44 @@ export default function ConnectionsPage() {
   const [redditConnected, setRedditConnected] = useState(false);
   const [twitterConnected, setTwitterConnected] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [connections, setConnections] = useState<any[]>([]);
+
+  const loadConnections = async () => {
+    const res = await fetch('/api/composio/connections');
+    if (!res.ok) return;
+    const data = await res.json();
+    const list = Array.isArray(data?.connections) ? data.connections : [];
+    setConnections(list);
+    setTwitterConnected(list.some((c: any) => String(c.toolkit_slug).includes('twitter')));
+    setRedditConnected(list.some((c: any) => String(c.toolkit_slug).includes('reddit')));
+  };
+
+  useEffect(() => {
+    if (!userId) return;
+    loadConnections();
+  }, [userId]);
 
   const connectToolkit = async (toolkit: string) => {
     if (!userId) return;
     setBusy(true);
     try {
-      const start = await fetch('/api/composio/start-auth', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ toolkit }),
-      }).then(r => r.json());
-
-      // In real flow, user would complete OAuth at start.redirectUrl
-      // For now, immediately finalize callback to record connection
-      await fetch('/api/composio/callback', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId: start.sessionId, userId, toolkit }),
-      });
-
-      if (toolkit === 'reddit') setRedditConnected(true);
-      if (toolkit === 'twitter') setTwitterConnected(true);
+      // Prefer a browser-level redirect handled by GET route to ensure navigation
+      window.location.href = `/api/composio/start-auth?toolkit=${encodeURIComponent(toolkit)}`;
+      return;
     } catch (e) {
       console.error('Connect failed', e);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const disconnect = async (id: string) => {
+    setBusy(true);
+    try {
+      await fetch('/api/composio/disconnect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
+      await loadConnections();
+    } catch (e) {
+      console.error('Disconnect failed', e);
     } finally {
       setBusy(false);
     }
@@ -67,7 +82,7 @@ export default function ConnectionsPage() {
                 <div className="flex items-center gap-3 mb-4">
                   <CheckCircle className="h-5 w-5 text-green-500" />
                   <span className="text-sm font-medium">Connected</span>
-                  <Badge variant="secondary">@your_account</Badge>
+                  <Badge variant="secondary">Connected</Badge>
                 </div>
               ) : (
                 <div className="flex items-center gap-3 mb-4">
@@ -80,7 +95,10 @@ export default function ConnectionsPage() {
               </p>
               <div className="flex gap-2">
                 {twitterConnected ? (
-                  <Button variant="outline" size="sm" disabled>
+                  <Button variant="outline" size="sm" disabled={busy} onClick={() => {
+                    const c = connections.find((c: any) => String(c.toolkit_slug).includes('twitter'));
+                    if (c) disconnect(c.id);
+                  }}>
                     Disconnect
                   </Button>
                 ) : (
@@ -118,7 +136,10 @@ export default function ConnectionsPage() {
                 {redditConnected ? 'Your Reddit account is connected and ready.' : 'Connect your Reddit account to enable automated posting to subreddits.'}
               </p>
               {redditConnected ? (
-                <Button variant="outline" size="sm" disabled>
+                <Button variant="outline" size="sm" disabled={busy} onClick={() => {
+                  const c = connections.find((c: any) => String(c.toolkit_slug).includes('reddit'));
+                  if (c) disconnect(c.id);
+                }}>
                   Disconnect
                 </Button>
               ) : (
