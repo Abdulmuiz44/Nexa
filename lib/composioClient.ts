@@ -1,4 +1,5 @@
 import { Composio } from '@composio/core';
+import { ComposioIntegrationService } from '@/src/services/composioIntegration';
 
 const COMPOSIO_API_KEY = process.env.COMPOSIO_API_KEY;
 
@@ -15,59 +16,183 @@ if (!COMPOSIO_API_KEY) {
 
 export { composio };
 
-// Helper functions for social media operations
-// Note: These are placeholder implementations until Composio API is properly configured
+// Helper functions for social media operations using ComposioIntegrationService
 export const composioHelpers = {
   // Get available actions for a user
   getActions: async (userId: string) => {
-    // Placeholder - implement when Composio API is available
-    console.log(`Getting actions for user ${userId}`);
-    return [];
+    try {
+      if (!composio) {
+        console.warn('Composio not initialized - returning empty actions');
+        return [];
+      }
+      const service = new ComposioIntegrationService(userId);
+      // Return available actions based on connected accounts
+      return [];
+    } catch (error) {
+      console.error('Error getting actions:', error);
+      return [];
+    }
   },
 
   // Execute an action
   executeAction: async (actionName: string, params: any, userId: string) => {
-    // Placeholder - implement when Composio API is available
-    console.log(`Executing action ${actionName} for user ${userId}`, params);
-    return { success: true, data: 'Action simulated' };
+    try {
+      const service = new ComposioIntegrationService(userId);
+      const result = await service.executeAction(actionName, params);
+      return { success: true, data: result };
+    } catch (error) {
+      console.error('Error executing action:', error);
+      throw error;
+    }
   },
 
   // Check connection status
-  getConnection: async (connectionId: string, userId: string) => {
-    // Placeholder - implement when Composio API is available
-    console.log(`Getting connection ${connectionId} for user ${userId}`);
-    return { status: 'ACTIVE' };
+  getConnection: async (platform: string, userId: string) => {
+    try {
+      const service = new ComposioIntegrationService(userId);
+      const connection = await service.getConnection(platform as 'twitter' | 'reddit');
+      return connection;
+    } catch (error) {
+      console.error('Error getting connection:', error);
+      return null;
+    }
   },
 
   // Initiate connection
   initiateConnection: async (appName: string, userId: string, redirectUri?: string) => {
-    // Placeholder - implement when Composio API is available
-    console.log(`Initiating connection to ${appName} for user ${userId}`);
-    return { connectionId: 'mock-connection-id', authUrl: 'https://mock-auth-url.com' };
+    try {
+      const service = new ComposioIntegrationService(userId);
+      if (appName === 'twitter') {
+        return await service.initiateTwitterConnection(redirectUri);
+      } else if (appName === 'reddit') {
+        return await service.initiateRedditConnection(redirectUri);
+      }
+      throw new Error(`Unsupported platform: ${appName}`);
+    } catch (error) {
+      console.error('Error initiating connection:', error);
+      throw error;
+    }
   },
 
   // Specific social media actions
   postToTwitter: async (content: string, userId: string) => {
-    // Placeholder - implement when Composio API is available
-    console.log(`Posting to Twitter for user ${userId}: ${content}`);
-    return { success: true, postId: 'mock-tweet-id', url: 'https://twitter.com/mock/status/mock-tweet-id' };
+    try {
+      const service = new ComposioIntegrationService(userId);
+      const result = await service.postTweet({ content });
+      return { 
+        success: true, 
+        postId: result.id || 'unknown', 
+        url: result.url || `https://twitter.com/${userId}/status/${result.id}`,
+        data: result
+      };
+    } catch (error) {
+      console.error('Error posting to Twitter:', error);
+      throw error;
+    }
   },
 
   postToReddit: async (subreddit: string, title: string, content: string, userId: string) => {
-    // Placeholder - implement when Composio API is available
-    console.log(`Posting to Reddit r/${subreddit} for user ${userId}: ${title}`);
-    return { success: true, postId: 'mock-post-id', url: `https://reddit.com/r/${subreddit}/mock-post-id` };
+    try {
+      const service = new ComposioIntegrationService(userId);
+      const result = await service.postToReddit({ subreddit, title, content });
+      return { 
+        success: true, 
+        postId: result.id || 'unknown', 
+        url: result.url || `https://reddit.com/r/${subreddit}`,
+        data: result
+      };
+    } catch (error) {
+      console.error('Error posting to Reddit:', error);
+      throw error;
+    }
   },
 
   getTwitterAnalytics: async (tweetId: string, userId: string) => {
-    // Placeholder - implement when Composio API is available
-    console.log(`Getting Twitter analytics for tweet ${tweetId} user ${userId}`);
-    return { impressions: 100, engagements: 20, likes: 15, retweets: 5 };
+    try {
+      const service = new ComposioIntegrationService(userId);
+      const result = await service.getTweetAnalytics(tweetId);
+      return result;
+    } catch (error) {
+      console.error('Error getting Twitter analytics:', error);
+      return { impressions: 0, engagements: 0, likes: 0, retweets: 0 };
+    }
   },
 
   getRedditAnalytics: async (postId: string, userId: string) => {
-    // Placeholder - implement when Composio API is available
-    console.log(`Getting Reddit analytics for post ${postId} user ${userId}`);
-    return { score: 25, comments: 8, upvotes: 25, downvotes: 0 };
+    try {
+      // Placeholder for Reddit analytics
+      console.log(`Getting Reddit analytics for post ${postId} user ${userId}`);
+      return { score: 0, comments: 0, upvotes: 0, downvotes: 0 };
+    } catch (error) {
+      console.error('Error getting Reddit analytics:', error);
+      return { score: 0, comments: 0, upvotes: 0, downvotes: 0 };
+    }
+  },
+
+  // New helper methods for enhanced chat integration
+  getTwitterTimeline: async (userId: string, maxResults: number = 20) => {
+    try {
+      const service = new ComposioIntegrationService(userId);
+      const tweets = await service.getUserTimeline(maxResults);
+      return tweets;
+    } catch (error) {
+      console.error('Error getting Twitter timeline:', error);
+      return [];
+    }
+  },
+
+  searchUserTweets: async (userId: string, query: string, maxResults: number = 20) => {
+    try {
+      const service = new ComposioIntegrationService(userId);
+      const tweets = await service.searchUserTweets(query, maxResults);
+      return tweets;
+    } catch (error) {
+      console.error('Error searching tweets:', error);
+      return [];
+    }
+  },
+
+  engageWithTweet: async (userId: string, tweetId: string, type: 'like' | 'retweet' | 'reply', replyContent?: string) => {
+    try {
+      const service = new ComposioIntegrationService(userId);
+      const result = await service.autoEngageWithTweet(tweetId, type, replyContent);
+      return { success: true, data: result };
+    } catch (error) {
+      console.error('Error engaging with tweet:', error);
+      throw error;
+    }
+  },
+
+  analyzeTweet: async (userId: string, content: string) => {
+    try {
+      const service = new ComposioIntegrationService(userId);
+      const analysis = await service.analyzeTweet(content);
+      return analysis;
+    } catch (error) {
+      console.error('Error analyzing tweet:', error);
+      throw error;
+    }
+  },
+
+  generateTweet: async (userId: string, topic: string, context?: string) => {
+    try {
+      const service = new ComposioIntegrationService(userId);
+      const tweet = await service.generateTweetInUserStyle(topic, context);
+      return tweet;
+    } catch (error) {
+      console.error('Error generating tweet:', error);
+      throw error;
+    }
+  },
+
+  analyzeTweetPatterns: async (userId: string) => {
+    try {
+      const service = new ComposioIntegrationService(userId);
+      const patterns = await service.analyzeUserTweetPatterns();
+      return patterns;
+    } catch (error) {
+      console.error('Error analyzing tweet patterns:', error);
+      throw error;
+    }
   },
 };

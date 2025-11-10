@@ -35,6 +35,35 @@ export async function POST(req: Request) {
     const onboardingContext = userData?.onboarding_data || {};
     const userPlan = userData?.plan || 'free';
 
+    // Helper function to check and deduct credits
+    const checkAndDeductCredit = async (userId: string, description: string) => {
+      const { data: creditData } = await supabaseServer
+        .from('credits_wallet')
+        .select('balance')
+        .eq('user_id', userId)
+        .single();
+
+      if (!creditData || creditData.balance < 1) {
+        throw new Error('Insufficient credits. You need at least 1 credit for this action.');
+      }
+
+      // Deduct credit
+      await supabaseServer
+        .from('credits_wallet')
+        .update({ balance: creditData.balance - 1 })
+        .eq('user_id', userId);
+
+      // Record transaction
+      await supabaseServer
+        .from('credit_transactions')
+        .insert({
+          user_id: userId,
+          tx_type: 'spend',
+          credits: -1,
+          description,
+        });
+    };
+
     // Helper function to execute tools
     const executeTool = async (toolCall: any, userId: string) => {
       const functionCall = toolCall.function || toolCall;
@@ -43,68 +72,39 @@ export async function POST(req: Request) {
 
       switch (name) {
         case 'post_to_twitter':
-          // Check credits first
-          const { data: creditData } = await supabaseServer
-            .from('credits_wallet')
-            .select('balance')
-            .eq('user_id', userId)
-            .single();
-
-          if (!creditData || creditData.balance < 1) {
-            throw new Error('Insufficient credits. You need at least 1 credit to post on Twitter.');
-          }
-
-          // Deduct credit
-          await supabaseServer
-            .from('credits_wallet')
-            .update({ balance: creditData.balance - 1 })
-            .eq('user_id', userId);
-
-          // Record transaction
-          await supabaseServer
-            .from('credit_transactions')
-            .insert({
-              user_id: userId,
-              tx_type: 'spend',
-              credits: -1,
-              description: 'Twitter post via Nexa chat',
-            });
-
-          // Post to Twitter
+          await checkAndDeductCredit(userId, 'Twitter post via Nexa chat');
           const twitterResult = await composioHelpers.postToTwitter(params.content, userId);
           return { success: true, platform: 'Twitter', result: twitterResult };
 
         case 'post_to_reddit':
-          // Check credits first
-          const { data: redditCreditData } = await supabaseServer
-            .from('credits_wallet')
-            .select('balance')
-            .eq('user_id', userId)
-            .single();
-
-          if (!redditCreditData || redditCreditData.balance < 1) {
-            throw new Error('Insufficient credits. You need at least 1 credit to post on Reddit.');
-          }
-
-          // Deduct credit
-          await supabaseServer
-            .from('credits_wallet')
-            .update({ balance: redditCreditData.balance - 1 })
-            .eq('user_id', userId);
-
-          // Record transaction
-          await supabaseServer
-            .from('credit_transactions')
-            .insert({
-              user_id: userId,
-              tx_type: 'spend',
-              credits: -1,
-              description: 'Reddit post via Nexa chat',
-            });
-
-          // Post to Reddit
+          await checkAndDeductCredit(userId, 'Reddit post via Nexa chat');
           const redditResult = await composioHelpers.postToReddit(params.subreddit, params.title, params.content, userId);
           return { success: true, platform: 'Reddit', result: redditResult };
+
+        case 'get_twitter_timeline':
+          const timeline = await composioHelpers.getTwitterTimeline(userId, params.maxResults || 20);
+          return { success: true, tweets: timeline };
+
+        case 'search_my_tweets':
+          const searchResults = await composioHelpers.searchUserTweets(userId, params.query, params.maxResults || 20);
+          return { success: true, tweets: searchResults };
+
+        case 'engage_with_tweet':
+          await checkAndDeductCredit(userId, `Twitter ${params.type} via Nexa chat`);
+          const engageResult = await composioHelpers.engageWithTweet(userId, params.tweetId, params.type, params.replyContent);
+          return { success: true, result: engageResult };
+
+        case 'analyze_tweet':
+          const analysis = await composioHelpers.analyzeTweet(userId, params.content);
+          return { success: true, analysis };
+
+        case 'generate_tweet':
+          const generatedTweet = await composioHelpers.generateTweet(userId, params.topic, params.context);
+          return { success: true, tweet: generatedTweet };
+
+        case 'analyze_my_tweet_patterns':
+          const patterns = await composioHelpers.analyzeTweetPatterns(userId);
+          return { success: true, patterns };
 
         case 'get_twitter_analytics':
           const analyticsResult = await composioHelpers.getTwitterAnalytics(params.tweetId, userId);
@@ -119,6 +119,14 @@ export async function POST(req: Request) {
 
           return { balance: balanceData?.balance || 0 };
 
+        case 'check_connection_status':
+          const twitterConn = await composioHelpers.getConnection('twitter', userId);
+          const redditConn = await composioHelpers.getConnection('reddit', userId);
+          return {
+            twitter: twitterConn ? 'connected' : 'not_connected',
+            reddit: redditConn ? 'connected' : 'not_connected',
+          };
+
         default:
           throw new Error(`Unknown tool: ${name}`);
       }
@@ -130,13 +138,13 @@ export async function POST(req: Request) {
         type: "function" as const,
         function: {
           name: "post_to_twitter",
-          description: "Post content to Twitter/X. Requires user authentication.",
+          description: "Post content to Twitter/X. Requires user to have connected their Twitter account.",
           parameters: {
             type: "object",
             properties: {
               content: {
                 type: "string",
-                description: "The content to post on Twitter/X"
+                description: "The content to post on Twitter/X (max 280 characters)"
               }
             },
             required: ["content"]
@@ -147,7 +155,7 @@ export async function POST(req: Request) {
         type: "function" as const,
         function: {
           name: "post_to_reddit",
-          description: "Post content to a Reddit subreddit. Requires user authentication.",
+          description: "Post content to a Reddit subreddit. Requires user to have connected their Reddit account.",
           parameters: {
             type: "object",
             properties: {
@@ -171,8 +179,122 @@ export async function POST(req: Request) {
       {
         type: "function" as const,
         function: {
+          name: "get_twitter_timeline",
+          description: "Get the user's Twitter home timeline. Shows recent tweets from accounts they follow.",
+          parameters: {
+            type: "object",
+            properties: {
+              maxResults: {
+                type: "number",
+                description: "Maximum number of tweets to retrieve (default: 20)"
+              }
+            },
+            required: []
+          }
+        }
+      },
+      {
+        type: "function" as const,
+        function: {
+          name: "search_my_tweets",
+          description: "Search through the user's own tweet history. Useful for finding past posts on specific topics.",
+          parameters: {
+            type: "object",
+            properties: {
+              query: {
+                type: "string",
+                description: "Search query to find tweets"
+              },
+              maxResults: {
+                type: "number",
+                description: "Maximum number of tweets to retrieve (default: 20)"
+              }
+            },
+            required: ["query"]
+          }
+        }
+      },
+      {
+        type: "function" as const,
+        function: {
+          name: "engage_with_tweet",
+          description: "Interact with a tweet by liking, retweeting, or replying. Helps with engagement and community building.",
+          parameters: {
+            type: "object",
+            properties: {
+              tweetId: {
+                type: "string",
+                description: "The ID of the tweet to engage with"
+              },
+              type: {
+                type: "string",
+                enum: ["like", "retweet", "reply"],
+                description: "The type of engagement"
+              },
+              replyContent: {
+                type: "string",
+                description: "The content of the reply (required if type is 'reply')"
+              }
+            },
+            required: ["tweetId", "type"]
+          }
+        }
+      },
+      {
+        type: "function" as const,
+        function: {
+          name: "analyze_tweet",
+          description: "Analyze a tweet's characteristics including sentiment, topics, hooks, style, voice, and engagement potential.",
+          parameters: {
+            type: "object",
+            properties: {
+              content: {
+                type: "string",
+                description: "The tweet content to analyze"
+              }
+            },
+            required: ["content"]
+          }
+        }
+      },
+      {
+        type: "function" as const,
+        function: {
+          name: "generate_tweet",
+          description: "Generate a tweet in the user's authentic writing style based on learned patterns. Use after analyzing their tweet patterns.",
+          parameters: {
+            type: "object",
+            properties: {
+              topic: {
+                type: "string",
+                description: "The topic or theme for the tweet"
+              },
+              context: {
+                type: "string",
+                description: "Additional context or specific points to include"
+              }
+            },
+            required: ["topic"]
+          }
+        }
+      },
+      {
+        type: "function" as const,
+        function: {
+          name: "analyze_my_tweet_patterns",
+          description: "Analyze the user's historical tweet patterns to learn their writing style, voice, common hooks, and optimal posting times.",
+          parameters: {
+            type: "object",
+            properties: {},
+            required: []
+          }
+        }
+      },
+      {
+        type: "function" as const,
+        function: {
           name: "get_twitter_analytics",
-          description: "Get analytics for a Twitter post.",
+          description: "Get analytics for a specific Twitter post including impressions, engagements, likes, and retweets.",
           parameters: {
             type: "object",
             properties: {
@@ -196,11 +318,23 @@ export async function POST(req: Request) {
             required: []
           }
         }
+      },
+      {
+        type: "function" as const,
+        function: {
+          name: "check_connection_status",
+          description: "Check if the user has connected their Twitter and Reddit accounts.",
+          parameters: {
+            type: "object",
+            properties: {},
+            required: []
+          }
+        }
       }
     ];
 
     // Create system prompt with user context
-    let systemPrompt = `You are Nexa, an AI-powered social media assistant. You help users manage their social media presence across platforms like Twitter/X and Reddit.
+    let systemPrompt = `You are Nexa, an AI-powered social media assistant with full access to the user's connected social media accounts. You help users manage their social media presence across platforms like Twitter/X and Reddit.
 
 User Context:
 - Business: ${onboardingContext.business_name || 'Not specified'}
@@ -210,25 +344,47 @@ User Context:
 - Posting Frequency: ${onboardingContext.posting_frequency || 'Not specified'}
 - Plan: ${userPlan}
 
-You can perform various social media tasks including:
-1. Content creation and optimization
-2. Posting to Twitter/X and Reddit (when authenticated)
-3. Campaign management and scheduling
-4. Analytics and performance tracking
-5. Community engagement
-6. Trend analysis
+You have access to the following capabilities through the user's connected accounts:
 
-For content creation, match the user's brand tone and business type. Be creative but authentic.
+**Twitter/X Capabilities:**
+1. Post tweets (regular posts, replies, quotes) - Requires connected account
+2. Get user's timeline - See what accounts they follow are posting
+3. Search through their tweet history - Find past posts on specific topics
+4. Engage with tweets - Like, retweet, or reply to build engagement
+5. Analyze tweets - Sentiment, topics, hooks, style, voice, engagement potential
+6. Generate tweets - Create content in their authentic voice based on learned patterns
+7. Analyze tweet patterns - Learn their writing style and optimal posting times
+8. Get tweet analytics - View performance metrics for specific tweets
 
-Each social media post costs 1 credit. Always check credit balance before posting.`;
+**Reddit Capabilities:**
+1. Post to subreddits - Create text or link posts
+2. Get subreddit analytics - Track post performance
+
+**Content Strategy:**
+- For content creation, match the user's brand tone and business type
+- Learn from their historical posts to replicate their authentic voice
+- Suggest optimal posting times based on engagement patterns
+- Analyze tweet performance to improve future content
+
+**Important Guidelines:**
+- Always check if accounts are connected before performing actions
+- Each social media action (post, like, retweet, reply) costs 1 credit
+- Check credit balance when needed
+- When posting, ensure content matches their brand voice and goals
+- Provide specific, actionable advice
+- Be proactive in suggesting improvements based on analytics
+
+**Connection Status:**
+Before performing any social media action, you can check connection status using check_connection_status. 
+If accounts aren't connected, inform the user they need to connect via the dashboard.`;
 
     // Adjust behavior based on agent mode
     if (agentMode === 'autonomous') {
-      systemPrompt += '\n\nAUTONOMOUS MODE: Execute actions immediately when users request them. Take initiative to optimize their social media strategy. Be proactive in suggesting and implementing improvements.';
+      systemPrompt += '\n\nAUTONOMOUS MODE: Execute actions immediately when users request them. Take initiative to optimize their social media strategy. Be proactive in suggesting and implementing improvements. After executing an action, provide a clear confirmation with results.';
     } else if (agentMode === 'review') {
-      systemPrompt += '\n\nREVIEW MODE: Propose actions for user approval before executing. Always ask for confirmation before performing any social media actions.';
+      systemPrompt += '\n\nREVIEW MODE: Propose actions for user approval before executing. Always ask for confirmation before performing any social media actions. Explain what you plan to do and why.';
     } else {
-      systemPrompt += '\n\nMANUAL MODE: Only execute actions when explicitly requested by the user. Provide guidance and suggestions but wait for user approval.';
+      systemPrompt += '\n\nMANUAL MODE: Only execute actions when explicitly requested by the user. Provide guidance and suggestions but wait for user approval. Explain available options clearly.';
     }
 
     // Use OpenAI to process the message (or fallback when key absent)
