@@ -65,15 +65,25 @@ export class ComposioIntegrationService {
    */
   async initiateTwitterConnection(redirectUri?: string): Promise<{ authUrl: string; connectionId: string }> {
     if (!this.composio) {
-      throw new Error('Composio not initialized');
+      throw new Error('Composio not initialized - COMPOSIO_API_KEY missing');
     }
 
     try {
-      // Use Composio's connection initiation
+      const callbackUrl = redirectUri || `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/composio/callback`;
+      
+      // Use Composio's connection initiation with proper parameters
       const connection = await this.composio.connectedAccounts.initiate({
         integrationId: 'twitter',
         entityId: this.userId,
-        redirectUrl: redirectUri || `${process.env.NEXTAUTH_URL}/api/composio/callback`,
+        redirectUrl: callbackUrl,
+        data: {
+          // Add any additional required parameters
+        }
+      });
+
+      console.log('Twitter connection initiated:', { 
+        connectionId: connection.connectionId,
+        redirectUrl: connection.redirectUrl 
       });
 
       return {
@@ -91,14 +101,24 @@ export class ComposioIntegrationService {
    */
   async initiateRedditConnection(redirectUri?: string): Promise<{ authUrl: string; connectionId: string }> {
     if (!this.composio) {
-      throw new Error('Composio not initialized');
+      throw new Error('Composio not initialized - COMPOSIO_API_KEY missing');
     }
 
     try {
+      const callbackUrl = redirectUri || `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/composio/callback`;
+      
       const connection = await this.composio.connectedAccounts.initiate({
         integrationId: 'reddit',
         entityId: this.userId,
-        redirectUrl: redirectUri || `${process.env.NEXTAUTH_URL}/api/composio/callback`,
+        redirectUrl: callbackUrl,
+        data: {
+          // Add any additional required parameters
+        }
+      });
+
+      console.log('Reddit connection initiated:', {
+        connectionId: connection.connectionId,
+        redirectUrl: connection.redirectUrl
       });
 
       return {
@@ -115,18 +135,68 @@ export class ComposioIntegrationService {
    * Get active connection for a platform
    */
   async getConnection(platform: 'twitter' | 'reddit'): Promise<any> {
-    const { data: connection } = await supabaseServer
-      .from('composio_connections')
-      .select('*')
-      .eq('user_id', this.userId)
-      .eq('toolkit_slug', platform)
-      .single();
+    try {
+      const { data: connection } = await supabaseServer
+        .from('composio_connections')
+        .select('*')
+        .eq('user_id', this.userId)
+        .eq('toolkit_slug', platform)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
 
-    if (!connection) {
-      throw new Error(`No ${platform} connection found for user`);
+      if (!connection) {
+        throw new Error(`No ${platform} connection found for user`);
+      }
+
+      return connection;
+    } catch (error) {
+      console.error(`Error getting ${platform} connection:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Verify and get connected account from Composio
+   */
+  async getConnectedAccount(platform: 'twitter' | 'reddit'): Promise<any> {
+    if (!this.composio) {
+      throw new Error('Composio not initialized');
     }
 
-    return connection;
+    try {
+      const connection = await this.getConnection(platform);
+      
+      // Get the connected account details from Composio
+      const account = await this.composio.connectedAccounts.get({
+        connectedAccountId: connection.composio_connection_id
+      });
+
+      return account;
+    } catch (error) {
+      console.error(`Error getting connected ${platform} account:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * List all connections for user from Composio
+   */
+  async listConnectedAccounts(): Promise<any[]> {
+    if (!this.composio) {
+      return [];
+    }
+
+    try {
+      const accounts = await this.composio.connectedAccounts.list({
+        entityIds: [this.userId]
+      });
+
+      return accounts.items || [];
+    } catch (error) {
+      console.error('Error listing connected accounts:', error);
+      return [];
+    }
   }
 
   /**
@@ -140,17 +210,22 @@ export class ComposioIntegrationService {
     try {
       const connection = await this.getConnection('twitter');
 
-      const action = await this.composio.actions.execute({
+      // Execute the tweet action through Composio
+      const result = await this.composio.actions.execute({
         actionName: 'TWITTER_CREATE_TWEET',
         params: {
           text: tweetData.content,
-          ...(tweetData.replyToTweetId && { reply: { in_reply_to_tweet_id: tweetData.replyToTweetId } }),
-          ...(tweetData.quoteTweetId && { quote_tweet_id: tweetData.quoteTweetId }),
+          ...(tweetData.replyToTweetId && { 
+            reply: { in_reply_to_tweet_id: tweetData.replyToTweetId } 
+          }),
+          ...(tweetData.quoteTweetId && { 
+            quote_tweet_id: tweetData.quoteTweetId 
+          }),
         },
         connectedAccountId: connection.composio_connection_id,
       });
 
-      const tweetId = action.data?.id || action.data?.tweet_id;
+      const tweetId = result.data?.id || result.data?.tweet_id;
       const url = tweetId ? `https://twitter.com/i/web/status/${tweetId}` : undefined;
 
       return {
@@ -178,7 +253,7 @@ export class ComposioIntegrationService {
     try {
       const connection = await this.getConnection('twitter');
 
-      const action = await this.composio.actions.execute({
+      const result = await this.composio.actions.execute({
         actionName: 'TWITTER_GET_USER_TWEETS',
         params: {
           max_results: maxResults,
@@ -187,9 +262,35 @@ export class ComposioIntegrationService {
         connectedAccountId: connection.composio_connection_id,
       });
 
-      return action.data?.tweets || [];
+      return result.data?.tweets || result.data?.data || [];
     } catch (error) {
       console.error('Error searching tweets:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get user's timeline/home timeline
+   */
+  async getUserTimeline(maxResults: number = 20): Promise<any[]> {
+    if (!this.composio) {
+      throw new Error('Composio not initialized');
+    }
+
+    try {
+      const connection = await this.getConnection('twitter');
+
+      const result = await this.composio.actions.execute({
+        actionName: 'TWITTER_GET_HOME_TIMELINE',
+        params: {
+          max_results: maxResults,
+        },
+        connectedAccountId: connection.composio_connection_id,
+      });
+
+      return result.data?.tweets || result.data?.data || [];
+    } catch (error) {
+      console.error('Error getting timeline:', error);
       return [];
     }
   }
@@ -414,8 +515,10 @@ Generate a tweet that matches this user's authentic style. Return only the tweet
     try {
       const connection = await this.getConnection('reddit');
 
-      const action = await this.composio.actions.execute({
-        actionName: postData.content ? 'REDDIT_SUBMIT_TEXT_POST' : 'REDDIT_SUBMIT_LINK_POST',
+      const actionName = postData.content ? 'REDDIT_SUBMIT_TEXT_POST' : 'REDDIT_SUBMIT_LINK_POST';
+      
+      const result = await this.composio.actions.execute({
+        actionName,
         params: {
           subreddit: postData.subreddit,
           title: postData.title,
@@ -426,8 +529,8 @@ Generate a tweet that matches this user's authentic style. Return only the tweet
         connectedAccountId: connection.composio_connection_id,
       });
 
-      const postId = action.data?.id || action.data?.name;
-      const url = action.data?.url || `https://reddit.com/r/${postData.subreddit}`;
+      const postId = result.data?.id || result.data?.name;
+      const url = result.data?.url || `https://reddit.com/r/${postData.subreddit}`;
 
       return {
         success: true,
@@ -545,16 +648,40 @@ Generate a tweet that matches this user's authentic style. Return only the tweet
     try {
       const connection = await this.getConnection('twitter');
 
-      const action = await this.composio.actions.execute({
+      const result = await this.composio.actions.execute({
         actionName: 'TWITTER_GET_TWEET',
         params: { id: tweetId },
         connectedAccountId: connection.composio_connection_id,
       });
 
-      return action.data || {};
+      return result.data || {};
     } catch (error) {
       console.error('Error getting tweet analytics:', error);
       return {};
+    }
+  }
+
+  /**
+   * Execute any Composio action
+   */
+  async executeAction(actionName: string, params: any, platform: 'twitter' | 'reddit'): Promise<any> {
+    if (!this.composio) {
+      throw new Error('Composio not initialized');
+    }
+
+    try {
+      const connection = await this.getConnection(platform);
+
+      const result = await this.composio.actions.execute({
+        actionName,
+        params,
+        connectedAccountId: connection.composio_connection_id,
+      });
+
+      return result;
+    } catch (error) {
+      console.error(`Error executing action ${actionName}:`, error);
+      throw error;
     }
   }
 }
