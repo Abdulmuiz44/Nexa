@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
-export default function PaymentCallbackPage() {
+function PaymentCallbackContent() {
   const params = useSearchParams();
   const router = useRouter();
   const [status, setStatus] = useState<'pending'|'success'|'failed'>('pending');
@@ -65,5 +65,24 @@ export default function PaymentCallbackPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function PaymentCallbackPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-[60vh] items-center justify-center p-6">
+        <Card className="max-w-md w-full">
+          <CardHeader>
+            <CardTitle>Processing Payment</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">Verifying your payment...</p>
+          </CardContent>
+        </Card>
+      </div>
+    }>
+      <PaymentCallbackContent />
+    </Suspense>
   );
 }
