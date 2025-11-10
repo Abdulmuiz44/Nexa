@@ -6,6 +6,9 @@ import Navbar from '@/components/Navbar';
 import { PaymentForm } from '@/components/payment-form';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
+// Mark this page as dynamic to prevent static generation
+export const dynamic = 'force-dynamic';
+
 const pricingPlans = [
   {
     title: "Growth",

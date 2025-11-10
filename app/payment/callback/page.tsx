@@ -5,6 +5,9 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
+// Mark this page as dynamic to prevent static generation
+export const dynamic = 'force-dynamic';
+
 function PaymentCallbackContent() {
   const params = useSearchParams();
   const router = useRouter();

@@ -11,6 +11,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import Link from "next/link"
 
+// Mark this page as dynamic to prevent static generation
+export const dynamic = 'force-dynamic';
+
 function LoginComponent() {
 const { data: session, status } = useSession();
 const [email, setEmail] = useState("")

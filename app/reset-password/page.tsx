@@ -9,6 +9,9 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 
+// Mark this page as dynamic to prevent static generation
+export const dynamic = 'force-dynamic';
+
 function ResetPasswordForm() {
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
