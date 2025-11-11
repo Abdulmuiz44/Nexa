@@ -15,6 +15,11 @@ import {
   CreditCard,
   Settings,
   Calendar as CalendarIcon,
+  CheckCircle,
+  Recycle,
+  TrendingUp,
+  Users,
+  FlaskConical,
 } from "lucide-react";
 import { supabaseClient } from "@/lib/supabaseClient";
 import {
@@ -29,7 +34,12 @@ import {
 const navItems = [
   { title: "Chat", href: "/chat", icon: MessageSquare },
   { title: "Campaigns", href: "/dashboard/campaigns", icon: MessageSquare },
+  { title: "Approvals", href: "/dashboard/approvals", icon: CheckCircle },
+  { title: "Repurpose", href: "/dashboard/repurpose", icon: Recycle },
+  { title: "Engage", href: "/dashboard/engage", icon: Users },
+  { title: "Experiments", href: "/dashboard/experiments", icon: FlaskConical },
   { title: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
+  { title: "Performance", href: "/dashboard/performance", icon: TrendingUp },
   { title: "Scheduled", href: "/dashboard/scheduled", icon: CalendarIcon },
   { title: "Reports", href: "/dashboard/reports", icon: FileText },
   { title: "Logs", href: "/dashboard/logs", icon: Activity },
