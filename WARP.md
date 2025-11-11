@@ -7,74 +7,46 @@ This file provides guidance to WARP (warp.dev) when working with code in this re
 - Install deps: `pnpm install` (or `npm ci`)
 - Env setup: `cp .env.example .env.local` then edit `.env.local`
 - Dev server: `pnpm dev`
-- Start workers: `pnpm workers` (runs `scripts/start-workers.ts`)
-- Lint: `pnpm lint` • Fix: `pnpm lint:fix`
+- Start background workers: `pnpm workers` (runs `scripts/start-workers.ts`)
+- Lint / fix: `pnpm lint` • `pnpm lint:fix`
 - Type-check: `pnpm type-check`
-- Format: `pnpm format` • Check: `pnpm format:check`
-- Build: `pnpm build`
-- Start (prod): `pnpm start`
+- Format / check: `pnpm format` • `pnpm format:check`
+- Build: `pnpm build` • Start (prod): `pnpm start`
+- Makefile shortcuts (optional): `make dev`, `make check`, `make test`, `make docker-build`
 
 ### Tests
-- All checks: `pnpm check` (lint + type-check + unit tests)
-- Unit tests: `pnpm test`
+- All checks (lint + type-check + unit): `pnpm check`
+- Unit tests (Jest): `pnpm test`
   - Watch: `pnpm test:watch`
   - Coverage: `pnpm test:coverage`
-  - Run a single file: `pnpm test -- __tests__/agent/runner.test.ts`
-  - Run by name: `pnpm test -- -t "should execute skill"`
+  - Single file: `pnpm test -- __tests__/path/to/test.spec.ts`
+  - By name: `pnpm test -- -t "regex or test name"`
 - E2E (Playwright): `pnpm test:e2e`
-  - Specific file: `pnpm test:e2e -- e2e/login.spec.ts`
-  - Specific test: `pnpm test:e2e -- -g "logs in successfully"`
+  - Specific file: `pnpm test:e2e -- e2e/<file>.spec.ts`
+  - Specific test: `pnpm test:e2e -- -g "regex or test name"`
   - UI mode: `pnpm test:e2e:ui`
-  - Note: Playwright auto-starts the dev server (`npm run dev`) at http://localhost:3000 per `playwright.config.ts`.
-
-### Database and scripts
-- One-time DB setup (Neon/Postgres via SQL): `pnpm dlx tsx scripts/run-db-setup.ts`
-- Migrations example: `pnpm dlx tsx scripts/run-migrations.ts`
-- Prisma helpers (if applicable):
-  - Generate: `npx prisma generate`
-  - Dev migrate: `npx prisma migrate dev`
-  - Studio: `npx prisma studio`
-- Supabase: see README for using Supabase CLI (schema managed there) and required env vars.
+  - Note: Playwright auto-starts the dev server (see `playwright.config.ts`).
 
 ### Docker
 - Build: `pnpm run docker:build` (or `docker build -t nexa .`)
-- Run: `pnpm run docker:run` (binds 3000) or `docker run -p 3000:3000 --env-file .env.local nexa`
+- Run: `pnpm run docker:run` (or `docker run -p 3000:3000 --env-file .env.local nexa`)
 - Compose: `docker compose up -d` • Down: `docker compose down`
 
 ## High-level architecture
 
-Nexa is a Next.js 15 (App Router) app with server route handlers and a TypeScript service/agent layer. Data and auth are primarily via Supabase; external integrations via Composio and third-party SDKs.
+Nexa is a Next.js (App Router) TypeScript app with API route handlers and a background worker/agent layer. Core systems:
 
-- UI (App Router): `app/`
-  - Pages and dashboards (e.g., `app/dashboard/*`), auth flows (`app/auth/*`), and docs.
-  - API route handlers under `app/api/**/route.ts` implement server endpoints for auth (NextAuth), campaigns, content generation, analytics, logs, payments (Flutterwave webhook), onboarding, connectors (Composio), MCP endpoints, and health checks.
-  - Global layout, theming, and styles (`app/layout.tsx`, `app/globals.css`, `theme.config.ts`).
+- Web app (Next.js): `app/` renders the UI and hosts API route handlers under `app/api/**/route.ts`.
+- Services and agents: `src/services/*` encapsulate business logic; background jobs/agents are launched via `scripts/start-workers.ts` (BullMQ/Redis backed).
+- Data and auth: Supabase (PostgreSQL, Auth, storage).
+- AI and integrations: OpenAI for generation/analysis; Composio for X (Twitter) and Reddit; payments via Flutterwave.
+- Testing: Jest for unit/integration; Playwright for end-to-end.
+- Tooling/config: TypeScript (`tsconfig.json`), ESLint/Prettier, Tailwind CSS, Next config, Jest/Playwright configs, Dockerfile and `docker-compose.yml` for local Postgres/Redis.
 
-- Shared clients and utilities (Next.js side): `lib/`
-  - Clients: `openaiClient.ts`, `supabaseClient.ts`, `composioClient.ts`, `flutterwaveClient.ts`, `logger.ts`.
-  - Agent presets: `lib/agents/*` (e.g., `growthAgent.ts`, `analyticsAgent.ts`).
-
-- Core domain (server/worker layer): `src/`
-  - Agent runtime: `src/agent/`
-    - Runner and CLI (`runner.ts`, `agentchatCLI.ts`), LLM wrapper (`llm/wrapper.ts`).
-    - Skills registry and implementations (`skills/*`: content generation, social posting, market research, email outreach).
-    - State and persistence adapters (`store/*`: memory, Neon, Supabase) and queues (`queue/*`).
-    - Cross-cutting logging (`utils/logger.ts`).
-  - Services: `src/services/` (content generation orchestration, analytics engine, Nexa agent service).
-  - Integrations: `src/connectors/*` (Twitter, Reddit, email) and `src/vector/pinecone.ts`.
-  - Infrastructure/middleware: `src/middleware/*` (auth, onboarding enforcement, rate limiting, subscription checks); monitoring under `src/monitoring/*`.
-  - Payments: `src/payments/flutterwave.ts`.
-  - Workers: `src/workers/postScheduler.ts` (BullMQ-based schedulers/analytics workers), started via `scripts/start-workers.ts`.
-
-- Middleware at the edge: top-level `middleware.ts` for route protection and session handling.
-
-- Testing:
-  - Unit/integration: Jest configured via `jest.config.js`; tests in `__tests__/` covering agents, API, and skills.
-  - E2E: Playwright in `e2e/` with multi-browser projects; dev server autostart per config.
-
-- Configuration: `next.config.mjs`, `tsconfig.json`, Tailwind (`tailwind.config.ts`, `styles/globals.css`), ESLint/Prettier configs.
-
-## Notes from README
-- Prereqs: Node 18+, pnpm; required env vars for OpenAI, Supabase (URL/keys/service role), NextAuth, Composio, and Flutterwave. See README “Environment Variables”.
-- Typical dev loop: `pnpm dev` (app) + `pnpm workers` (background jobs); open http://localhost:3000.
-- Testing shortcuts are documented above; `pnpm check` runs the standard verification pipeline.
+## Pointers to repo docs (read first)
+- README.md: Quick start and required environment variables.
+- QUICKSTART.md: Short path to running key features locally.
+- TESTING_GUIDE.md: Detailed testing steps and example API calls.
+- DEVELOPER_GUIDE.md: Service/agent architecture and API surfaces.
+- NEXA_STRUCTURE.md: App and route structure overview.
+- DATABASE_SETUP_GUIDE.md: Supabase schema and migrations.

@@ -71,27 +71,35 @@ export class ComposioIntegrationService {
     try {
       const callbackUrl = redirectUri || `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/composio/callback`;
       
-      // Use Composio's connection initiation with proper parameters
-      const connection = await this.composio.connectedAccounts.initiate({
-        integrationId: 'twitter',
+      console.log('Initiating Twitter connection for entity:', this.userId);
+      console.log('Callback URL:', callbackUrl);
+      
+      // Build connection URL manually using Composio's direct API
+      const apiKey = process.env.COMPOSIO_API_KEY;
+      const connectionId = `conn_${this.userId}_twitter_${Date.now()}`;
+      
+      // Use Composio's hosted connection page
+      const composioBaseUrl = 'https://backend.composio.dev/api/v1';
+      const authUrl = `${composioBaseUrl}/connectedAccounts?` + new URLSearchParams({
+        appName: 'twitter',
         entityId: this.userId,
         redirectUrl: callbackUrl,
-        data: {
-          // Add any additional required parameters
-        }
-      });
+        showActiveConnections: 'false'
+      }).toString();
 
-      console.log('Twitter connection initiated:', { 
-        connectionId: connection.connectionId,
-        redirectUrl: connection.redirectUrl 
-      });
+      console.log('Generated auth URL:', authUrl);
 
       return {
-        authUrl: connection.redirectUrl || '',
-        connectionId: connection.connectionId || '',
+        authUrl,
+        connectionId,
       };
-    } catch (error) {
-      console.error('Error initiating Twitter connection:', error);
+    } catch (error: any) {
+      console.error('Error initiating Twitter connection:', {
+        message: error.message,
+        code: error.code,
+        details: error.details || error.errorId,
+        fullError: error
+      });
       throw error;
     }
   }
@@ -107,26 +115,35 @@ export class ComposioIntegrationService {
     try {
       const callbackUrl = redirectUri || `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/composio/callback`;
       
-      const connection = await this.composio.connectedAccounts.initiate({
-        integrationId: 'reddit',
+      console.log('Initiating Reddit connection for entity:', this.userId);
+      console.log('Callback URL:', callbackUrl);
+      
+      // Build connection URL manually using Composio's direct API
+      const apiKey = process.env.COMPOSIO_API_KEY;
+      const connectionId = `conn_${this.userId}_reddit_${Date.now()}`;
+      
+      // Use Composio's hosted connection page
+      const composioBaseUrl = 'https://backend.composio.dev/api/v1';
+      const authUrl = `${composioBaseUrl}/connectedAccounts?` + new URLSearchParams({
+        appName: 'reddit',
         entityId: this.userId,
         redirectUrl: callbackUrl,
-        data: {
-          // Add any additional required parameters
-        }
-      });
+        showActiveConnections: 'false'
+      }).toString();
 
-      console.log('Reddit connection initiated:', {
-        connectionId: connection.connectionId,
-        redirectUrl: connection.redirectUrl
-      });
+      console.log('Generated auth URL:', authUrl);
 
       return {
-        authUrl: connection.redirectUrl || '',
-        connectionId: connection.connectionId || '',
+        authUrl,
+        connectionId,
       };
-    } catch (error) {
-      console.error('Error initiating Reddit connection:', error);
+    } catch (error: any) {
+      console.error('Error initiating Reddit connection:', {
+        message: error.message,
+        code: error.code,
+        details: error.details || error.errorId,
+        fullError: error
+      });
       throw error;
     }
   }

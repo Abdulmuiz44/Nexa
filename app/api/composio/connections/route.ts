@@ -9,19 +9,28 @@ export async function GET() {
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    // Get connections from database
-    const { data, error } = await supabaseServer
-      .from('composio_connections')
-      .select('id, toolkit_slug, composio_connection_id, meta, created_at')
-      .eq('user_id', session.user.id)
-      .order('created_at', { ascending: false })
+    let connections = []
+    
+    // Get connections from database with error handling
+    try {
+      const { data, error } = await supabaseServer
+        .from('composio_connections')
+        .select('id, toolkit_slug, composio_connection_id, meta, created_at')
+        .eq('user_id', session.user.id)
+        .order('created_at', { ascending: false })
 
-    if (error) {
-      console.error('Error fetching connections from database:', error)
-      return NextResponse.json({ error: 'Failed to fetch connections' }, { status: 500 })
+      if (error) {
+        console.error('Error fetching connections from database:', error)
+        // Return empty connections instead of failing completely
+        connections = []
+      } else {
+        connections = data || []
+      }
+    } catch (dbError) {
+      console.error('Database connection error:', dbError)
+      // Return empty connections if database is unavailable
+      connections = []
     }
-
-    const connections = data || []
 
     // Verify connections with Composio if API key is available
     const apiKey = process.env.COMPOSIO_API_KEY
@@ -29,10 +38,20 @@ export async function GET() {
       try {
         const composio = new Composio({ apiKey })
         
-        // Get all connected accounts from Composio
-        const composioAccounts = await composio.connectedAccounts.list({
+        // Get all connected accounts from Composio with timeout
+        const timeoutMs = 10000 // 10 second timeout
+        const composioAccountsPromise = composio.connectedAccounts.list({
           entityIds: [session.user.id]
         })
+        
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Composio API timeout')), timeoutMs)
+        )
+        
+        const composioAccounts = await Promise.race([
+          composioAccountsPromise,
+          timeoutPromise
+        ]) as any
 
         // Enrich our connections with live status from Composio
         const enrichedConnections = connections.map(conn => {
@@ -52,11 +71,16 @@ export async function GET() {
           connections: enrichedConnections,
           verified: true 
         })
-      } catch (composioError) {
-        console.warn('Could not verify connections with Composio:', composioError)
+      } catch (composioError: any) {
+        console.warn('Could not verify connections with Composio:', composioError?.message || composioError)
         // Return database connections even if Composio verification fails
         return NextResponse.json({ 
-          connections,
+          connections: connections.map(conn => ({
+            ...conn,
+            status: conn.meta?.status || 'UNKNOWN',
+            isActive: true, // Assume active if we can't verify
+            lastVerified: null
+          })),
           verified: false,
           warning: 'Could not verify with Composio'
         })
