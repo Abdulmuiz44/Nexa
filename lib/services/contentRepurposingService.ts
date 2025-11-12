@@ -1,10 +1,28 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import OpenAI from 'openai';
 import { ContentSource, RepurposedContent } from '@/types/features';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabase = createClient(supabaseUrl, supabaseKey);
+let cachedSupabase: SupabaseClient | null | undefined = undefined;
+
+function ensureSupabase(): SupabaseClient {
+  if (cachedSupabase !== undefined) {
+    if (!cachedSupabase) {
+      throw new Error('Supabase configuration missing for ContentRepurposingService.');
+    }
+    return cachedSupabase;
+  }
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseKey) {
+    cachedSupabase = null;
+    throw new Error('Supabase configuration missing for ContentRepurposingService.');
+  }
+
+  cachedSupabase = createClient(supabaseUrl, supabaseKey);
+  return cachedSupabase;
+}
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
@@ -24,6 +42,7 @@ export class ContentRepurposingService {
     // Extract key points from content using AI
     const extractedPoints = await this.extractKeyPoints(content);
 
+    const supabase = ensureSupabase();
     const { data, error } = await supabase
       .from('content_sources')
       .insert({
@@ -94,6 +113,7 @@ export class ContentRepurposingService {
     numPosts: number = 10
   ): Promise<RepurposedContent[]> {
     // Get the content source
+    const supabase = ensureSupabase();
     const { data: source, error: sourceError } = await supabase
       .from('content_sources')
       .select('*')
@@ -121,7 +141,8 @@ export class ContentRepurposingService {
         source.source_type
       );
 
-      const { data, error } = await supabase
+      const supabaseClient = ensureSupabase();
+      const { data, error } = await supabaseClient
         .from('repurposed_content')
         .insert({
           source_id: sourceId,
@@ -193,6 +214,7 @@ export class ContentRepurposingService {
    * Get all content sources for a user
    */
   static async getContentSources(userId: string): Promise<ContentSource[]> {
+    const supabase = ensureSupabase();
     const { data, error } = await supabase
       .from('content_sources')
       .select('*')
@@ -210,6 +232,7 @@ export class ContentRepurposingService {
     sourceId: string,
     userId: string
   ): Promise<RepurposedContent[]> {
+    const supabase = ensureSupabase();
     const { data, error } = await supabase
       .from('repurposed_content')
       .select('*')
@@ -225,6 +248,7 @@ export class ContentRepurposingService {
    * Mark repurposed content as used
    */
   static async markAsUsed(contentId: string, postId: string): Promise<void> {
+    const supabase = ensureSupabase();
     const { error } = await supabase
       .from('repurposed_content')
       .update({ used: true, post_id: postId })
@@ -237,6 +261,7 @@ export class ContentRepurposingService {
    * Get unused repurposed content
    */
   static async getUnusedContent(userId: string, limit: number = 20): Promise<RepurposedContent[]> {
+    const supabase = ensureSupabase();
     const { data, error } = await supabase
       .from('repurposed_content')
       .select('*')
@@ -253,6 +278,7 @@ export class ContentRepurposingService {
    * Delete content source and all repurposed content
    */
   static async deleteContentSource(sourceId: string, userId: string): Promise<void> {
+    const supabase = ensureSupabase();
     const { error } = await supabase
       .from('content_sources')
       .delete()

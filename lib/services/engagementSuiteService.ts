@@ -4,11 +4,8 @@ import { EngagementOpportunity, EngagementTracking, EngagementStats } from '@/ty
 
 let cachedSupabase: SupabaseClient | null | undefined = undefined;
 
-function ensureSupabase(): SupabaseClient {
+function ensureSupabase(): SupabaseClient | null {
   if (cachedSupabase !== undefined) {
-    if (!cachedSupabase) {
-      throw new Error('Supabase configuration missing for EngagementSuiteService.');
-    }
     return cachedSupabase;
   }
 
@@ -17,7 +14,8 @@ function ensureSupabase(): SupabaseClient {
 
   if (!supabaseUrl || !supabaseKey) {
     cachedSupabase = null;
-    throw new Error('Supabase configuration missing for EngagementSuiteService.');
+    console.warn('Supabase configuration missing for EngagementSuiteService.');
+    return null;
   }
 
   cachedSupabase = createClient(supabaseUrl, supabaseKey);
@@ -37,6 +35,9 @@ export class EngagementSuiteService {
     limit: number = 20
   ): Promise<EngagementOpportunity[]> {
     const supabase = ensureSupabase();
+    if (!supabase) {
+      return [];
+    }
     // Get user's niche and topics from onboarding data
     const { data: user } = await supabase
       .from('users')
@@ -66,6 +67,9 @@ export class EngagementSuiteService {
   ): Promise<number> {
     try {
       const supabase = ensureSupabase();
+      if (!supabase) {
+        return this.simpleRelevanceScore(content, userId);
+      }
       const { data: user } = await supabase
         .from('users')
         .select('onboarding_data')
@@ -107,6 +111,9 @@ export class EngagementSuiteService {
    */
   private static async simpleRelevanceScore(content: string, userId: string): Promise<number> {
     const supabase = ensureSupabase();
+    if (!supabase) {
+      return 0;
+    }
     const { data: user } = await supabase
       .from('users')
       .select('onboarding_data')
@@ -173,6 +180,9 @@ export class EngagementSuiteService {
     opportunity: Omit<EngagementOpportunity, 'id' | 'created_at'>
   ): Promise<EngagementOpportunity> {
     const supabase = ensureSupabase();
+    if (!supabase) {
+      throw new Error('Supabase is not configured.');
+    }
     const { data, error } = await supabase
       .from('engagement_opportunities')
       .insert(opportunity)
@@ -192,6 +202,9 @@ export class EngagementSuiteService {
     limit: number = 50
   ): Promise<EngagementOpportunity[]> {
     const supabase = ensureSupabase();
+    if (!supabase) {
+      return [];
+    }
     const { data, error } = await supabase
       .from('engagement_opportunities')
       .select('*')
@@ -215,6 +228,9 @@ export class EngagementSuiteService {
     responseContent?: string
   ): Promise<EngagementTracking> {
     const supabase = ensureSupabase();
+    if (!supabase) {
+      throw new Error('Supabase is not configured.');
+    }
     // Get the opportunity
     const { data: opportunity } = await supabase
       .from('engagement_opportunities')
@@ -276,6 +292,22 @@ export class EngagementSuiteService {
    */
   static async getEngagementStats(userId: string): Promise<EngagementStats> {
     const supabase = ensureSupabase();
+    if (!supabase) {
+      return {
+        total_opportunities: 0,
+        engaged_count: 0,
+        pending_count: 0,
+        avg_relevance_score: 0,
+        engagement_by_type: {
+          like: 0,
+          retweet: 0,
+          reply: 0,
+          quote: 0,
+          upvote: 0,
+          comment: 0,
+        },
+      };
+    }
     const { data: opportunities } = await supabase
       .from('engagement_opportunities')
       .select('engaged, relevance_score')
@@ -289,7 +321,7 @@ export class EngagementSuiteService {
     const total = opportunities?.length || 0;
     const engaged = opportunities?.filter(o => o.engaged).length || 0;
     const pending = total - engaged;
-    const avgScore = opportunities?.reduce((sum, o) => sum + o.relevance_score, 0) / total || 0;
+    const avgScore = total > 0 ? (opportunities?.reduce((sum, o) => sum + (o.relevance_score ?? 0), 0) ?? 0) / total : 0;
 
     const engagementByType: Record<string, number> = {};
     tracking?.forEach(t => {
@@ -310,6 +342,9 @@ export class EngagementSuiteService {
    */
   static async autoEngage(userId: string): Promise<number> {
     const supabase = ensureSupabase();
+    if (!supabase) {
+      return 0;
+    }
     const { data: user } = await supabase
       .from('users')
       .select('onboarding_data')
@@ -355,6 +390,9 @@ export class EngagementSuiteService {
    */
   static async cleanupExpired(): Promise<number> {
     const supabase = ensureSupabase();
+    if (!supabase) {
+      return 0;
+    }
     const { data } = await supabase
       .from('engagement_opportunities')
       .delete()
