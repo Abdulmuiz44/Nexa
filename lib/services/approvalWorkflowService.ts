@@ -1,31 +1,45 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { ApprovalQueueItem, PostApproval, LearningFeedback } from '@/types/features';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabase = createClient(supabaseUrl, supabaseKey);
+let cachedSupabase: SupabaseClient | null | undefined = undefined;
+
+function getSupabaseClient(): SupabaseClient | null {
+  if (cachedSupabase !== undefined) {
+    return cachedSupabase;
+  }
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseKey) {
+    console.warn('Supabase configuration missing for ApprovalWorkflowService.');
+    cachedSupabase = null;
+    return null;
+  }
+
+  cachedSupabase = createClient(supabaseUrl, supabaseKey);
+  return cachedSupabase;
+}
 
 export class ApprovalWorkflowService {
   /**
    * Get pending approvals for a user
    */
   static async getPendingApprovals(userId: string): Promise<ApprovalQueueItem[]> {
+    const supabase = getSupabaseClient();
+    if (!supabase) {
+      throw new Error('Supabase not configured.');
+    }
+
     const { data: approvals, error } = await supabase
       .from('post_approvals')
-      .select(`
-        *,
-        post:posts (
-          platform,
-          scheduled_at,
-          campaign_id
-        )
-      `)
+      .select('*')
       .eq('user_id', userId)
       .eq('status', 'pending')
       .order('created_at', { ascending: false });
 
-    if (error) throw new Error(`Failed to fetch approvals: ${error.message}`);
-    return approvals as ApprovalQueueItem[];
+    if (error) throw new Error(Failed to fetch approvals: );
+    return (approvals ?? []) as ApprovalQueueItem[];
   }
 
   /**
@@ -36,6 +50,11 @@ export class ApprovalWorkflowService {
     postId: string,
     content: string
   ): Promise<PostApproval> {
+    const supabase = getSupabaseClient();
+    if (!supabase) {
+      throw new Error('Supabase not configured.');
+    }
+
     const { data, error } = await supabase
       .from('post_approvals')
       .insert({
@@ -47,7 +66,7 @@ export class ApprovalWorkflowService {
       .select()
       .single();
 
-    if (error) throw new Error(`Failed to create approval request: ${error.message}`);
+    if (error) throw new Error(Failed to create approval request: );
     return data as PostApproval;
   }
 
@@ -59,7 +78,12 @@ export class ApprovalWorkflowService {
     editedContent?: string,
     feedback?: string
   ): Promise<PostApproval> {
-    const updateData: any = {
+    const supabase = getSupabaseClient();
+    if (!supabase) {
+      throw new Error('Supabase not configured.');
+    }
+
+    const updateData: Record<string, unknown> = {
       status: editedContent ? 'edited' : 'approved',
       approved_at: new Date().toISOString(),
     };
@@ -78,7 +102,7 @@ export class ApprovalWorkflowService {
       .select()
       .single();
 
-    if (error) throw new Error(`Failed to approve post: ${error.message}`);
+    if (error) throw new Error(Failed to approve post: );
 
     // If edited, update the actual post content
     if (editedContent && data) {
@@ -108,6 +132,11 @@ export class ApprovalWorkflowService {
     approvalId: string,
     feedback?: string
   ): Promise<PostApproval> {
+    const supabase = getSupabaseClient();
+    if (!supabase) {
+      throw new Error('Supabase not configured.');
+    }
+
     const { data, error } = await supabase
       .from('post_approvals')
       .update({
@@ -119,7 +148,7 @@ export class ApprovalWorkflowService {
       .select()
       .single();
 
-    if (error) throw new Error(`Failed to reject post: ${error.message}`);
+    if (error) throw new Error(Failed to reject post: );
 
     // Update post status to failed
     if (data) {
@@ -141,6 +170,11 @@ export class ApprovalWorkflowService {
     originalContent: string,
     editedContent: string
   ): Promise<void> {
+    const supabase = getSupabaseClient();
+    if (!supabase) {
+      throw new Error('Supabase not configured.');
+    }
+
     // Determine edit type based on differences
     const editType = this.detectEditType(originalContent, editedContent);
 
@@ -166,7 +200,7 @@ export class ApprovalWorkflowService {
     edited: string
   ): 'tone' | 'length' | 'format' | 'content' | 'other' {
     const lengthDiff = Math.abs(original.length - edited.length);
-    const lengthChangePercent = (lengthDiff / original.length) * 100;
+    const lengthChangePercent = (lengthDiff / Math.max(original.length, 1)) * 100;
 
     // Check if it's mainly a length change
     if (lengthChangePercent > 30) {
@@ -182,10 +216,10 @@ export class ApprovalWorkflowService {
 
     // Check for tone words (simple heuristic)
     const toneWords = ['please', 'thanks', 'great', 'awesome', 'amazing', 'check out'];
-    const originalTone = toneWords.filter(word => 
+    const originalTone = toneWords.filter(word =>
       original.toLowerCase().includes(word)
     ).length;
-    const editedTone = toneWords.filter(word => 
+    const editedTone = toneWords.filter(word =>
       edited.toLowerCase().includes(word)
     ).length;
     if (Math.abs(originalTone - editedTone) > 0) {
@@ -208,17 +242,22 @@ export class ApprovalWorkflowService {
   private static calculateSimilarity(text1: string, text2: string): number {
     const words1 = new Set(text1.toLowerCase().split(/\s+/));
     const words2 = new Set(text2.toLowerCase().split(/\s+/));
-    
+
     const intersection = new Set([...words1].filter(x => words2.has(x)));
     const union = new Set([...words1, ...words2]);
-    
-    return intersection.size / union.size;
+
+    return union.size === 0 ? 1 : intersection.size / union.size;
   }
 
   /**
    * Get learning feedback history
    */
   static async getLearningHistory(userId: string): Promise<LearningFeedback[]> {
+    const supabase = getSupabaseClient();
+    if (!supabase) {
+      throw new Error('Supabase not configured.');
+    }
+
     const { data, error } = await supabase
       .from('learning_feedback')
       .select('*')
@@ -226,8 +265,8 @@ export class ApprovalWorkflowService {
       .order('created_at', { ascending: false })
       .limit(50);
 
-    if (error) throw new Error(`Failed to fetch learning history: ${error.message}`);
-    return data as LearningFeedback[];
+    if (error) throw new Error(Failed to fetch learning history: );
+    return (data ?? []) as LearningFeedback[];
   }
 
   /**
@@ -240,19 +279,25 @@ export class ApprovalWorkflowService {
     rejected: number;
     edited: number;
   }> {
+    const supabase = getSupabaseClient();
+    if (!supabase) {
+      throw new Error('Supabase not configured.');
+    }
+
     const { data, error } = await supabase
       .from('post_approvals')
       .select('status')
       .eq('user_id', userId);
 
-    if (error) throw new Error(`Failed to fetch stats: ${error.message}`);
+    if (error) throw new Error(Failed to fetch stats: );
 
+    const approvals = data ?? [];
     const stats = {
-      total: data.length,
-      pending: data.filter(a => a.status === 'pending').length,
-      approved: data.filter(a => a.status === 'approved').length,
-      rejected: data.filter(a => a.status === 'rejected').length,
-      edited: data.filter(a => a.status === 'edited').length,
+      total: approvals.length,
+      pending: approvals.filter(a => a.status === 'pending').length,
+      approved: approvals.filter(a => a.status === 'approved').length,
+      rejected: approvals.filter(a => a.status === 'rejected').length,
+      edited: approvals.filter(a => a.status === 'edited').length,
     };
 
     return stats;
@@ -262,19 +307,24 @@ export class ApprovalWorkflowService {
    * Enable auto-approval mode
    */
   static async toggleAutoApproval(userId: string, enabled: boolean): Promise<void> {
+    const supabase = getSupabaseClient();
+    if (!supabase) {
+      throw new Error('Supabase not configured.');
+    }
+
     const { error } = await supabase
       .from('users')
       .update({
-        onboarding_data: supabase.raw(`
+        onboarding_data: supabase.raw(
           jsonb_set(
             COALESCE(onboarding_data, '{}'),
             '{auto_approval_enabled}',
-            '${enabled}'
+            ''
           )
-        `)
+        )
       })
       .eq('id', userId);
 
-    if (error) throw new Error(`Failed to toggle auto-approval: ${error.message}`);
+    if (error) throw new Error(Failed to toggle auto-approval: );
   }
 }

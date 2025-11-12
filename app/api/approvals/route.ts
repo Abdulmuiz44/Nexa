@@ -1,17 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ApprovalWorkflowService } from '@/lib/services/approvalWorkflowService';
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+let cachedSupabase: SupabaseClient | null | undefined = undefined;
+
+function getSupabaseClient(): SupabaseClient | null {
+  if (cachedSupabase !== undefined) {
+    return cachedSupabase;
+  }
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseKey) {
+    console.warn('Supabase environment variables missing for approvals route.');
+    cachedSupabase = null;
+    return null;
+  }
+
+  cachedSupabase = createClient(supabaseUrl, supabaseKey);
+  return cachedSupabase;
+}
 
 export async function GET(request: NextRequest) {
   try {
     const authHeader = request.headers.get('authorization');
     if (!authHeader) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const supabase = getSupabaseClient();
+    if (!supabase) {
+      return NextResponse.json({ error: 'Service unavailable' }, { status: 503 });
     }
 
     const token = authHeader.replace('Bearer ', '');
@@ -46,6 +66,11 @@ export async function POST(request: NextRequest) {
     const authHeader = request.headers.get('authorization');
     if (!authHeader) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const supabase = getSupabaseClient();
+    if (!supabase) {
+      return NextResponse.json({ error: 'Service unavailable' }, { status: 503 });
     }
 
     const token = authHeader.replace('Bearer ', '');

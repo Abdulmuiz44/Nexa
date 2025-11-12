@@ -16,8 +16,28 @@ function createSupabaseServer(): SupabaseClient {
   const supabaseKey = serviceRoleKey || anonKey
 
   if (!supabaseUrl || !supabaseKey) {
-    // Fail with a clear message if both are missing
-    throw new Error('Supabase configuration missing: ensure SUPABASE_URL/NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY or NEXT_PUBLIC_SUPABASE_ANON_KEY are set')
+    // During build or local development we may not have Supabase ready. Provide a proxy that surfaces a
+    // descriptive runtime error the moment any Supabase method is invoked.
+    console.warn(
+      'Supabase configuration missing: set SUPABASE_URL/NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY or NEXT_PUBLIC_SUPABASE_ANON_KEY. Returning a guarded proxy client.'
+    )
+
+    const missingConfigProxy = new Proxy({}, {
+      get(_target, prop) {
+        if (prop === '__isMissingConfigProxy') {
+          return true
+        }
+
+        return () => {
+          throw new Error(
+            `Supabase not configured. Attempted to access "${String(prop)}" without SUPABASE_URL and key environment variables.`
+          )
+        }
+      },
+    }) as SupabaseClient
+
+    supabaseServerInstance = missingConfigProxy
+    return supabaseServerInstance
   }
 
   // Note: Using anon key on server will respect RLS; ensure your policies allow the operations you perform.
