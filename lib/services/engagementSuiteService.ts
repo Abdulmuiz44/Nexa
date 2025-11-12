@@ -1,10 +1,28 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import OpenAI from 'openai';
 import { EngagementOpportunity, EngagementTracking, EngagementStats } from '@/types/features';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabase = createClient(supabaseUrl, supabaseKey);
+let cachedSupabase: SupabaseClient | null | undefined = undefined;
+
+function ensureSupabase(): SupabaseClient {
+  if (cachedSupabase !== undefined) {
+    if (!cachedSupabase) {
+      throw new Error('Supabase configuration missing for EngagementSuiteService.');
+    }
+    return cachedSupabase;
+  }
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseKey) {
+    cachedSupabase = null;
+    throw new Error('Supabase configuration missing for EngagementSuiteService.');
+  }
+
+  cachedSupabase = createClient(supabaseUrl, supabaseKey);
+  return cachedSupabase;
+}
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
 
@@ -18,6 +36,7 @@ export class EngagementSuiteService {
     keywords?: string[],
     limit: number = 20
   ): Promise<EngagementOpportunity[]> {
+    const supabase = ensureSupabase();
     // Get user's niche and topics from onboarding data
     const { data: user } = await supabase
       .from('users')
@@ -46,6 +65,7 @@ export class EngagementSuiteService {
     authorUsername: string
   ): Promise<number> {
     try {
+      const supabase = ensureSupabase();
       const { data: user } = await supabase
         .from('users')
         .select('onboarding_data')
@@ -86,6 +106,7 @@ export class EngagementSuiteService {
    * Simple keyword-based relevance scoring (fallback)
    */
   private static async simpleRelevanceScore(content: string, userId: string): Promise<number> {
+    const supabase = ensureSupabase();
     const { data: user } = await supabase
       .from('users')
       .select('onboarding_data')
@@ -113,6 +134,7 @@ export class EngagementSuiteService {
     userId: string
   ): Promise<string> {
     try {
+      const supabase = ensureSupabase();
       const { data: user } = await supabase
         .from('users')
         .select('onboarding_data')
@@ -150,6 +172,7 @@ export class EngagementSuiteService {
   static async saveOpportunity(
     opportunity: Omit<EngagementOpportunity, 'id' | 'created_at'>
   ): Promise<EngagementOpportunity> {
+    const supabase = ensureSupabase();
     const { data, error } = await supabase
       .from('engagement_opportunities')
       .insert(opportunity)
@@ -168,6 +191,7 @@ export class EngagementSuiteService {
     minScore: number = 70,
     limit: number = 50
   ): Promise<EngagementOpportunity[]> {
+    const supabase = ensureSupabase();
     const { data, error } = await supabase
       .from('engagement_opportunities')
       .select('*')
@@ -190,6 +214,7 @@ export class EngagementSuiteService {
     action: 'like' | 'retweet' | 'reply' | 'quote' | 'upvote' | 'comment',
     responseContent?: string
   ): Promise<EngagementTracking> {
+    const supabase = ensureSupabase();
     // Get the opportunity
     const { data: opportunity } = await supabase
       .from('engagement_opportunities')
@@ -250,6 +275,7 @@ export class EngagementSuiteService {
    * Get engagement statistics
    */
   static async getEngagementStats(userId: string): Promise<EngagementStats> {
+    const supabase = ensureSupabase();
     const { data: opportunities } = await supabase
       .from('engagement_opportunities')
       .select('engaged, relevance_score')
@@ -283,6 +309,7 @@ export class EngagementSuiteService {
    * Auto-engage based on rules
    */
   static async autoEngage(userId: string): Promise<number> {
+    const supabase = ensureSupabase();
     const { data: user } = await supabase
       .from('users')
       .select('onboarding_data')
@@ -327,6 +354,7 @@ export class EngagementSuiteService {
    * Clean up expired opportunities
    */
   static async cleanupExpired(): Promise<number> {
+    const supabase = ensureSupabase();
     const { data } = await supabase
       .from('engagement_opportunities')
       .delete()

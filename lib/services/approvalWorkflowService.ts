@@ -21,24 +21,35 @@ function getSupabaseClient(): SupabaseClient | null {
   return cachedSupabase;
 }
 
+function ensureSupabase(): SupabaseClient {
+  const client = getSupabaseClient();
+  if (!client) {
+    throw new Error('Supabase not configured.');
+  }
+  return client;
+}
+
 export class ApprovalWorkflowService {
   /**
    * Get pending approvals for a user
    */
   static async getPendingApprovals(userId: string): Promise<ApprovalQueueItem[]> {
-    const supabase = getSupabaseClient();
-    if (!supabase) {
-      throw new Error('Supabase not configured.');
-    }
-
+    const supabase = ensureSupabase();
     const { data: approvals, error } = await supabase
       .from('post_approvals')
-      .select('*')
+      .select(`
+        *,
+        post:posts (
+          platform,
+          scheduled_at,
+          campaign_id
+        )
+      `)
       .eq('user_id', userId)
       .eq('status', 'pending')
       .order('created_at', { ascending: false });
 
-    if (error) throw new Error(Failed to fetch approvals: );
+    if (error) throw new Error(`Failed to fetch approvals: ${error.message}`);
     return (approvals ?? []) as ApprovalQueueItem[];
   }
 
@@ -50,11 +61,7 @@ export class ApprovalWorkflowService {
     postId: string,
     content: string
   ): Promise<PostApproval> {
-    const supabase = getSupabaseClient();
-    if (!supabase) {
-      throw new Error('Supabase not configured.');
-    }
-
+    const supabase = ensureSupabase();
     const { data, error } = await supabase
       .from('post_approvals')
       .insert({
@@ -66,7 +73,7 @@ export class ApprovalWorkflowService {
       .select()
       .single();
 
-    if (error) throw new Error(Failed to create approval request: );
+    if (error) throw new Error(`Failed to create approval request: ${error.message}`);
     return data as PostApproval;
   }
 
@@ -78,11 +85,7 @@ export class ApprovalWorkflowService {
     editedContent?: string,
     feedback?: string
   ): Promise<PostApproval> {
-    const supabase = getSupabaseClient();
-    if (!supabase) {
-      throw new Error('Supabase not configured.');
-    }
-
+    const supabase = ensureSupabase();
     const updateData: Record<string, unknown> = {
       status: editedContent ? 'edited' : 'approved',
       approved_at: new Date().toISOString(),
@@ -102,18 +105,14 @@ export class ApprovalWorkflowService {
       .select()
       .single();
 
-    if (error) throw new Error(Failed to approve post: );
+    if (error) throw new Error(`Failed to approve post: ${error.message}`);
 
-    // If edited, update the actual post content
     if (editedContent && data) {
       await supabase
         .from('posts')
         .update({ content: editedContent })
         .eq('id', data.post_id);
-    }
 
-    // Track learning feedback if edited
-    if (editedContent && data) {
       await this.trackLearningFeedback(
         data.user_id,
         data.post_id,
@@ -132,11 +131,7 @@ export class ApprovalWorkflowService {
     approvalId: string,
     feedback?: string
   ): Promise<PostApproval> {
-    const supabase = getSupabaseClient();
-    if (!supabase) {
-      throw new Error('Supabase not configured.');
-    }
-
+    const supabase = ensureSupabase();
     const { data, error } = await supabase
       .from('post_approvals')
       .update({
@@ -148,9 +143,8 @@ export class ApprovalWorkflowService {
       .select()
       .single();
 
-    if (error) throw new Error(Failed to reject post: );
+    if (error) throw new Error(`Failed to reject post: ${error.message}`);
 
-    // Update post status to failed
     if (data) {
       await supabase
         .from('posts')
@@ -170,12 +164,7 @@ export class ApprovalWorkflowService {
     originalContent: string,
     editedContent: string
   ): Promise<void> {
-    const supabase = getSupabaseClient();
-    if (!supabase) {
-      throw new Error('Supabase not configured.');
-    }
-
-    // Determine edit type based on differences
+    const supabase = ensureSupabase();
     const editType = this.detectEditType(originalContent, editedContent);
 
     await supabase.from('learning_feedback').insert({
@@ -202,19 +191,16 @@ export class ApprovalWorkflowService {
     const lengthDiff = Math.abs(original.length - edited.length);
     const lengthChangePercent = (lengthDiff / Math.max(original.length, 1)) * 100;
 
-    // Check if it's mainly a length change
     if (lengthChangePercent > 30) {
       return 'length';
     }
 
-    // Check for emoji or formatting changes
     const originalEmojis = (original.match(/[\u{1F600}-\u{1F64F}]/gu) || []).length;
     const editedEmojis = (edited.match(/[\u{1F600}-\u{1F64F}]/gu) || []).length;
     if (Math.abs(originalEmojis - editedEmojis) > 2) {
       return 'format';
     }
 
-    // Check for tone words (simple heuristic)
     const toneWords = ['please', 'thanks', 'great', 'awesome', 'amazing', 'check out'];
     const originalTone = toneWords.filter(word =>
       original.toLowerCase().includes(word)
@@ -226,7 +212,6 @@ export class ApprovalWorkflowService {
       return 'tone';
     }
 
-    // Check for significant content changes
     const similarityThreshold = 0.5;
     const similarity = this.calculateSimilarity(original, edited);
     if (similarity < similarityThreshold) {
@@ -253,11 +238,7 @@ export class ApprovalWorkflowService {
    * Get learning feedback history
    */
   static async getLearningHistory(userId: string): Promise<LearningFeedback[]> {
-    const supabase = getSupabaseClient();
-    if (!supabase) {
-      throw new Error('Supabase not configured.');
-    }
-
+    const supabase = ensureSupabase();
     const { data, error } = await supabase
       .from('learning_feedback')
       .select('*')
@@ -265,7 +246,7 @@ export class ApprovalWorkflowService {
       .order('created_at', { ascending: false })
       .limit(50);
 
-    if (error) throw new Error(Failed to fetch learning history: );
+    if (error) throw new Error(`Failed to fetch learning history: ${error.message}`);
     return (data ?? []) as LearningFeedback[];
   }
 
@@ -279,52 +260,50 @@ export class ApprovalWorkflowService {
     rejected: number;
     edited: number;
   }> {
-    const supabase = getSupabaseClient();
-    if (!supabase) {
-      throw new Error('Supabase not configured.');
-    }
-
+    const supabase = ensureSupabase();
     const { data, error } = await supabase
       .from('post_approvals')
       .select('status')
       .eq('user_id', userId);
 
-    if (error) throw new Error(Failed to fetch stats: );
+    if (error) throw new Error(`Failed to fetch stats: ${error.message}`);
 
     const approvals = data ?? [];
-    const stats = {
+    return {
       total: approvals.length,
       pending: approvals.filter(a => a.status === 'pending').length,
       approved: approvals.filter(a => a.status === 'approved').length,
       rejected: approvals.filter(a => a.status === 'rejected').length,
       edited: approvals.filter(a => a.status === 'edited').length,
     };
-
-    return stats;
   }
 
   /**
    * Enable auto-approval mode
    */
   static async toggleAutoApproval(userId: string, enabled: boolean): Promise<void> {
-    const supabase = getSupabaseClient();
-    if (!supabase) {
-      throw new Error('Supabase not configured.');
+    const supabase = ensureSupabase();
+    const { data: userData, error: fetchError } = await supabase
+      .from('users')
+      .select('onboarding_data')
+      .eq('id', userId)
+      .single();
+
+    if (fetchError) {
+      throw new Error(`Failed to fetch onboarding data: ${fetchError.message}`);
     }
 
+    const onboardingData = (userData?.onboarding_data ?? {}) as Record<string, unknown>;
     const { error } = await supabase
       .from('users')
       .update({
-        onboarding_data: supabase.raw(
-          jsonb_set(
-            COALESCE(onboarding_data, '{}'),
-            '{auto_approval_enabled}',
-            ''
-          )
-        )
+        onboarding_data: {
+          ...onboardingData,
+          auto_approval_enabled: enabled,
+        },
       })
       .eq('id', userId);
 
-    if (error) throw new Error(Failed to toggle auto-approval: );
+    if (error) throw new Error(`Failed to toggle auto-approval: ${error.message}`);
   }
 }

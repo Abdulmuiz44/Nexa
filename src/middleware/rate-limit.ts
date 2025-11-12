@@ -9,6 +9,33 @@ const WINDOW_MS = 60_000
 const MAX_REQUESTS = 100
 const rateLimiterStore = new Map<string, RateLimiterEntry>()
 
+function getClientIp(request: NextRequest): string {
+  const directIp = (request as NextRequest & { ip?: string }).ip
+  if (directIp) {
+    return directIp
+  }
+
+  const forwardedFor = request.headers.get("x-forwarded-for")
+  if (forwardedFor) {
+    const [firstIp] = forwardedFor.split(",").map((segment) => segment.trim())
+    if (firstIp) {
+      return firstIp
+    }
+  }
+
+  const realIp = request.headers.get("x-real-ip")
+  if (realIp) {
+    return realIp
+  }
+
+  const cfConnectingIp = request.headers.get("cf-connecting-ip")
+  if (cfConnectingIp) {
+    return cfConnectingIp
+  }
+
+  return "127.0.0.1"
+}
+
 function canProceed(ip: string): boolean {
   const now = Date.now()
   const entry = rateLimiterStore.get(ip)
@@ -27,7 +54,7 @@ function canProceed(ip: string): boolean {
 }
 
 export async function rateLimitMiddleware(request: NextRequest) {
-  const ip = request.ip || request.headers.get("x-forwarded-for") || "127.0.0.1"
+  const ip = getClientIp(request)
 
   if (canProceed(ip)) {
     return NextResponse.next()
