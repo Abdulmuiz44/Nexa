@@ -28,6 +28,8 @@ export interface GeneratedContent {
     tone: string;
     goals: string[];
     businessType: string;
+    optimized?: boolean;
+    originalPerformance?: number;
   };
 }
 
@@ -39,23 +41,18 @@ export class ContentGenerator {
     const prompt = this.buildPrompt(platform, topic, userProfile);
 
     try {
-      const response = await openai.chat.completions.create({
-        model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
-        messages: [
-          {
-            role: 'system',
-            content: `You are a professional social media content strategist specializing in ${platform} content creation. Generate engaging, brand-consistent content that drives the specified goals.`
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        temperature: 0.7,
-        max_tokens: platform === 'twitter' ? 280 : 2000,
-      });
+      const response = await openai.chat([
+        {
+          role: 'system',
+          content: `You are a professional social media content strategist specializing in ${platform} content creation. Generate engaging, brand-consistent content that drives the specified goals.`
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ]);
 
-      const generatedText = response.choices[0]?.message?.content?.trim();
+      const generatedText = response.message.trim();
 
       if (!generatedText) {
         throw new Error('No content generated');
@@ -184,23 +181,18 @@ Suggest an improved version that would perform better. Focus on:
 - Emotional triggers that work for ${content.metadata.businessType}`;
 
     try {
-      const response = await openai.chat.completions.create({
-        model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a social media optimization expert. Analyze performance data and suggest specific content improvements while maintaining brand voice.'
-          },
-          {
-            role: 'user',
-            content: optimizationPrompt
-          }
-        ],
-        temperature: 0.4,
-        max_tokens: platform === 'twitter' ? 200 : 400,
-      });
+      const response = await openai.chat([
+        {
+          role: 'system',
+          content: 'You are a social media optimization expert. Analyze performance data and suggest specific content improvements while maintaining brand voice.'
+        },
+        {
+          role: 'user',
+          content: optimizationPrompt
+        }
+      ]);
 
-      const optimizedContent = response.choices[0]?.message?.content?.trim();
+      const optimizedContent = response.message.trim();
 
       if (optimizedContent && optimizedContent !== content.content && optimizedContent.length > 10) {
         return {
@@ -246,16 +238,27 @@ Suggest an improved version that would perform better. Focus on:
       const avoidElements = this.extractPatterns(lowPerforming, true);
 
       // Store learning for future use
+      // First fetch current onboarding data
+      const { data: currentUser } = await supabaseServer
+        .from('users')
+        .select('onboarding_data')
+        .eq('id', userId)
+        .single();
+
+      const currentOnboardingData = currentUser?.onboarding_data || {};
+      const newOnboardingData = {
+        ...currentOnboardingData,
+        ai_learning: {
+          successful_patterns: successfulElements,
+          avoid_patterns: avoidElements,
+          last_updated: new Date().toISOString(),
+        }
+      };
+
       await supabaseServer
         .from('users')
         .update({
-          onboarding_data: supabaseServer.sql`onboarding_data || ${JSON.stringify({
-            ai_learning: {
-              successful_patterns: successfulElements,
-              avoid_patterns: avoidElements,
-              last_updated: new Date().toISOString(),
-            }
-          })}`
+          onboarding_data: newOnboardingData
         })
         .eq('id', userId);
 

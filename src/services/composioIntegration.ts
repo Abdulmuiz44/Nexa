@@ -1,6 +1,6 @@
 import { Composio } from '@composio/core';
 import { supabaseServer } from '@/src/lib/supabaseServer';
-import { openaiClient } from '@/lib/openaiClient';
+import { openai } from '@/src/lib/ai/openai-client';
 
 interface ComposioConnectionConfig {
   userId: string;
@@ -61,7 +61,7 @@ export class ComposioIntegrationService {
   }
 
   /**
-   * Initiate OAuth connection to X (Twitter)
+   * Initiate OAuth connection to X (Twitter) using Composio Auth Config
    */
   async initiateTwitterConnection(redirectUri?: string): Promise<{ authUrl: string; connectionId: string }> {
     if (!this.composio) {
@@ -70,19 +70,16 @@ export class ComposioIntegrationService {
 
     try {
       const callbackUrl = redirectUri || `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/composio/callback`;
-      
-      console.log('Initiating Twitter connection for entity:', this.userId);
+
+      console.log('Initiating Twitter connection with auth config for entity:', this.userId);
       console.log('Callback URL:', callbackUrl);
-      
-      // Build connection URL manually using Composio's direct API
-      const apiKey = process.env.COMPOSIO_API_KEY;
-      const connectionId = `conn_${this.userId}_twitter_${Date.now()}`;
-      
-      // Use Composio's hosted connection page
+
+      // Use Composio's hosted connection page with auth config
       const composioBaseUrl = 'https://backend.composio.dev/api/v1';
       const authUrl = `${composioBaseUrl}/connectedAccounts?` + new URLSearchParams({
         appName: 'twitter',
         entityId: this.userId,
+        authConfigId: 'ac_vUASEFFIWuaE', // Include the auth config ID
         redirectUrl: callbackUrl,
         showActiveConnections: 'false'
       }).toString();
@@ -91,17 +88,50 @@ export class ComposioIntegrationService {
 
       return {
         authUrl,
-        connectionId,
+        connectionId: `conn_${this.userId}_twitter_${Date.now()}`, // Keep for backward compatibility
       };
     } catch (error: any) {
-      console.error('Error initiating Twitter connection:', {
+      console.error('Error initiating Twitter connection with auth config:', {
         message: error.message,
         code: error.code,
         details: error.details || error.errorId,
         fullError: error
       });
-      throw error;
+
+      // Fallback to the old method if the new one fails
+      console.log('Falling back to manual URL building...');
+      return this.fallbackInitiateTwitterConnection(redirectUri);
     }
+  }
+
+  /**
+   * Fallback method for initiating Twitter connection (manual URL building)
+   */
+  private async fallbackInitiateTwitterConnection(redirectUri?: string): Promise<{ authUrl: string; connectionId: string }> {
+    const callbackUrl = redirectUri || `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/composio/callback`;
+
+    console.log('Using fallback Twitter connection for entity:', this.userId);
+    console.log('Callback URL:', callbackUrl);
+
+    // Build connection URL manually using Composio's direct API
+    const connectionId = `conn_${this.userId}_twitter_${Date.now()}`;
+
+    // Use Composio's hosted connection page with auth config
+    const composioBaseUrl = 'https://backend.composio.dev/api/v1';
+    const authUrl = `${composioBaseUrl}/connectedAccounts?` + new URLSearchParams({
+      appName: 'twitter',
+      entityId: this.userId,
+      authConfigId: 'ac_vUASEFFIWuaE', // Include the auth config ID
+      redirectUrl: callbackUrl,
+      showActiveConnections: 'false'
+    }).toString();
+
+    console.log('Generated fallback auth URL:', authUrl);
+
+    return {
+      authUrl,
+      connectionId,
+    };
   }
 
   /**
@@ -185,9 +215,7 @@ export class ComposioIntegrationService {
       const connection = await this.getConnection(platform);
       
       // Get the connected account details from Composio
-      const account = await this.composio.connectedAccounts.get({
-        connectedAccountId: connection.composio_connection_id
-      });
+      const account = await this.composio.connectedAccounts.get(connection.composio_connection_id);
 
       return account;
     } catch (error) {
@@ -197,22 +225,50 @@ export class ComposioIntegrationService {
   }
 
   /**
-   * List all connections for user from Composio
+   * List all connections for user from Composio (updated for auth config)
    */
   async listConnectedAccounts(): Promise<any[]> {
     if (!this.composio) {
+      console.warn('Composio not initialized, returning empty connections list');
       return [];
     }
 
     try {
       const accounts = await this.composio.connectedAccounts.list({
-        entityIds: [this.userId]
+        userIds: [this.userId]
       });
 
+      console.log(`Found ${accounts.items?.length || 0} connected accounts for user ${this.userId}`);
       return accounts.items || [];
     } catch (error) {
       console.error('Error listing connected accounts:', error);
+      // Return empty array instead of throwing to prevent UI crashes
       return [];
+    }
+  }
+
+  /**
+   * Check if user has an active connection for a specific platform
+   */
+  async hasActiveConnection(platform: 'twitter' | 'reddit'): Promise<boolean> {
+    try {
+      // First check our database
+      const dbConnection = await this.getConnection(platform);
+      if (dbConnection) {
+        // Optionally verify with Composio that the connection is still active
+        try {
+          const composioAccount = await this.getConnectedAccount(platform);
+          return composioAccount && composioAccount.status === 'ACTIVE';
+        } catch (verifyError) {
+          console.warn(`Could not verify ${platform} connection status with Composio:`, verifyError);
+          // Assume it's active if we have it in our DB but can't verify
+          return true;
+        }
+      }
+      return false;
+    } catch (error) {
+      console.error(`Error checking ${platform} connection status:`, error);
+      return false;
     }
   }
 
@@ -228,21 +284,21 @@ export class ComposioIntegrationService {
       const connection = await this.getConnection('twitter');
 
       // Execute the tweet action through Composio
-      const result = await this.composio.actions.execute({
-        actionName: 'TWITTER_CREATE_TWEET',
-        params: {
+      const result = await this.composio.tools.execute('TWITTER_CREATION_OF_A_POST', {
+        userId: this.userId,
+        arguments: {
           text: tweetData.content,
-          ...(tweetData.replyToTweetId && { 
-            reply: { in_reply_to_tweet_id: tweetData.replyToTweetId } 
+          ...(tweetData.replyToTweetId && {
+            reply_in_reply_to_tweet_id: tweetData.replyToTweetId
           }),
-          ...(tweetData.quoteTweetId && { 
-            quote_tweet_id: tweetData.quoteTweetId 
+          ...(tweetData.quoteTweetId && {
+            quote_tweet_id: tweetData.quoteTweetId
           }),
-        },
-        connectedAccountId: connection.composio_connection_id,
+        }
       });
 
-      const tweetId = result.data?.id || result.data?.tweet_id;
+      const tweetResponse = result.data as any;
+      const tweetId = tweetResponse?.id || tweetResponse?.tweet_id;
       const url = tweetId ? `https://twitter.com/i/web/status/${tweetId}` : undefined;
 
       return {
@@ -270,16 +326,16 @@ export class ComposioIntegrationService {
     try {
       const connection = await this.getConnection('twitter');
 
-      const result = await this.composio.actions.execute({
-        actionName: 'TWITTER_GET_USER_TWEETS',
-        params: {
+      const result = await this.composio.tools.execute('TWITTER_GET_USER_TWEETS', {
+        userId: this.userId,
+        arguments: {
           max_results: maxResults,
           ...(query && { query }),
-        },
-        connectedAccountId: connection.composio_connection_id,
+        }
       });
 
-      return result.data?.tweets || result.data?.data || [];
+      const tweetsData = result.data as any;
+      return tweetsData?.tweets || tweetsData?.data || [];
     } catch (error) {
       console.error('Error searching tweets:', error);
       return [];
@@ -297,15 +353,15 @@ export class ComposioIntegrationService {
     try {
       const connection = await this.getConnection('twitter');
 
-      const result = await this.composio.actions.execute({
-        actionName: 'TWITTER_GET_HOME_TIMELINE',
-        params: {
+      const result = await this.composio.tools.execute('TWITTER_GET_HOME_TIMELINE', {
+        userId: this.userId,
+        arguments: {
           max_results: maxResults,
-        },
-        connectedAccountId: connection.composio_connection_id,
+        }
       });
 
-      return result.data?.tweets || result.data?.data || [];
+      const timelineData = result.data as any;
+      return timelineData?.tweets || timelineData?.data || [];
     } catch (error) {
       console.error('Error getting timeline:', error);
       return [];
@@ -332,23 +388,18 @@ Provide analysis in the following JSON format:
   "engagement_potential": 0-100
 }`;
 
-      const response = await openaiClient.chat.completions.create({
-        model: 'gpt-4',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are an expert at analyzing social media content, particularly tweets. Provide detailed, actionable insights.',
-          },
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
-        temperature: 0.3,
-        response_format: { type: 'json_object' },
-      });
+      const response = await openai.chat([
+        {
+          role: 'system',
+          content: 'You are an expert at analyzing social media content, particularly tweets. Provide detailed, actionable insights.',
+        },
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ]);
 
-      const analysis = JSON.parse(response.choices[0].message.content || '{}');
+      const analysis = JSON.parse(response.message || '{}');
       return analysis;
     } catch (error) {
       console.error('Error analyzing tweet:', error);
@@ -399,23 +450,18 @@ Provide a comprehensive pattern analysis in the following JSON format:
   "content_themes": ["main themes/topics user posts about"]
 }`;
 
-      const response = await openaiClient.chat.completions.create({
-        model: 'gpt-4',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are an expert at analyzing social media patterns and providing actionable insights.',
-          },
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
-        temperature: 0.3,
-        response_format: { type: 'json_object' },
-      });
+      const response = await openai.chat([
+        {
+          role: 'system',
+          content: 'You are an expert at analyzing social media patterns and providing actionable insights.',
+        },
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ]);
 
-      const patterns = JSON.parse(response.choices[0].message.content || '{}');
+      const patterns = JSON.parse(response.message || '{}');
       
       // Save patterns to database for future reference
       await this.saveUserPatterns(patterns);
@@ -446,23 +492,18 @@ ${context ? `Additional context: ${context}` : ''}
 
 Generate a tweet that matches this user's authentic style. Return only the tweet text, no additional formatting or explanation.`;
 
-      const response = await openaiClient.chat.completions.create({
-        model: 'gpt-4',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are an expert at mimicking writing styles. Generate content that authentically matches the provided style.',
-          },
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
-        temperature: 0.7,
-        max_tokens: 280,
-      });
+      const response = await openai.chat([
+        {
+          role: 'system',
+          content: 'You are an expert at mimicking writing styles. Generate content that authentically matches the provided style.',
+        },
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ]);
 
-      return response.choices[0].message.content || '';
+      return response.message || '';
     } catch (error) {
       console.error('Error generating tweet in user style:', error);
       throw error;
@@ -484,34 +525,33 @@ Generate a tweet that matches this user's authentic style. Return only the tweet
     try {
       const connection = await this.getConnection('twitter');
 
-      let actionName: string;
+      let toolName: string;
       let params: any = { tweet_id: tweetId };
 
       switch (engagementType) {
         case 'like':
-          actionName = 'TWITTER_LIKE_TWEET';
+          toolName = 'TWITTER_LIKE_A_POST';
           break;
         case 'retweet':
-          actionName = 'TWITTER_RETWEET';
+          toolName = 'TWITTER_RETWEET';
           break;
         case 'reply':
           if (!replyContent) {
             return { success: false, error: 'Reply content required' };
           }
-          actionName = 'TWITTER_CREATE_TWEET';
+          toolName = 'TWITTER_CREATION_OF_A_POST';
           params = {
             text: replyContent,
-            reply: { in_reply_to_tweet_id: tweetId },
+            reply_in_reply_to_tweet_id: tweetId,
           };
           break;
         default:
           return { success: false, error: 'Invalid engagement type' };
       }
 
-      await this.composio.actions.execute({
-        actionName,
-        params,
-        connectedAccountId: connection.composio_connection_id,
+      await this.composio.tools.execute(toolName, {
+        userId: this.userId,
+        arguments: params
       });
 
       return { success: true };
@@ -532,22 +572,22 @@ Generate a tweet that matches this user's authentic style. Return only the tweet
     try {
       const connection = await this.getConnection('reddit');
 
-      const actionName = postData.content ? 'REDDIT_SUBMIT_TEXT_POST' : 'REDDIT_SUBMIT_LINK_POST';
+      const toolName = postData.content ? 'REDDIT_SUBMIT_TEXT_POST' : 'REDDIT_SUBMIT_LINK_POST';
       
-      const result = await this.composio.actions.execute({
-        actionName,
-        params: {
+      const result = await this.composio.tools.execute(toolName, {
+        userId: this.userId,
+        arguments: {
           subreddit: postData.subreddit,
           title: postData.title,
           ...(postData.content && { text: postData.content }),
           ...(postData.url && { url: postData.url }),
           ...(postData.flair && { flair_id: postData.flair }),
-        },
-        connectedAccountId: connection.composio_connection_id,
+        }
       });
 
-      const postId = result.data?.id || result.data?.name;
-      const url = result.data?.url || `https://reddit.com/r/${postData.subreddit}`;
+      const redditResponse = result.data as any;
+      const postId = redditResponse?.id || redditResponse?.name;
+      const url = redditResponse?.url || `https://reddit.com/r/${postData.subreddit}`;
 
       return {
         success: true,
@@ -606,9 +646,9 @@ Generate a tweet that matches this user's authentic style. Return only the tweet
   }
 
   /**
-   * Get user's saved patterns
+   * Get user's saved patterns (public method)
    */
-  private async getUserPatterns(): Promise<UserTweetPattern> {
+  async getUserPatterns(): Promise<UserTweetPattern> {
     try {
       const { data: user } = await supabaseServer
         .from('users')
@@ -665,13 +705,12 @@ Generate a tweet that matches this user's authentic style. Return only the tweet
     try {
       const connection = await this.getConnection('twitter');
 
-      const result = await this.composio.actions.execute({
-        actionName: 'TWITTER_GET_TWEET',
-        params: { id: tweetId },
-        connectedAccountId: connection.composio_connection_id,
+      const result = await this.composio.tools.execute('TWITTER_GET_TWEET', {
+        userId: this.userId,
+        arguments: { tweet_id: tweetId }
       });
 
-      return result.data || {};
+      return result.data as any || {};
     } catch (error) {
       console.error('Error getting tweet analytics:', error);
       return {};
@@ -689,10 +728,9 @@ Generate a tweet that matches this user's authentic style. Return only the tweet
     try {
       const connection = await this.getConnection(platform);
 
-      const result = await this.composio.actions.execute({
-        actionName,
-        params,
-        connectedAccountId: connection.composio_connection_id,
+      const result = await this.composio.tools.execute(actionName, {
+        userId: this.userId,
+        arguments: params
       });
 
       return result;

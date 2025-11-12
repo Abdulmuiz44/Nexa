@@ -2,17 +2,46 @@ import { createClient } from '@supabase/supabase-js';
 import OpenAI from 'openai';
 import { PerformanceInsight, ContentPerformanceMetrics, PerformanceDashboardData } from '@/types/features';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabase = createClient(supabaseUrl, supabaseKey);
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
+let supabase: any = null;
+if (supabaseUrl && supabaseKey) {
+  supabase = createClient(supabaseUrl, supabaseKey);
+} else {
+  console.warn('Supabase environment variables not set - PerformanceIntelligenceService will not function');
+  supabase = new Proxy({}, {
+    get(_target, prop) {
+      return () => {
+        throw new Error('Supabase not configured - missing environment variables');
+      };
+    },
+  });
+}
+
+let openai: any = null;
+if (process.env.OPENAI_API_KEY) {
+  openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+} else {
+  console.warn('OpenAI API key not set - PerformanceIntelligenceService AI features will not function');
+  openai = new Proxy({}, {
+    get(_target, prop) {
+      return () => {
+        throw new Error('OpenAI not configured - missing API key');
+      };
+    },
+  });
+}
 
 export class PerformanceIntelligenceService {
   /**
    * Generate comprehensive performance insights for a user
    */
   static async generateInsights(userId: string, days: number = 30): Promise<PerformanceInsight[]> {
+    if (!supabase) {
+      throw new Error('Supabase not configured');
+    }
+
     const insights: PerformanceInsight[] = [];
 
     // Get best posting times
@@ -34,6 +63,10 @@ export class PerformanceIntelligenceService {
    * Analyze best posting times based on engagement
    */
   private static async analyzeBestPostingTimes(userId: string, days: number): Promise<PerformanceInsight | null> {
+    if (!supabase) {
+      return null;
+    }
+
     const { data: posts } = await supabase
       .from('posts')
       .select(`
@@ -89,6 +122,10 @@ export class PerformanceIntelligenceService {
    * Analyze best performing content formats
    */
   private static async analyzeBestContentFormat(userId: string, days: number): Promise<PerformanceInsight | null> {
+    if (!supabase) {
+      return null;
+    }
+
     const { data: posts } = await supabase
       .from('posts')
       .select(`*, analytics (engagement_rate)`)
@@ -146,6 +183,10 @@ export class PerformanceIntelligenceService {
    * Analyze trending topics from successful posts
    */
   private static async analyzeTrendingTopics(userId: string, days: number): Promise<PerformanceInsight | null> {
+    if (!supabase) {
+      return null;
+    }
+
     const { data: posts } = await supabase
       .from('posts')
       .select(`content, analytics (engagement_rate)`)
@@ -199,6 +240,10 @@ export class PerformanceIntelligenceService {
    * Calculate and store performance metrics
    */
   static async calculateMetrics(userId: string, platform: 'twitter' | 'reddit'): Promise<void> {
+    if (!supabase) {
+      return;
+    }
+
     const periods = ['daily', 'weekly', 'monthly'] as const;
 
     for (const period of periods) {
@@ -263,6 +308,10 @@ export class PerformanceIntelligenceService {
    * Get dashboard data with all insights and metrics
    */
   static async getDashboardData(userId: string): Promise<PerformanceDashboardData> {
+    if (!supabase) {
+      throw new Error('Supabase not configured');
+    }
+
     const [insights, metrics] = await Promise.all([
       this.generateInsights(userId),
       supabase
@@ -294,6 +343,10 @@ export class PerformanceIntelligenceService {
   }
 
   private static async getBestPostingTimesData(userId: string): Promise<{ hour: number; engagement_rate: number }[]> {
+    if (!supabase) {
+      return [];
+    }
+
     const { data: posts } = await supabase
       .from('posts')
       .select(`published_at, analytics (engagement_rate)`)
@@ -320,6 +373,10 @@ export class PerformanceIntelligenceService {
   }
 
   private static async getContentTypePerformance(userId: string): Promise<{ type: string; avg_engagement: number; count: number }[]> {
+    if (!supabase) {
+      return [];
+    }
+
     const { data: posts } = await supabase
       .from('posts')
       .select(`content, analytics (engagement_rate)`)
@@ -346,6 +403,10 @@ export class PerformanceIntelligenceService {
   }
 
   private static async getTrendsData(userId: string, days: number): Promise<{ date: string; impressions: number; engagements: number }[]> {
+    if (!supabase) {
+      return [];
+    }
+
     const { data: posts } = await supabase
       .from('posts')
       .select(`published_at, analytics (impressions, engagements)`)

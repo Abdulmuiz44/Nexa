@@ -92,6 +92,10 @@ export default function SettingsPage() {
                       onChange={async (e) => {
                         const file = e.target.files?.[0];
                         if (!file) return;
+                        if (!supabaseClient) {
+                          toast({ title: 'Upload failed', description: 'Supabase client not configured', variant: 'destructive' });
+                          return;
+                        }
                         try {
                           const path = `${Date.now()}-${file.name}`;
                           const { error } = await supabaseClient.storage.from('avatars').upload(path, file, { upsert: true });

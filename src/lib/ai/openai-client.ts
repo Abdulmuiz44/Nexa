@@ -103,3 +103,6 @@ export class OpenAIClient {
     }
   }
 }
+
+// Export a singleton instance for backward compatibility
+export const openai = new OpenAIClient();
