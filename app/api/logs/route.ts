@@ -48,10 +48,28 @@ export async function POST(req: Request) {
 
     const { type, message, metadata } = await req.json();
 
-    // TODO: Insert log into Supabase logs table
-    console.log('Log created:', { type, message, metadata, userId: session.user.id });
+    if (!type || !message) {
+      return NextResponse.json({ error: 'type and message are required' }, { status: 400 });
+    }
 
-    return NextResponse.json({ success: true });
+    // Insert log into Supabase activity_log table
+    const { data, error } = await supabaseServer
+      .from('activity_log')
+      .insert({
+        user_id: session.user.id,
+        action: type,
+        description: message,
+        metadata: metadata || {},
+      })
+      .select('id')
+      .single();
+
+    if (error) {
+      console.error('Log insertion error:', error);
+      return NextResponse.json({ error: 'Failed to save log' }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, logId: data.id });
   } catch (error: unknown) {
     console.error('Log creation error:', error);
     return NextResponse.json({

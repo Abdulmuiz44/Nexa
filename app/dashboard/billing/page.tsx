@@ -7,8 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
-import { CreditCard, Plus, Crown, Zap } from "lucide-react";
+import { CreditCard, Plus, Crown, Zap, TrendingDown, TrendingUp, Activity, RefreshCw } from "lucide-react";
 import { CREDIT_VALUE_USD, MINIMUM_PURCHASE_CREDITS } from "@/lib/utils/credits";
 
 export default function BillingPage() {
@@ -18,6 +19,9 @@ export default function BillingPage() {
   const [buying, setBuying] = useState(false);
   const [amountUSD, setAmountUSD] = useState<string>("");
   const [transactions, setTransactions] = useState<any[]>([]);
+  const [usageStats, setUsageStats] = useState<any>(null);
+  const [timeframe, setTimeframe] = useState<string>("month");
+  const [loading, setLoading] = useState(false);
 
   const load = async () => {
     try {
@@ -29,7 +33,23 @@ export default function BillingPage() {
     } catch {}
   };
 
+  const loadUsageStats = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/credits/usage?timeframe=${timeframe}`);
+      const data = await res.json();
+      if (res.ok) {
+        setUsageStats(data.usageStats);
+      }
+    } catch (error) {
+      console.error('Failed to load usage stats:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => { if (status === 'authenticated') load(); }, [status]);
+  useEffect(() => { if (status === 'authenticated') loadUsageStats(); }, [status, timeframe]);
 
   const minUSD = useMemo(() => MINIMUM_PURCHASE_CREDITS * CREDIT_VALUE_USD, []);
 
@@ -81,7 +101,129 @@ export default function BillingPage() {
           </CardContent>
         </Card>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        {/* Credit Usage Statistics */}
+        <Card className="p-6 mb-8">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <Activity className="h-5 w-5" />
+                Credit Usage
+              </CardTitle>
+              <div className="flex items-center gap-2">
+                <Select value={timeframe} onValueChange={setTimeframe}>
+                  <SelectTrigger className="w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="week">This Week</SelectItem>
+                    <SelectItem value="month">This Month</SelectItem>
+                    <SelectItem value="year">This Year</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={loadUsageStats}
+                  disabled={loading}
+                >
+                  <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                </Button>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {usageStats ? (
+              <div className="space-y-6">
+                {/* Usage Overview */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-red-500">{usageStats.totalSpent.toFixed(2)}</div>
+                    <div className="text-sm text-muted-foreground">Credits Used</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-green-500">{usageStats.totalEarned.toFixed(2)}</div>
+                    <div className="text-sm text-muted-foreground">Credits Earned</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-blue-500">
+                      {Object.keys(usageStats.byType).length}
+                    </div>
+                    <div className="text-sm text-muted-foreground">Usage Types</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-purple-500">
+                      {Object.keys(usageStats.byDay).length}
+                    </div>
+                    <div className="text-sm text-muted-foreground">Active Days</div>
+                  </div>
+                </div>
+
+                {/* Usage by Type */}
+                {Object.keys(usageStats.byType).length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-semibold mb-3">Usage by Type</h4>
+                    <div className="space-y-2">
+                      {Object.entries(usageStats.byType).map(([type, credits]: [string, any]) => (
+                        <div key={type} className="flex items-center justify-between p-2 bg-muted rounded">
+                          <span className="text-sm capitalize">{type.replace('_', ' ')}</span>
+                          <span className="font-medium">{Number(credits).toFixed(2)} credits</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Recent Usage */}
+                {usageStats.recentUsage.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-semibold mb-3">Recent Usage</h4>
+                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                      {usageStats.recentUsage.map((usage: any, index: number) => (
+                        <div key={index} className="flex items-center justify-between p-2 border rounded">
+                          <div className="text-sm">
+                            <div className="font-medium capitalize">{usage.type.replace('_', ' ')}</div>
+                            <div className="text-muted-foreground text-xs">
+                              {new Date(usage.date).toLocaleString()}
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="font-medium text-red-500">-{usage.credits.toFixed(2)}</div>
+                            {usage.description && (
+                              <div className="text-xs text-muted-foreground">{usage.description}</div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Usage Insights */}
+                <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200">
+                  <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4 text-blue-500" />
+                    Usage Insights
+                  </h4>
+                  <div className="text-sm text-muted-foreground space-y-1">
+                    <p>• You've used {usageStats.totalSpent.toFixed(2)} credits {timeframe === 'month' ? 'this month' : timeframe === 'week' ? 'this week' : 'this year'}</p>
+                    {usageStats.totalSpent > balance * 0.8 && (
+                      <p className="text-orange-600">⚠️ You're using credits quickly. Consider topping up soon.</p>
+                    )}
+                    {Object.keys(usageStats.byType).includes('agent_chat') && (
+                      <p>• Most usage comes from AI chat interactions</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <Activity className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium mb-2">Loading Usage Statistics</h3>
+                <p className="text-muted-foreground">Fetching your credit usage data...</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
           <Card className="p-6">
             <CardHeader className="pb-4">
               <CardTitle className="flex items-center gap-2"><Zap className="h-5 w-5 text-yellow-500" /> Credit Balance</CardTitle>

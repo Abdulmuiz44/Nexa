@@ -27,20 +27,18 @@ export class EmailConnector extends BaseConnector {
 
   async authenticate(): Promise<boolean> {
     try {
+      // Check if Email connector is enabled
+      if (!this.isEnabled()) {
+        console.warn("[Email] Email connector is disabled via feature flags");
+        return false;
+      }
+
       if (!this.config.credentials.host || !this.config.credentials.user) {
         throw new Error("SMTP credentials missing")
       }
 
       // In a real implementation, this would create a nodemailer transporter
-      // this.transporter = nodemailer.createTransporter({
-      //   host: this.config.credentials.host,
-      //   port: parseInt(this.config.credentials.port) || 587,
-      //   secure: false,
-      //   auth: {
-      //     user: this.config.credentials.user,
-      //     pass: this.config.credentials.pass,
-      //   },
-      // })
+      // this.transporter = nodemailer.createTransporter({...})
 
       console.log("[Email] SMTP connection simulated - credentials validated")
       return true
@@ -64,10 +62,17 @@ export class EmailConnector extends BaseConnector {
   }
 
   async post(content: PostContent, dryRun = true): Promise<PostResult> {
-    // Note: For email connector, we expect the content to include email-specific data
-    const emailData = content as any as EmailContent
-
     try {
+      if (!this.isEnabled()) {
+        return {
+          success: false,
+          error: "Email connector is disabled. Enable it via NEXT_PUBLIC_ENABLE_EMAIL=true",
+        }
+      }
+
+      // Note: For email connector, we expect the content to include email-specific data
+      const emailData = content as any as EmailContent
+
       await this.checkRateLimit()
 
       if (!emailData.to || emailData.to.length === 0) {
@@ -90,14 +95,8 @@ export class EmailConnector extends BaseConnector {
         }
       }
 
-      // const info = await this.transporter.sendMail({
-      //   from: this.config.credentials.user,
-      //   to: emailData.to.join(', '),
-      //   subject: emailData.subject,
-      //   text: emailData.text,
-      //   html: emailData.html,
-      //   attachments: emailData.attachments,
-      // })
+      // TODO: Implement actual email sending
+      // const info = await this.transporter.sendMail({...})
 
       // Simulate sending
       await new Promise((resolve) => setTimeout(resolve, 2000))
@@ -117,5 +116,9 @@ export class EmailConnector extends BaseConnector {
         error: error instanceof Error ? error.message : "Failed to send email",
       }
     }
+  }
+
+  isEnabled(): boolean {
+    return this.config.enabled && process.env.NEXT_PUBLIC_ENABLE_EMAIL === 'true';
   }
 }

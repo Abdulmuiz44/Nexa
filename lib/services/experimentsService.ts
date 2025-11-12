@@ -1,10 +1,28 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import OpenAI from 'openai';
 import { Experiment, ExperimentVariantStats, ExperimentResults } from '@/types/features';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabase = createClient(supabaseUrl, supabaseKey);
+let cachedSupabase: SupabaseClient | null | undefined = undefined;
+
+function getSupabaseClient(): SupabaseClient {
+  if (cachedSupabase !== undefined) {
+    if (!cachedSupabase) {
+      throw new Error('Supabase configuration missing for ExperimentsService.');
+    }
+    return cachedSupabase;
+  }
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseKey) {
+    cachedSupabase = null;
+    throw new Error('Supabase configuration missing for ExperimentsService.');
+  }
+
+  cachedSupabase = createClient(supabaseUrl, supabaseKey);
+  return cachedSupabase;
+}
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
 

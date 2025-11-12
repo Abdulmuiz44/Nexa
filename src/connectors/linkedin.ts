@@ -15,6 +15,12 @@ export class LinkedInConnector extends BaseConnector {
 
   async authenticate(): Promise<boolean> {
     try {
+      // Check if LinkedIn connector is enabled
+      if (!this.isEnabled()) {
+        console.warn("[LinkedIn] LinkedIn connector is disabled via feature flags");
+        return false;
+      }
+
       if (!this.config.credentials.clientId || !this.config.credentials.clientSecret) {
         throw new Error("LinkedIn API credentials missing")
       }
@@ -48,6 +54,13 @@ export class LinkedInConnector extends BaseConnector {
 
   async post(content: PostContent, dryRun = true): Promise<PostResult> {
     try {
+      if (!this.isEnabled()) {
+        return {
+          success: false,
+          error: "LinkedIn connector is disabled. Enable it via NEXT_PUBLIC_ENABLE_LINKEDIN=true",
+        }
+      }
+
       await this.checkRateLimit()
 
       const validation = await this.validateContent(content)
@@ -71,17 +84,8 @@ export class LinkedInConnector extends BaseConnector {
         }
       }
 
-      // const post = await this.client.posts.create({
-      //   author: `urn:li:person:${personId}`,
-      //   lifecycleState: 'PUBLISHED',
-      //   specificContent: {
-      //     'com.linkedin.ugc.ShareContent': {
-      //       shareCommentary: {
-      //         text: content.text
-      //       }
-      //     }
-      //   }
-      // })
+      // TODO: Implement actual LinkedIn API posting
+      // const post = await this.client.posts.create({...})
 
       // Simulate posting
       await new Promise((resolve) => setTimeout(resolve, 1500))
@@ -101,5 +105,9 @@ export class LinkedInConnector extends BaseConnector {
         error: error instanceof Error ? error.message : "Failed to post to LinkedIn",
       }
     }
+  }
+
+  isEnabled(): boolean {
+    return this.config.enabled && process.env.NEXT_PUBLIC_ENABLE_LINKEDIN === 'true';
   }
 }

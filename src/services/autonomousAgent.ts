@@ -1,4 +1,5 @@
 import { ComposioIntegrationService } from './composioIntegration';
+import { EngagementSuiteService } from '@/src/lib/services/engagementSuiteService';
 import { supabaseServer } from '@/src/lib/supabaseServer';
 import { openaiClient } from '@/lib/openaiClient';
 
@@ -262,34 +263,21 @@ export class AutonomousAgent {
           continue;
         }
 
-        const { autoLike, autoRetweet, autoReply } = this.config.engagementRules;
+        // Use EngagementSuiteService to execute the engagement
+        const result = await EngagementSuiteService.engageWithOpportunity(
+          opportunity.tweetId, // This is now the opportunity ID from the database
+          this.config.userId,
+          opportunity.suggestedEngagement
+        );
 
-        // Perform engagement based on suggestion and rules
-        switch (opportunity.suggestedEngagement) {
-          case 'like':
-            if (autoLike) {
-              await this.composioService.autoEngageWithTweet(opportunity.tweetId, 'like');
-              await this.logActivity('auto_like', `Auto-liked tweet from ${opportunity.author}`);
-            }
-            break;
-
-          case 'retweet':
-            if (autoRetweet) {
-              await this.composioService.autoEngageWithTweet(opportunity.tweetId, 'retweet');
-              await this.logActivity('auto_retweet', `Auto-retweeted from ${opportunity.author}`);
-            }
-            break;
-
-          case 'reply':
-            if (autoReply && opportunity.suggestedReply) {
-              await this.composioService.autoEngageWithTweet(
-                opportunity.tweetId,
-                'reply',
-                opportunity.suggestedReply
-              );
-              await this.logActivity('auto_reply', `Auto-replied to ${opportunity.author}`);
-            }
-            break;
+        if (result.success) {
+          await this.logActivity(
+            `auto_${opportunity.suggestedEngagement}`,
+            `${opportunity.suggestedEngagement === 'reply' ? 'Replied' : opportunity.suggestedEngagement === 'retweet' ? 'Retweeted' : 'Liked'} post from ${opportunity.author}`,
+            { opportunityId: opportunity.tweetId, relevanceScore: opportunity.relevanceScore }
+          );
+        } else {
+          console.error('Failed to engage with opportunity:', result.error);
         }
 
         // Rate limiting - wait between engagements
@@ -305,27 +293,23 @@ export class AutonomousAgent {
    */
   private async findEngagementOpportunities(): Promise<EngagementOpportunity[]> {
     try {
-      // This would need to be implemented with Twitter API to get user's timeline
-      // For now, return empty array
-      // In a real implementation:
-      // 1. Fetch user's timeline/feed
-      // 2. Analyze each tweet for relevance
-      // 3. Determine best engagement type
-      // 4. Generate suggested replies if needed
+      // Use the EngagementSuiteService to find real opportunities
+      // This saves them to the database and returns them with proper IDs
+      const opportunities = await EngagementSuiteService.discoverEngagementOpportunities(
+        this.config.userId,
+        this.config.engagementRules.minEngagementScore,
+        20 // Limit to 20 opportunities per check
+      );
 
-      // Placeholder implementation
-      const opportunities: EngagementOpportunity[] = [];
-
-      // Get recent tweets from topics of interest
-      // const tweets = await this.getRelevantTweets();
-      // for (const tweet of tweets) {
-      //   const analysis = await this.analyzeTweetForEngagement(tweet);
-      //   if (analysis.relevanceScore >= this.config.engagementRules.minEngagementScore) {
-      //     opportunities.push(analysis);
-      //   }
-      // }
-
-      return opportunities;
+      // Convert to our internal format (keeping the opportunity ID for engagement)
+      return opportunities.map(opp => ({
+        tweetId: opp.id, // Use opportunity ID for engagement, not tweet ID
+        content: opp.content,
+        author: opp.author,
+        relevanceScore: opp.relevance_score,
+        suggestedEngagement: opp.suggested_action as 'like' | 'retweet' | 'reply',
+        suggestedReply: opp.suggested_reply,
+      }));
     } catch (error) {
       console.error('Error finding engagement opportunities:', error);
       return [];

@@ -1,43 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ApprovalWorkflowService } from '@/lib/services/approvalWorkflowService';
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-
-let cachedSupabase: SupabaseClient | null | undefined = undefined;
-
-function getSupabaseClient(): SupabaseClient | null {
-  if (cachedSupabase !== undefined) {
-    return cachedSupabase;
-  }
-
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
-    console.warn('Supabase environment variables missing for approvals route.');
-    cachedSupabase = null;
-    return null;
-  }
-
-  cachedSupabase = createClient(supabaseUrl, supabaseKey);
-  return cachedSupabase;
-}
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/src/auth/auth';
+import { ApprovalWorkflowService } from '@/src/lib/services/approvalWorkflowService';
 
 export async function GET(request: NextRequest) {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const supabase = getSupabaseClient();
-    if (!supabase) {
-      return NextResponse.json({ error: 'Service unavailable' }, { status: 503 });
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user } } = await supabase.auth.getUser(token);
-
-    if (!user) {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -45,12 +14,12 @@ export async function GET(request: NextRequest) {
     const action = searchParams.get('action');
 
     if (action === 'pending') {
-      const pending = await ApprovalWorkflowService.getPendingApprovals(user.id);
+      const pending = await ApprovalWorkflowService.getPendingApprovals(session.user.id);
       return NextResponse.json({ pending, total: pending.length });
     }
 
     if (action === 'stats') {
-      const stats = await ApprovalWorkflowService.getApprovalStats(user.id);
+      const stats = await ApprovalWorkflowService.getApprovalStats(session.user.id);
       return NextResponse.json({ stats });
     }
 
@@ -63,37 +32,34 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader) {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const supabase = getSupabaseClient();
-    if (!supabase) {
-      return NextResponse.json({ error: 'Service unavailable' }, { status: 503 });
+    const { action, draftId, rejectionReason } = await request.json();
+
+    if (!action || !draftId) {
+      return NextResponse.json({ error: 'action and draftId are required' }, { status: 400 });
     }
 
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user } } = await supabase.auth.getUser(token);
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!['approve', 'reject', 'publish'].includes(action)) {
+      return NextResponse.json({ error: 'Invalid action. Must be approve, reject, or publish' }, { status: 400 });
     }
 
-    const body = await request.json();
-    const { action, approval_id, edited_content, feedback } = body;
-
+    let result;
     if (action === 'approve') {
-      const result = await ApprovalWorkflowService.approvePost(approval_id, edited_content, feedback);
-      return NextResponse.json({ success: true, approval: result });
+      result = await ApprovalWorkflowService.approveDraft(draftId, session.user.id);
+    } else if (action === 'reject') {
+      if (!rejectionReason) {
+        return NextResponse.json({ error: 'rejectionReason is required for reject action' }, { status: 400 });
+      }
+      result = await ApprovalWorkflowService.rejectDraft(draftId, session.user.id, rejectionReason);
+    } else if (action === 'publish') {
+      result = await ApprovalWorkflowService.publishApprovedContent(draftId, session.user.id);
     }
 
-    if (action === 'reject') {
-      const result = await ApprovalWorkflowService.rejectPost(approval_id, feedback);
-      return NextResponse.json({ success: true, approval: result });
-    }
-
-    return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
+    return NextResponse.json({ success: true, draft: result });
   } catch (error) {
     console.error('Approvals POST error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

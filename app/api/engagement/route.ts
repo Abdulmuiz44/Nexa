@@ -1,42 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { EngagementSuiteService } from '@/lib/services/engagementSuiteService';
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-
-let cachedSupabase: SupabaseClient | null | undefined = undefined;
-
-function getSupabaseClient(): SupabaseClient | null {
-  if (cachedSupabase !== undefined) {
-    return cachedSupabase;
-  }
-
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
-    console.warn('Supabase configuration missing for engagement route.');
-    cachedSupabase = null;
-    return null;
-  }
-
-  cachedSupabase = createClient(supabaseUrl, supabaseKey);
-  return cachedSupabase;
-}
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/src/auth/auth';
+import { EngagementSuiteService } from '@/src/lib/services/engagementSuiteService';
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = getSupabaseClient();
-    if (!supabase) {
-      return NextResponse.json({ error: 'Service unavailable' }, { status: 503 });
-    }
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user } } = await supabase.auth.getUser(token);
-
-    if (!user) {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -46,12 +16,12 @@ export async function GET(request: NextRequest) {
     if (action === 'opportunities') {
       const minScore = parseInt(searchParams.get('min_score') || '70');
       const limit = parseInt(searchParams.get('limit') || '50');
-      const opportunities = await EngagementSuiteService.getPendingOpportunities(user.id, minScore, limit);
+      const opportunities = await EngagementSuiteService.discoverEngagementOpportunities(session.user.id, minScore, limit);
       return NextResponse.json({ opportunities });
     }
 
     if (action === 'stats') {
-      const stats = await EngagementSuiteService.getEngagementStats(user.id);
+      const stats = await EngagementSuiteService.getEngagementStats(session.user.id);
       return NextResponse.json({ stats });
     }
 
@@ -64,35 +34,24 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = getSupabaseClient();
-    if (!supabase) {
-      return NextResponse.json({ error: 'Service unavailable' }, { status: 503 });
-    }
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader) {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user } } = await supabase.auth.getUser(token);
+    const { opportunityId, action } = await request.json();
 
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!opportunityId || !action) {
+      return NextResponse.json({ error: 'opportunityId and action are required' }, { status: 400 });
     }
 
-    const body = await request.json();
-    const { action, opportunity_id, engagement_action, response_content } = body;
-
-    if (action === 'engage') {
-      const tracking = await EngagementSuiteService.engageWithOpportunity(
-        opportunity_id,
-        engagement_action,
-        response_content
-      );
-      return NextResponse.json({ success: true, tracking });
+    if (!['like', 'retweet', 'reply', 'skip'].includes(action)) {
+      return NextResponse.json({ error: 'Invalid action. Must be like, retweet, reply, or skip' }, { status: 400 });
     }
 
-    return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
+    const result = await EngagementSuiteService.engageWithOpportunity(opportunityId, session.user.id, action);
+
+    return NextResponse.json(result);
   } catch (error) {
     console.error('Engagement POST error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

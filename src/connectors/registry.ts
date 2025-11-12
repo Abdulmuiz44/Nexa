@@ -5,6 +5,8 @@ import { EmailConnector } from "./email"
 
 export type ConnectorType = "twitter" | "linkedin" | "email"
 
+import { FEATURES } from '@/src/lib/features';
+
 export class ConnectorRegistry {
   private connectors = new Map<string, BaseConnector>()
 
@@ -26,6 +28,12 @@ export class ConnectorRegistry {
 
   async initializeConnectors(configs: Record<string, ConnectorConfig>): Promise<void> {
     for (const [name, config] of Object.entries(configs)) {
+      // Check feature flags first
+      if (name === 'twitter' && !FEATURES.TWITTER_CONNECTOR) continue;
+      if (name === 'reddit' && !FEATURES.REDDIT_CONNECTOR) continue;
+      if (name === 'linkedin' && !FEATURES.LINKEDIN_CONNECTOR) continue;
+      if (name === 'email' && !FEATURES.EMAIL_CONNECTOR) continue;
+
       if (!config.enabled) continue
 
       let connector: BaseConnector

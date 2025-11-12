@@ -4,7 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, TrendingDown, BarChart3, MessageSquare, Heart, Share2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { TrendingUp, TrendingDown, BarChart3, MessageSquare, Heart, Share2, Brain, RefreshCw } from "lucide-react";
 
 interface Summary {
   timeframe: string;
@@ -22,10 +23,18 @@ interface RecentPostItem {
   metrics: { impressions: number; engagements: number; likes: number; comments: number; shares: number; clicks: number };
 }
 
+interface LearningInsights {
+  successful_patterns: string[];
+  avoid_patterns: string[];
+  last_updated: string | null;
+}
+
 export default function AnalyticsPage() {
   const [summary, setSummary] = useState<Summary | null>(null);
   const [recent, setRecent] = useState<RecentPostItem[]>([]);
+  const [learningInsights, setLearningInsights] = useState<LearningInsights | null>(null);
   const [loading, setLoading] = useState(true);
+  const [learningLoading, setLearningLoading] = useState(false);
 
   useEffect(() => {
     const run = async () => {
@@ -34,6 +43,9 @@ export default function AnalyticsPage() {
         if (s?.summary) setSummary(s.summary);
         const rp = await fetch('/api/analytics/recent-posts?limit=5').then(r => r.json());
         if (rp?.posts) setRecent(rp.posts);
+
+        // Fetch learning insights
+        await fetchLearningInsights();
       } catch (e) {
         console.error('Analytics fetch error', e);
       } finally {
@@ -42,6 +54,37 @@ export default function AnalyticsPage() {
     };
     run();
   }, []);
+
+  const fetchLearningInsights = async () => {
+    try {
+      const response = await fetch('/api/analytics/learn');
+      const data = await response.json();
+      if (data?.learningData) {
+        setLearningInsights(data.learningData);
+      }
+    } catch (e) {
+      console.error('Learning insights fetch error', e);
+    }
+  };
+
+  const runAnalyticsLearning = async () => {
+    setLearningLoading(true);
+    try {
+      const response = await fetch('/api/analytics/learn', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+      const data = await response.json();
+      if (data.success) {
+        await fetchLearningInsights(); // Refresh insights
+      }
+    } catch (e) {
+      console.error('Analytics learning error', e);
+    } finally {
+      setLearningLoading(false);
+    }
+  };
 
   const platformPercentages = useMemo(() => {
     if (!summary || !summary.platforms) return { twitter: 0, reddit: 0 } as Record<string, number>;
@@ -120,30 +163,25 @@ export default function AnalyticsPage() {
           </Card>
         </div>
 
-        {/* Platform Performance (real) */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <Card className="p-6">
-            <CardHeader>
-              <CardTitle>Platform Engagement Share</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {Object.keys(summary?.platforms || { twitter: {}, reddit: {} }).map((platform) => (
-                <div key={platform} className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-3 h-3 rounded-full ${platform === 'twitter' ? 'bg-blue-500' : 'bg-orange-500'}`}></div>
-                      <span className="font-medium capitalize">{platform}</span>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-bold">{platformPercentages[platform] ?? 0}%</div>
-                      <div className="text-sm text-muted-foreground">of engagement</div>
-                    </div>
+        {/* Platform Performance */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          <div className="space-y-4">
+            {Object.keys(summary?.platforms || { twitter: {}, reddit: {} }).map((platform) => (
+              <div key={platform} className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-3 h-3 rounded-full ${platform === 'twitter' ? 'bg-blue-500' : 'bg-orange-500'}`}></div>
+                    <span className="font-medium capitalize">{platform}</span>
                   </div>
-                  <Progress value={platformPercentages[platform] ?? 0} className="h-2" />
+                  <div className="text-right">
+                    <div className="font-bold">{platformPercentages[platform] ?? 0}%</div>
+                    <div className="text-sm text-muted-foreground">of engagement</div>
+                  </div>
                 </div>
-              ))}
-            </CardContent>
-          </Card>
+                <Progress value={platformPercentages[platform] ?? 0} className="h-2" />
+              </div>
+            ))}
+          </div>
 
           <Card className="p-6">
             <CardHeader>
@@ -166,6 +204,88 @@ export default function AnalyticsPage() {
           </Card>
         </div>
 
+        {/* AI Learning Insights */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <Brain className="h-5 w-5" />
+                AI Learning Insights
+              </CardTitle>
+              <Button
+                onClick={runAnalyticsLearning}
+                disabled={learningLoading}
+                variant="outline"
+                size="sm"
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${learningLoading ? 'animate-spin' : ''}`} />
+                Update Insights
+              </Button>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              AI-powered analysis of what works and what to avoid in your content
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {learningInsights?.last_updated && (
+              <div className="text-xs text-muted-foreground">
+                Last updated: {new Date(learningInsights.last_updated).toLocaleString()}
+              </div>
+            )}
+
+            {/* Successful Patterns */}
+            {learningInsights?.successful_patterns && learningInsights.successful_patterns.length > 0 && (
+              <div>
+                <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4 text-green-500" />
+                  What Works Well
+                </h4>
+                <div className="space-y-2">
+                  {learningInsights.successful_patterns.map((pattern, i) => (
+                    <div key={i} className="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-950/20 rounded-lg">
+                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      <span className="text-sm">{pattern}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Patterns to Avoid */}
+            {learningInsights?.avoid_patterns && learningInsights.avoid_patterns.length > 0 && (
+              <div>
+                <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                  <TrendingDown className="h-4 w-4 text-red-500" />
+                  What to Avoid
+                </h4>
+                <div className="space-y-2">
+                  {learningInsights.avoid_patterns.map((pattern, i) => (
+                    <div key={i} className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-950/20 rounded-lg">
+                      <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                      <span className="text-sm">{pattern}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* No insights yet */}
+            {(!learningInsights?.successful_patterns?.length && !learningInsights?.avoid_patterns?.length) && (
+              <div className="text-center py-8">
+                <Brain className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium mb-2">No insights yet</h3>
+                <p className="text-muted-foreground mb-4">
+                  Generate some content and wait for engagement data to build AI learning insights.
+                </p>
+                <Button onClick={runAnalyticsLearning} disabled={learningLoading}>
+                  <RefreshCw className={`h-4 w-4 mr-2 ${learningLoading ? 'animate-spin' : ''}`} />
+                  Generate Insights
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Recent Posts Performance (real) */}
         <Card className="p-6">
           <CardHeader>
@@ -173,7 +293,7 @@ export default function AnalyticsPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-{recent.map((p) => (
+              {recent.map((p) => (
                 <a key={p.id} href={p.url || '#'} target={p.url ? '_blank' : undefined} rel={p.url ? 'noopener noreferrer' : undefined} className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/40 transition-colors">
                   <div className="flex-1 min-w-0">
                     <p className="font-medium mb-1 line-clamp-1">{p.content}</p>

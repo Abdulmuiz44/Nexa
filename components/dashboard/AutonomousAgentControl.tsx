@@ -4,11 +4,34 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Play, Square, Activity, TrendingUp, Twitter, MessageCircle } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+import { Play, Square, Activity, TrendingUp, Twitter, MessageCircle, Clock, Zap, BarChart3 } from 'lucide-react';
 
 interface AgentStatus {
   isRunning: boolean;
   status: string;
+}
+
+interface AgentTelemetry {
+  isRunning: boolean;
+  status: string;
+  recentActivity: Array<{
+    id: string;
+    action: string;
+    description: string;
+    created_at: string;
+    metadata?: any;
+  }>;
+  pendingPosts: Array<{
+    id: string;
+    platform: string;
+    scheduled_at: string;
+    status: string;
+  }>;
+  engagementStats: {
+    posts_today: number;
+    total_posts: number;
+  };
 }
 
 interface TweetPattern {
@@ -25,13 +48,24 @@ interface TweetPattern {
 
 export function AutonomousAgentControl() {
   const [agentStatus, setAgentStatus] = useState<AgentStatus>({ isRunning: false, status: 'stopped' });
+  const [telemetry, setTelemetry] = useState<AgentTelemetry | null>(null);
   const [loading, setLoading] = useState(false);
   const [patterns, setPatterns] = useState<TweetPattern | null>(null);
   const [patternsLoading, setPatternsLoading] = useState(false);
 
   useEffect(() => {
     fetchAgentStatus();
-  }, []);
+    fetchTelemetry();
+
+    // Set up polling for live updates
+    const interval = setInterval(() => {
+      if (agentStatus.isRunning) {
+        fetchTelemetry();
+      }
+    }, 30000); // Update every 30 seconds when running
+
+    return () => clearInterval(interval);
+  }, [agentStatus.isRunning]);
 
   const fetchAgentStatus = async () => {
     try {
@@ -43,6 +77,16 @@ export function AutonomousAgentControl() {
     }
   };
 
+  const fetchTelemetry = async () => {
+    try {
+      const response = await fetch('/api/agent/telemetry');
+      const data = await response.json();
+      setTelemetry(data);
+    } catch (error) {
+      console.error('Error fetching telemetry:', error);
+    }
+  };
+
   const startAgent = async () => {
     setLoading(true);
     try {
@@ -50,9 +94,10 @@ export function AutonomousAgentControl() {
         method: 'POST',
       });
       const data = await response.json();
-      
+
       if (data.success) {
         setAgentStatus({ isRunning: true, status: 'active' });
+        fetchTelemetry(); // Refresh telemetry immediately
       }
     } catch (error) {
       console.error('Error starting agent:', error);
@@ -68,7 +113,7 @@ export function AutonomousAgentControl() {
         method: 'DELETE',
       });
       const data = await response.json();
-      
+
       if (data.success) {
         setAgentStatus({ isRunning: false, status: 'stopped' });
       }
@@ -84,7 +129,7 @@ export function AutonomousAgentControl() {
     try {
       const response = await fetch('/api/twitter/patterns');
       const data = await response.json();
-      
+
       if (data.success) {
         setPatterns(data.patterns);
       }
@@ -92,6 +137,32 @@ export function AutonomousAgentControl() {
       console.error('Error analyzing patterns:', error);
     } finally {
       setPatternsLoading(false);
+    }
+  };
+
+  const getActivityIcon = (action: string) => {
+    switch (action) {
+      case 'auto_tweet_posted': return Twitter;
+      case 'auto_reddit_post': return MessageCircle;
+      case 'auto_like': return '👍';
+      case 'auto_retweet': return '🔄';
+      case 'auto_reply': return MessageCircle;
+      case 'agent_started': return Play;
+      case 'agent_stopped': return Square;
+      default: return Activity;
+    }
+  };
+
+  const getActivityColor = (action: string) => {
+    switch (action) {
+      case 'auto_tweet_posted':
+      case 'auto_reddit_post': return 'text-blue-500';
+      case 'auto_like':
+      case 'auto_retweet':
+      case 'auto_reply': return 'text-green-500';
+      case 'agent_started': return 'text-green-600';
+      case 'agent_stopped': return 'text-red-500';
+      default: return 'text-gray-500';
     }
   };
 
@@ -115,7 +186,7 @@ export function AutonomousAgentControl() {
                 {agentStatus.status}
               </Badge>
             </div>
-            
+
             <div className="flex gap-2">
               {!agentStatus.isRunning ? (
                 <Button onClick={startAgent} disabled={loading}>
@@ -131,21 +202,73 @@ export function AutonomousAgentControl() {
             </div>
           </div>
 
-          {agentStatus.isRunning && (
-            <div className="rounded-lg bg-muted p-4 space-y-2">
+          {agentStatus.isRunning && telemetry && (
+            <div className="rounded-lg bg-muted p-4 space-y-4">
               <h4 className="text-sm font-semibold flex items-center gap-2">
                 <Activity className="h-4 w-4 animate-pulse text-green-500" />
                 Agent is Active
               </h4>
-              <p className="text-sm text-muted-foreground">
-                Your autonomous agent is monitoring, creating, and engaging with content on your behalf.
-              </p>
-              <ul className="text-xs space-y-1 text-muted-foreground">
-                <li>✓ Analyzing engagement opportunities</li>
-                <li>✓ Generating content in your style</li>
-                <li>✓ Auto-posting on schedule</li>
-                <li>✓ Auto-engaging with relevant content</li>
-              </ul>
+
+              {/* Live Stats */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="text-center">
+                  <div className="text-lg font-bold text-blue-500">{telemetry.engagementStats.posts_today}</div>
+                  <div className="text-xs text-muted-foreground">Posts Today</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-lg font-bold text-green-500">{telemetry.pendingPosts.length}</div>
+                  <div className="text-xs text-muted-foreground">Queued Posts</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-lg font-bold text-purple-500">{telemetry.engagementStats.total_posts}</div>
+                  <div className="text-xs text-muted-foreground">Total Posts</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-lg font-bold text-orange-500">{telemetry.recentActivity.length}</div>
+                  <div className="text-xs text-muted-foreground">Recent Actions</div>
+                </div>
+              </div>
+
+              {/* Recent Activity */}
+              {telemetry.recentActivity.length > 0 && (
+                <div>
+                  <h5 className="text-sm font-medium mb-2">Recent Activity</h5>
+                  <div className="space-y-2 max-h-32 overflow-y-auto">
+                    {telemetry.recentActivity.slice(0, 5).map((activity) => {
+                      const Icon = getActivityIcon(activity.action);
+                      return (
+                        <div key={activity.id} className="flex items-center gap-2 text-xs">
+                          <div className={getActivityColor(activity.action)}>
+                            {typeof Icon === 'string' ? Icon : <Icon className="h-3 w-3" />}
+                          </div>
+                          <span className="flex-1 truncate">{activity.description}</span>
+                          <span className="text-muted-foreground">
+                            {new Date(activity.created_at).toLocaleTimeString()}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Pending Posts */}
+              {telemetry.pendingPosts.length > 0 && (
+                <div>
+                  <h5 className="text-sm font-medium mb-2">Upcoming Posts</h5>
+                  <div className="space-y-1">
+                    {telemetry.pendingPosts.slice(0, 3).map((post) => (
+                      <div key={post.id} className="flex items-center gap-2 text-xs">
+                        <Clock className="h-3 w-3 text-muted-foreground" />
+                        <span>{post.platform} post scheduled for</span>
+                        <span className="font-medium">
+                          {new Date(post.scheduled_at).toLocaleString()}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </CardContent>
