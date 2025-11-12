@@ -293,7 +293,7 @@ export default function AnalyticsPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {recent.map((p) => (
+              {recent && recent.map((p) => (
                 <a key={p.id} href={p.url || '#'} target={p.url ? '_blank' : undefined} rel={p.url ? 'noopener noreferrer' : undefined} className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/40 transition-colors">
                   <div className="flex-1 min-w-0">
                     <p className="font-medium mb-1 line-clamp-1">{p.content}</p>
@@ -320,7 +320,7 @@ export default function AnalyticsPage() {
                 </a>
               ))}
 
-              {!loading && recent.length === 0 && (
+              {!loading && recent && recent.length === 0 && (
                 <div className="text-center py-8 text-muted-foreground">No recent published posts</div>
               )}
             </div>

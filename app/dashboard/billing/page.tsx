@@ -146,20 +146,20 @@ export default function BillingPage() {
                   </div>
                   <div className="text-center">
                     <div className="text-2xl font-bold text-blue-500">
-                      {Object.keys(usageStats.byType).length}
+                      {usageStats.byType ? Object.keys(usageStats.byType).length : 0}
                     </div>
                     <div className="text-sm text-muted-foreground">Usage Types</div>
                   </div>
                   <div className="text-center">
                     <div className="text-2xl font-bold text-purple-500">
-                      {Object.keys(usageStats.byDay).length}
+                      {usageStats.byDay ? Object.keys(usageStats.byDay).length : 0}
                     </div>
                     <div className="text-sm text-muted-foreground">Active Days</div>
                   </div>
                 </div>
 
                 {/* Usage by Type */}
-                {Object.keys(usageStats.byType).length > 0 && (
+                {usageStats.byType && Object.keys(usageStats.byType).length > 0 && (
                   <div>
                     <h4 className="text-sm font-semibold mb-3">Usage by Type</h4>
                     <div className="space-y-2">
@@ -174,7 +174,7 @@ export default function BillingPage() {
                 )}
 
                 {/* Recent Usage */}
-                {usageStats.recentUsage.length > 0 && (
+                {usageStats.recentUsage && usageStats.recentUsage.length > 0 && (
                   <div>
                     <h4 className="text-sm font-semibold mb-3">Recent Usage</h4>
                     <div className="space-y-2 max-h-48 overflow-y-auto">
@@ -209,7 +209,7 @@ export default function BillingPage() {
                     {usageStats.totalSpent > balance * 0.8 && (
                       <p className="text-orange-600">⚠️ You're using credits quickly. Consider topping up soon.</p>
                     )}
-                    {Object.keys(usageStats.byType).includes('agent_chat') && (
+                    {usageStats.byType && Object.keys(usageStats.byType).includes('agent_chat') && (
                       <p>• Most usage comes from AI chat interactions</p>
                     )}
                   </div>
@@ -224,6 +224,8 @@ export default function BillingPage() {
             )}
           </CardContent>
         </Card>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           <Card className="p-6">
             <CardHeader className="pb-4">
               <CardTitle className="flex items-center gap-2"><Zap className="h-5 w-5 text-yellow-500" /> Credit Balance</CardTitle>
@@ -246,8 +248,8 @@ export default function BillingPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3 max-h-64 overflow-auto pr-1">
-                {transactions.length === 0 && <div className="text-sm text-muted-foreground">No transactions yet</div>}
-                {transactions.map((t) => (
+                {(!transactions || transactions.length === 0) && <div className="text-sm text-muted-foreground">No transactions yet</div>}
+                {transactions && transactions.map((t) => (
                   <div key={t.id} className="flex items-center justify-between p-3 border rounded-md">
                     <div className="text-sm">
                       <div className="font-medium capitalize">{String(t.tx_type).replace('_',' ')}</div>
