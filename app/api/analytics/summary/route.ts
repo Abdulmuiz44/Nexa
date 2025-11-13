@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
-import { authOptions } from '@/src/auth/auth'
+import { authOptions } from '@/lib/auth'
 import { analyticsEngine } from '@/src/services/analyticsEngine'
 
 export async function GET(req: Request) {

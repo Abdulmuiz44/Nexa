@@ -69,15 +69,22 @@ export default function AnalyticsPage() {
     run();
   }, []);
 
-  const fetchLearningInsights = async () => {
+  const runAnalyticsLearning = async () => {
+    setLearningLoading(true);
     try {
-      const response = await fetch('/api/analytics/learn');
+      const response = await fetch('/api/analytics/learn', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId }),
+      });
       const data = await response.json();
       if (data?.learningData) {
         setLearningInsights(data.learningData);
       }
     } catch (e) {
-      console.error('Learning insights fetch error', e);
+      console.error('Learning analytics error', e);
+    } finally {
+      setLearningLoading(false);
     }
   };
 
