@@ -104,7 +104,7 @@ export function ContentRepurposing({ userId }: ContentRepurposingProps) {
     URL.revokeObjectURL(url);
   };
 
-  const getContentTypeIcon = (type: string) => {
+  const getContentTypeIcon = (type: string): React.ComponentType<{ className?: string }> => {
     switch (type) {
       case 'blog': return FileText;
       case 'video': return Video;

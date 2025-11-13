@@ -52,7 +52,6 @@ export async function GET(req: Request) {
       try {
         const apiKey = process.env.COMPOSIO_API_KEY;
         if (apiKey) {
-          const { Composio } = await import('@composio/core');
           const composio = new Composio({ apiKey });
 
           // Try to get the connected account using the code/state info
@@ -110,15 +109,29 @@ export async function POST(req: Request) {
     if (apiKey) {
       try {
         const composio = new Composio({ apiKey });
-        const account = await composio.connectedAccounts.get({
-          connectedAccountId: connId
-        });
+        const response = await composio.connectedAccounts.get(connId);
         
-        console.log('Verified connection with Composio:', {
-          id: account.id,
-          status: account.status,
-          integrationId: account.integrationId
-        });
+        // Handle different possible response structures
+        let account: any = response?.data || response;
+        if (Array.isArray(account) && account.length > 0) {
+          account = account[0];
+        }
+        
+        // Ensure account is an object
+        if (typeof account !== 'object' || account === null) {
+          console.warn('Invalid account response structure:', { response, account });
+          account = {};
+        }
+        
+        const accountInfo = {
+          id: (account as any)?.id || (account as any)?.accountId || (account as any)?.connectionId || 'unknown',
+          status: (account as any)?.status || (account as any)?.Status || (account as any)?.state || 'unknown',
+          integrationId: (account as any)?.integrationId || (account as any)?.appName || (account as any)?.app || 'unknown',
+          fullAccount: account,
+          fullResponse: response
+        };
+        
+        console.log('Verified connection with Composio:', accountInfo);
       } catch (verifyError) {
         console.warn('Could not verify connection with Composio:', verifyError);
         // Continue anyway - connection might still be valid

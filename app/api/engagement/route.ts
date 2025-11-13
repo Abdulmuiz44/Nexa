@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/src/auth/auth';
+import { authOptions } from '@/lib/auth';
 import { EngagementSuiteService } from '@/src/lib/services/engagementSuiteService';
 
 export async function GET(request: NextRequest) {

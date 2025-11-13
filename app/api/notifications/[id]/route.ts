@@ -3,15 +3,16 @@ import { supabaseClient } from '@/lib/supabaseClient';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const resolvedParams = await params
     const userId = session.user.id;
-    const notificationId = params.id;
+    const notificationId = resolvedParams.id;
 
     // Delete notification
     const { error } = await supabaseClient

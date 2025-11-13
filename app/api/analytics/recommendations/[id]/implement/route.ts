@@ -3,15 +3,16 @@ import { supabaseClient } from '@/lib/supabaseClient';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const resolvedParams = await params
     const userId = session.user.id;
-    const recommendationId = params.id;
+    const recommendationId = resolvedParams.id;
 
     if (!recommendationId) {
       return NextResponse.json({ error: 'Recommendation ID is required' }, { status: 400 });

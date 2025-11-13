@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/src/auth/auth';
+import { authOptions } from '@/lib/auth';
 import { crawlContext } from '@/utils/crawler';
 import { supabaseServer } from '@/src/lib/supabaseServer';
 import OpenAI from 'openai';

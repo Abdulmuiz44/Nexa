@@ -6,7 +6,7 @@ import { supabaseServer } from '@/src/lib/supabaseServer';
 // GET /api/campaigns/[id] - Get specific campaign
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -14,10 +14,11 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const resolvedParams = await params
     const { data: campaign, error } = await supabaseServer
       .from('campaigns')
       .select('*')
-      .eq('id', params.id)
+      .eq('id', resolvedParams.id)
       .eq('user_id', session.user.id)
       .single();
 
@@ -39,7 +40,7 @@ export async function GET(
 // PUT /api/campaigns/[id] - Update campaign
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -68,6 +69,7 @@ export async function PUT(
       }, { status: 400 });
     }
 
+    const resolvedParams = await params
     // Update campaign
     const { data: campaign, error } = await supabaseServer
       .from('campaigns')
@@ -84,7 +86,7 @@ export async function PUT(
         metadata,
         updated_at: new Date().toISOString()
       })
-      .eq('id', params.id)
+      .eq('id', resolvedParams.id)
       .eq('user_id', session.user.id)
       .select()
       .single();
@@ -107,7 +109,7 @@ export async function PUT(
 // DELETE /api/campaigns/[id] - Delete campaign
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -115,10 +117,11 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const resolvedParams = await params
     const { error } = await supabaseServer
       .from('campaigns')
       .delete()
-      .eq('id', params.id)
+      .eq('id', resolvedParams.id)
       .eq('user_id', session.user.id);
 
     if (error) {

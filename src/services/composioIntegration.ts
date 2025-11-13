@@ -215,7 +215,8 @@ export class ComposioIntegrationService {
       const connection = await this.getConnection(platform);
       
       // Get the connected account details from Composio
-      const account = await this.composio.connectedAccounts.get(connection.composio_connection_id);
+      const response = await this.composio.connectedAccounts.get(connection.composio_connection_id);
+      const account = response?.data || response;
 
       return account;
     } catch (error) {

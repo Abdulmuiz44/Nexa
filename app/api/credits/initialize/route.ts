@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
-import { authOptions } from '@/src/auth/auth'
+import { authOptions } from '@/lib/auth'
 import { supabaseServer } from '@/src/lib/supabaseServer'
 import { CREDIT_VALUE_USD, MINIMUM_PURCHASE_CREDITS } from '@/lib/utils/credits'
 import { FlutterwavePayment } from '@/src/payments/flutterwave'

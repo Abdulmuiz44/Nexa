@@ -2,9 +2,10 @@ import { type NextRequest, NextResponse } from "next/server"
 import { analyticsTracker } from "@/src/analytics/tracker"
 import { logger } from "@/src/agent/utils/logger"
 
-export async function GET(request: NextRequest, { params }: { params: { campaignId: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ campaignId: string }> }) {
   try {
-    const { campaignId } = params
+    const resolvedParams = await params
+    const { campaignId } = resolvedParams
     const { searchParams } = new URL(request.url)
 
     const startDate = searchParams.get("startDate") ? new Date(searchParams.get("startDate")!) : undefined

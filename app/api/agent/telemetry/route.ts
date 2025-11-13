@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/src/auth/auth';
+import { authOptions } from '@/lib/auth';
 import { supabaseServer } from '@/src/lib/supabaseServer';
 import { AutonomousAgentManager } from '@/src/services/autonomousAgent';
 

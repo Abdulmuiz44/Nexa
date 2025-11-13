@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/src/auth/auth';
+import { authOptions } from '@/lib/auth';
 import OpenAI from 'openai';
 import { supabaseServer } from '@/src/lib/supabaseServer';
 import { composioHelpers } from '@/lib/composioClient';

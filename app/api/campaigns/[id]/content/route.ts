@@ -8,23 +8,24 @@ const contentSchema = z.object({
   editedContent: z.string().optional(),
 })
 
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const body = await request.json()
     const { type, contentId, feedback } = contentSchema.parse(body)
 
+    const resolvedParams = await params
     switch (type) {
       case "approve":
         // Mark content as approved and ready for publishing
-        console.log(`[Campaign ${params.id}] Content ${contentId} approved`)
+        console.log(`[Campaign ${resolvedParams.id}] Content ${contentId} approved`)
         break
       case "reject":
         // Mark content as rejected with feedback
-        console.log(`[Campaign ${params.id}] Content ${contentId} rejected: ${feedback}`)
+        console.log(`[Campaign ${resolvedParams.id}] Content ${contentId} rejected: ${feedback}`)
         break
       case "edit":
         // Update content with user edits
-        console.log(`[Campaign ${params.id}] Content ${contentId} edited`)
+        console.log(`[Campaign ${resolvedParams.id}] Content ${contentId} edited`)
         break
     }
 

@@ -1,10 +1,11 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { SupabaseAdapter } from "@/src/agent/store/supabase-adapter"
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const resolvedParams = await params
     const store = new SupabaseAdapter()
-    const state = await store.getState(params.id)
+    const state = await store.getState(resolvedParams.id)
 
     if (!state) {
       return NextResponse.json({ success: false, error: "Agent not found" }, { status: 404 })

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
-import { authOptions } from '@/src/auth/auth'
+import { authOptions } from '@/lib/auth'
 import { profitCalc } from '@/lib/utils/credits'
 
 function isAdmin(email?: string | null) {
