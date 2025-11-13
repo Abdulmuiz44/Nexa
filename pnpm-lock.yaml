@@ -185,6 +185,9 @@ importers:
       ioredis:
         specifier: ^5.3.0
         version: 5.8.1
+      jose:
+        specifier: ^5.10.0
+        version: 5.10.0
       jsonwebtoken:
         specifier: latest
         version: 9.0.2
@@ -4609,6 +4612,9 @@ packages:
 
   jose@4.15.9:
     resolution: {integrity: sha512-1vUQX+IdDMVPj4k8kOxgUqlcK518yluMuGZwqlr44FS1ppZB/5GWh4rZG89erpOBOJjU/OBsnCVFfapsRz6nEA==}
+
+  jose@5.10.0:
+    resolution: {integrity: sha512-s+3Al/p9g32Iq+oqXxkW//7jk2Vig6FF1CFqzVXoTUXt2qz89YWbL+OwS17NFYEvxC35n0FKeGO2LGYSxeM2Gg==}
 
   jose@6.1.0:
     resolution: {integrity: sha512-TTQJyoEoKcC1lscpVDCSsVgYzUDg/0Bt3WE//WiTPK6uOCQC2KZS4MpugbMWt/zyjkopgZoXhZuCi00gLudfUA==}
@@ -11980,6 +11986,8 @@ snapshots:
   jiti@1.21.7: {}
 
   jose@4.15.9: {}
+
+  jose@5.10.0: {}
 
   jose@6.1.0: {}
 

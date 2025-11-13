@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimitMiddleware } from "@/src/middleware/rate-limit";
-import { authMiddleware } from "@/src/middleware/auth";
 import { subscriptionMiddleware } from "@/src/middleware/subscription";
 import { onboardingMiddleware } from "@/src/middleware/onboarding";
+import { verifyAuthToken } from "@/src/middleware/auth";
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -15,7 +15,7 @@ export async function middleware(request: NextRequest) {
     }
 
     if (pathname.startsWith("/api/agent/")) {
-      return authMiddleware(request);
+      return verifyAuthToken(request);
     }
 
     // For other API routes, continue with the response from the rate limiter
@@ -52,6 +52,6 @@ export const config = {
     "/docs/:path*",
     "/api/:path*",
     "/subscribe/:path*",
-    "/pricing/:path*"
+    "/pricing/:path*",
   ],
 };
