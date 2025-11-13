@@ -69,6 +69,18 @@ export default function AnalyticsPage() {
     run();
   }, []);
 
+  const fetchLearningInsights = async () => {
+    try {
+      const response = await fetch('/api/analytics/learn');
+      const data = await response.json();
+      if (data?.learningData) {
+        setLearningInsights(data.learningData);
+      }
+    } catch (e) {
+      console.error('Learning insights fetch error', e);
+    }
+  };
+
   const runAnalyticsLearning = async () => {
     setLearningLoading(true);
     try {
