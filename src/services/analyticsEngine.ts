@@ -40,7 +40,8 @@ export class AnalyticsEngine {
         platform,
         platformPostId,
         connection.composio_connection_id,
-        connection.toolkit_slug
+        connection.toolkit_slug,
+        post.user_id
       );
 
       if (analytics) {
@@ -103,7 +104,8 @@ export class AnalyticsEngine {
     platform: string,
     postId: string,
     connectionId: string,
-    toolkitSlug: string
+    toolkitSlug: string,
+    userId: string
   ): Promise<any> {
     try {
       if (!composio) {
@@ -111,24 +113,22 @@ export class AnalyticsEngine {
         return null;
       }
 
-      let actionName: string;
-      let input: any = {};
+      let toolName: string;
+      let arguments_: any = {};
 
       if (platform === 'twitter') {
-        actionName = 'get_tweet_metrics';
-        input = { tweet_id: postId };
+        toolName = 'TWITTER_GET_TWEET';
+        arguments_ = { tweet_id: postId };
       } else if (platform === 'reddit') {
-        actionName = 'get_post_info';
-        input = { post_id: postId };
+        toolName = 'REDDIT_GET_POST_INFO'; // Assuming this is the correct tool name
+        arguments_ = { post_id: postId };
       } else {
         return null;
       }
 
-      const result = await composio.tools.execute({
-        connectionId,
-        appName: toolkitSlug,
-        actionName,
-        input,
+      const result = await composio.tools.execute(toolName, {
+        userId,
+        arguments: arguments_,
       });
 
       // Normalize the response
@@ -140,22 +140,24 @@ export class AnalyticsEngine {
   }
 
   private normalizeAnalyticsResponse(platform: string, response: any): any {
+    const data = response.data as any;
+
     if (platform === 'twitter') {
       return {
-        impressions: response.data?.public_metrics?.impressions || 0,
-        engagements: response.data?.public_metrics?.engagements || 0,
-        likes: response.data?.public_metrics?.like_count || 0,
-        comments: response.data?.public_metrics?.reply_count || 0,
-        shares: response.data?.public_metrics?.retweet_count || 0,
-        clicks: response.data?.public_metrics?.url_clicks || 0,
-        engagementRate: this.calculateEngagementRate(response.data?.public_metrics),
+        impressions: data?.public_metrics?.impressions || 0,
+        engagements: data?.public_metrics?.engagements || 0,
+        likes: data?.public_metrics?.like_count || 0,
+        comments: data?.public_metrics?.reply_count || 0,
+        shares: data?.public_metrics?.retweet_count || 0,
+        clicks: data?.public_metrics?.url_clicks || 0,
+        engagementRate: this.calculateEngagementRate(data?.public_metrics),
       };
     } else if (platform === 'reddit') {
       return {
-        impressions: response.data?.view_count || 0,
-        engagements: (response.data?.ups || 0) + (response.data?.num_comments || 0),
-        likes: response.data?.ups || 0,
-        comments: response.data?.num_comments || 0,
+        impressions: data?.view_count || 0,
+        engagements: (data?.ups || 0) + (data?.num_comments || 0),
+        likes: data?.ups || 0,
+        comments: data?.num_comments || 0,
         shares: 0, // Reddit doesn't have direct shares
         clicks: 0,
         engagementRate: 0, // Would need more complex calculation
@@ -239,7 +241,9 @@ export class AnalyticsEngine {
       overall: {
         impressions: Object.values(platformStats).reduce((sum: number, p: any) => sum + p.impressions, 0),
         engagements: Object.values(platformStats).reduce((sum: number, p: any) => sum + p.engagements, 0),
-        avgEngagementRate: Object.values(platformStats).reduce((sum: number, p: any) => sum + p.avgEngagementRate, 0) / Object.keys(platformStats).length,
+        avgEngagementRate: Object.keys(platformStats).length > 0
+          ? (Object.values(platformStats).reduce((sum: number, p: any) => sum + p.avgEngagementRate, 0) as number) / Object.keys(platformStats).length
+          : 0,
       }
     };
   }
