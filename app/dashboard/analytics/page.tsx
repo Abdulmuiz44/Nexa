@@ -5,7 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { TrendingUp, TrendingDown, BarChart3, MessageSquare, Heart, Share2, Brain, RefreshCw } from "lucide-react";
+import { TrendingUp, TrendingDown, BarChart3, MessageSquare, Heart, Share2, Brain, RefreshCw, ChevronDown, ChevronUp } from "lucide-react";
+import { PredictiveInsights } from "@/components/PredictiveInsights";
+import { CompetitorAnalysis } from "@/components/CompetitorAnalysis";
+import { ROITracking } from "@/components/ROITracking";
+import { AutomatedRecommendations } from "@/components/AutomatedRecommendations";
+import { useSession } from "next-auth/react";
 
 interface Summary {
   timeframe: string;
@@ -30,11 +35,20 @@ interface LearningInsights {
 }
 
 export default function AnalyticsPage() {
+  const { data: session } = useSession();
+  const userId = (session?.user as any)?.id;
+
   const [summary, setSummary] = useState<Summary | null>(null);
   const [recent, setRecent] = useState<RecentPostItem[]>([]);
   const [learningInsights, setLearningInsights] = useState<LearningInsights | null>(null);
   const [loading, setLoading] = useState(true);
   const [learningLoading, setLearningLoading] = useState(false);
+  const [expandedSections, setExpandedSections] = useState({
+    predictive: false,
+    competitor: false,
+    roi: false,
+    recommendations: false,
+  });
 
   useEffect(() => {
     const run = async () => {
@@ -67,23 +81,11 @@ export default function AnalyticsPage() {
     }
   };
 
-  const runAnalyticsLearning = async () => {
-    setLearningLoading(true);
-    try {
-      const response = await fetch('/api/analytics/learn', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
-      });
-      const data = await response.json();
-      if (data.success) {
-        await fetchLearningInsights(); // Refresh insights
-      }
-    } catch (e) {
-      console.error('Analytics learning error', e);
-    } finally {
-      setLearningLoading(false);
-    }
+  const toggleSection = (section: keyof typeof expandedSections) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section],
+    }));
   };
 
   const platformPercentages = useMemo(() => {
@@ -325,6 +327,109 @@ export default function AnalyticsPage() {
               )}
             </div>
           </CardContent>
+        </Card>
+      </div>
+
+      {/* Advanced Analytics Sections */}
+      <div className="space-y-6 mt-8">
+        {/* Predictive Insights */}
+        <Card>
+          <CardHeader>
+            <Button
+              variant="ghost"
+              onClick={() => toggleSection('predictive')}
+              className="w-full justify-between p-0 h-auto"
+            >
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5" />
+                Predictive Insights
+              </CardTitle>
+              {expandedSections.predictive ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </Button>
+            <p className="text-sm text-muted-foreground">
+              AI-powered predictions to optimize your strategy
+            </p>
+          </CardHeader>
+          {expandedSections.predictive && (
+            <CardContent className="pt-0">
+              {userId && <PredictiveInsights userId={userId} />}
+            </CardContent>
+          )}
+        </Card>
+
+        {/* Competitor Analysis */}
+        <Card>
+          <CardHeader>
+            <Button
+              variant="ghost"
+              onClick={() => toggleSection('competitor')}
+              className="w-full justify-between p-0 h-auto"
+            >
+              <CardTitle className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5" />
+                Competitor Analysis
+              </CardTitle>
+              {expandedSections.competitor ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </Button>
+            <p className="text-sm text-muted-foreground">
+              Track competitor performance and learn from their strategies
+            </p>
+          </CardHeader>
+          {expandedSections.competitor && (
+            <CardContent className="pt-0">
+              {userId && <CompetitorAnalysis userId={userId} />}
+            </CardContent>
+          )}
+        </Card>
+
+        {/* ROI Tracking */}
+        <Card>
+          <CardHeader>
+            <Button
+              variant="ghost"
+              onClick={() => toggleSection('roi')}
+              className="w-full justify-between p-0 h-auto"
+            >
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5" />
+                ROI Tracking
+              </CardTitle>
+              {expandedSections.roi ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </Button>
+            <p className="text-sm text-muted-foreground">
+              Measure the return on investment from your campaigns
+            </p>
+          </CardHeader>
+          {expandedSections.roi && (
+            <CardContent className="pt-0">
+              {userId && <ROITracking userId={userId} />}
+            </CardContent>
+          )}
+        </Card>
+
+        {/* Automated Recommendations */}
+        <Card>
+          <CardHeader>
+            <Button
+              variant="ghost"
+              onClick={() => toggleSection('recommendations')}
+              className="w-full justify-between p-0 h-auto"
+            >
+              <CardTitle className="flex items-center gap-2">
+                <Brain className="h-5 w-5" />
+                AI Recommendations
+              </CardTitle>
+              {expandedSections.recommendations ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </Button>
+            <p className="text-sm text-muted-foreground">
+              Automated insights to optimize your social media strategy
+            </p>
+          </CardHeader>
+          {expandedSections.recommendations && (
+            <CardContent className="pt-0">
+              {userId && <AutomatedRecommendations userId={userId} />}
+            </CardContent>
+          )}
         </Card>
       </div>
     </div>

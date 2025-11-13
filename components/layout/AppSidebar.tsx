@@ -20,6 +20,7 @@ import {
   TrendingUp,
   Users,
   FlaskConical,
+  Bell,
 } from "lucide-react";
 import { supabaseClient } from "@/lib/supabaseClient";
 import {
@@ -45,6 +46,7 @@ const navItems = [
   { title: "Logs", href: "/dashboard/logs", icon: Activity },
   { title: "Connections", href: "/dashboard/connections", icon: LinkIcon },
   { title: "Billing", href: "/dashboard/billing", icon: CreditCard },
+  { title: "Notifications", href: "/dashboard/notifications", icon: Bell },
   { title: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
 
@@ -62,6 +64,7 @@ export default function AppSidebar({ onNavigate, onSelectConversation, selectedC
   const [scheduledCount, setScheduledCount] = useState<number>(0);
   const [conversations, setConversations] = useState<any[]>([]);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [notificationCount, setNotificationCount] = useState<number>(0);
 
   // Load scheduled pending count for badge
   useEffect(() => {
@@ -97,6 +100,23 @@ export default function AppSidebar({ onNavigate, onSelectConversation, selectedC
     loadConversations();
   }, [status, userId]);
 
+  // Load notification count for badge
+  useEffect(() => {
+    let abort = false;
+    const loadNotificationCount = async () => {
+      if (!userId) return;
+      try {
+        const res = await fetch('/api/notifications/count', { method: 'GET' });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!abort) setNotificationCount(Number(data?.count || 0));
+      } catch {}
+    };
+    loadNotificationCount();
+    const timer = setInterval(loadNotificationCount, 30_000); // Check every 30 seconds
+    return () => { abort = true; clearInterval(timer); };
+  }, [userId]);
+
   return (
     <div className="sticky top-0 h-[100dvh] flex w-64 flex-col bg-card/60 backdrop-blur-sm border-r border-border text-white">
       <div className="flex h-16 items-center border-b border-border px-6">
@@ -122,6 +142,9 @@ export default function AppSidebar({ onNavigate, onSelectConversation, selectedC
                 <span className="font-medium">{item.title}</span>
                 {item.title === 'Scheduled' && scheduledCount > 0 && (
                   <Badge className="ml-auto h-5 px-2 text-xs">{scheduledCount}</Badge>
+                )}
+                {item.title === 'Notifications' && notificationCount > 0 && (
+                  <Badge className="ml-auto h-5 px-2 text-xs bg-red-500">{notificationCount}</Badge>
                 )}
               </Link>
             );
