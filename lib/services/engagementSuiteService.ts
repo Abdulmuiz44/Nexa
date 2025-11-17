@@ -1,5 +1,5 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import OpenAI from 'openai';
+import { callUserLLM } from '@/src/lib/ai/user-provider';
 import { EngagementOpportunity, EngagementTracking, EngagementStats } from '@/types/features';
 
 let cachedSupabase: SupabaseClient | null | undefined = undefined;
@@ -21,8 +21,6 @@ function ensureSupabase(): SupabaseClient | null {
   cachedSupabase = createClient(supabaseUrl, supabaseKey);
   return cachedSupabase;
 }
-
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
 
 export class EngagementSuiteService {
   /**
@@ -65,43 +63,44 @@ export class EngagementSuiteService {
     content: string,
     authorUsername: string
   ): Promise<number> {
+    const supabase = ensureSupabase();
+    if (!supabase) {
+      return this.simpleRelevanceScore(content, userId);
+    }
+    const { data: user } = await supabase
+      .from('users')
+      .select('onboarding_data')
+      .eq('id', userId)
+      .single();
+
+    const userNiche = user?.onboarding_data?.niche || '';
+    const userTopics = user?.onboarding_data?.content_topics || [];
+
     try {
-      const supabase = ensureSupabase();
-      if (!supabase) {
-        return this.simpleRelevanceScore(content, userId);
-      }
-      const { data: user } = await supabase
-        .from('users')
-        .select('onboarding_data')
-        .eq('id', userId)
-        .single();
-
-      const userNiche = user?.onboarding_data?.niche || '';
-      const userTopics = user?.onboarding_data?.content_topics || [];
-
-      // Use AI to score relevance
-      const response = await openai.chat.completions.create({
-        model: 'gpt-4',
-        messages: [
-          {
-            role: 'system',
-            content: `You are a relevance scoring AI. Score how relevant a post is to a user's interests on a scale of 0-100. Consider topic match, engagement potential, and authenticity.`
-          },
-          {
-            role: 'user',
-            content: `User's niche: ${userNiche}\nUser's topics: ${userTopics.join(', ')}\n\nPost content: ${content}\nAuthor: ${authorUsername}\n\nProvide only a relevance score (0-100):`
-          }
-        ],
-        temperature: 0.3,
-        max_tokens: 10,
+      const response = await callUserLLM({
+        userId,
+        payload: {
+          model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+          messages: [
+            {
+              role: 'system',
+              content: `You are a relevance scoring AI. Score how relevant a post is to a user's interests on a scale of 0-100. Consider topic match, engagement potential, and authenticity.`
+            },
+            {
+              role: 'user',
+              content: `User's niche: ${userNiche}\nUser's topics: ${userTopics.join(', ')}\n\nPost content: ${content}\nAuthor: ${authorUsername}\n\nProvide only a relevance score (0-100):`
+            }
+          ],
+          temperature: 0.3,
+          max_tokens: 10
+        }
       });
 
-      const scoreText = response.choices[0]?.message?.content?.trim() || '0';
+      const scoreText = response.message || '0';
       const score = parseInt(scoreText.match(/\d+/)?.[0] || '0');
       return Math.min(100, Math.max(0, score));
     } catch (error) {
       console.error('Error calculating relevance:', error);
-      // Fallback: simple keyword matching
       return this.simpleRelevanceScore(content, userId);
     }
   }
@@ -150,23 +149,26 @@ export class EngagementSuiteService {
 
       const userInfo = user?.onboarding_data || {};
 
-      const response = await openai.chat.completions.create({
-        model: 'gpt-4',
-        messages: [
-          {
-            role: 'system',
-            content: `You are helping create an authentic, valuable response to a social media post. Be helpful, genuine, and concise. Keep responses under 280 characters.`
-          },
-          {
-            role: 'user',
-            content: `Original post: ${opportunity.content}\n\nContext: ${userInfo.niche || 'general'}\n\nGenerate a helpful, engaging reply:`
-          }
-        ],
-        temperature: 0.8,
-        max_tokens: 100,
+      const response = await callUserLLM({
+        userId,
+        payload: {
+          model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+          messages: [
+            {
+              role: 'system',
+              content: `You are helping create an authentic, valuable response to a social media post. Be helpful, genuine, and concise. Keep responses under 280 characters.`
+            },
+            {
+              role: 'user',
+              content: `Original post: ${opportunity.content}\n\nContext: ${userInfo.niche || 'general'}\n\nGenerate a helpful, engaging reply:`
+            }
+          ],
+          temperature: 0.8,
+          max_tokens: 100
+        }
       });
 
-      return response.choices[0]?.message?.content?.trim() || '';
+      return response.message.trim() || '';
     } catch (error) {
       console.error('Error generating response:', error);
       return '';

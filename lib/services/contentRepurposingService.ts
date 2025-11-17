@@ -1,5 +1,5 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import OpenAI from 'openai';
+import { callUserLLM } from '@/src/lib/ai/user-provider';
 import { ContentSource, RepurposedContent } from '@/types/features';
 
 let cachedSupabase: SupabaseClient | null | undefined = undefined;
@@ -24,10 +24,6 @@ function ensureSupabase(): SupabaseClient {
   return cachedSupabase;
 }
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY!,
-});
-
 export class ContentRepurposingService {
   /**
    * Import and process content from URL or text
@@ -40,7 +36,7 @@ export class ContentRepurposingService {
     sourceUrl?: string
   ): Promise<ContentSource> {
     // Extract key points from content using AI
-    const extractedPoints = await this.extractKeyPoints(content);
+    const extractedPoints = await this.extractKeyPoints(userId, content);
 
     const supabase = ensureSupabase();
     const { data, error } = await supabase
@@ -68,24 +64,27 @@ export class ContentRepurposingService {
   /**
    * Extract key points from content using AI
    */
-  private static async extractKeyPoints(content: string): Promise<string[]> {
+  private static async extractKeyPoints(userId: string, content: string): Promise<string[]> {
     try {
-      const response = await openai.chat.completions.create({
-        model: 'gpt-4',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a content analyst. Extract 10-15 key points, insights, or interesting facts from the provided content. Each point should be clear, standalone, and suitable for social media posts.'
-          },
-          {
-            role: 'user',
-            content: `Extract key points from this content:\n\n${content.slice(0, 4000)}`
-          }
-        ],
-        temperature: 0.7,
+      const response = await callUserLLM({
+        userId,
+        payload: {
+          model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a content analyst. Extract 10-15 key points, insights, or interesting facts from the provided content. Each point should be clear, standalone, and suitable for social media posts.'
+            },
+            {
+              role: 'user',
+              content: `Extract key points from this content:\n\n${content.slice(0, 4000)}`
+            }
+          ],
+          temperature: 0.7
+        }
       });
 
-      const pointsText = response.choices[0]?.message?.content || '';
+      const pointsText = response.message || '';
       const points = pointsText
         .split('\n')
         .filter(line => line.trim().length > 0)
@@ -135,6 +134,7 @@ export class ContentRepurposingService {
       const point = source.extracted_points[i];
 
       const generatedContent = await this.generatePostFromPoint(
+        userId,
         point,
         angle,
         source.title,
@@ -146,7 +146,7 @@ export class ContentRepurposingService {
         .from('repurposed_content')
         .insert({
           source_id: sourceId,
-          user_id: userId,
+          user_id: source.user_id,
           angle: angle,
           generated_content: generatedContent,
           used: false
@@ -172,6 +172,7 @@ export class ContentRepurposingService {
    * Generate a single post from a key point with specific angle
    */
   private static async generatePostFromPoint(
+    userId: string,
     keyPoint: string,
     angle: RepurposedContent['angle'],
     sourceTitle: string,
@@ -187,23 +188,26 @@ export class ContentRepurposingService {
     };
 
     try {
-      const response = await openai.chat.completions.create({
-        model: 'gpt-4',
-        messages: [
-          {
-            role: 'system',
-            content: `You are a social media content creator. Create engaging posts that are authentic, valuable, and shareable. Keep posts under 280 characters for Twitter compatibility.`
-          },
-          {
-            role: 'user',
-            content: `Key point: ${keyPoint}\n\nSource: ${sourceTitle} (${sourceType})\n\nTask: ${anglePrompts[angle]}`
-          }
-        ],
-        temperature: 0.8,
-        max_tokens: 100,
+      const response = await callUserLLM({
+        userId,
+        payload: {
+          model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+          messages: [
+            {
+              role: 'system',
+              content: `You are a social media content creator. Create engaging posts that are authentic, valuable, and shareable. Keep posts under 280 characters for Twitter compatibility.`
+            },
+            {
+              role: 'user',
+              content: `Key point: ${keyPoint}\n\nSource: ${sourceTitle} (${sourceType})\n\nTask: ${anglePrompts[angle]}`
+            }
+          ],
+          temperature: 0.8,
+          max_tokens: 100
+        }
       });
 
-      return response.choices[0]?.message?.content?.trim() || keyPoint.slice(0, 280);
+      return response.message.trim() || keyPoint.slice(0, 280);
     } catch (error) {
       console.error('Error generating post:', error);
       return keyPoint.slice(0, 280);

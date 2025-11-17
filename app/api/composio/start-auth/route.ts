@@ -42,7 +42,7 @@ export async function GET(req: Request) {
     const toolkit = u.searchParams.get('toolkit');
     if (!toolkit) return NextResponse.redirect(new URL('/dashboard/connections?error=toolkit', u.origin));
     const { url } = await buildAuthUrl(toolkit, String((session.user as any).id));
-    return NextResponse.redirect(url);
+    return NextResponse.redirect(new URL(url));
   } catch (error) {
     const u = new URL(req.url);
     return NextResponse.redirect(new URL('/dashboard/connections?error=start_auth', u.origin));

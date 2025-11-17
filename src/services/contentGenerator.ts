@@ -1,4 +1,4 @@
-import { openai } from '@/src/lib/ai/openai-client';
+import { callUserLLM } from '@/src/lib/ai/user-provider';
 import { supabaseServer } from '@/src/lib/supabaseServer';
 
 export interface UserProfile {
@@ -34,25 +34,27 @@ export interface GeneratedContent {
 }
 
 export class ContentGenerator {
-  async generateContent(request: ContentRequest): Promise<GeneratedContent> {
+  async generateContent(userId: string, request: ContentRequest): Promise<GeneratedContent> {
     const { platform, topic, userProfile } = request;
 
     // Build the prompt based on user profile
     const prompt = this.buildPrompt(platform, topic, userProfile);
 
     try {
-      const response = await openai.chat([
-        {
-          role: 'system',
-          content: `You are a professional social media content strategist specializing in ${platform} content creation. Generate engaging, brand-consistent content that drives the specified goals.`
-        },
-        {
-          role: 'user',
-          content: prompt
+      const systemMessage = `You are a professional social media content strategist specializing in ${platform} content creation. Generate engaging, brand-consistent content that drives the specified goals.`;
+      const aiResponse = await callUserLLM({
+        userId,
+        payload: {
+          model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+          messages: [
+            { role: 'system', content: systemMessage },
+            { role: 'user', content: prompt }
+          ],
+          temperature: 0.7
         }
-      ]);
+      });
 
-      const generatedText = response.message.trim();
+      const generatedText = aiResponse.message.trim();
 
       if (!generatedText) {
         throw new Error('No content generated');
@@ -140,11 +142,11 @@ Generate content that aligns with the brand voice and achieves the specified goa
     };
   }
 
-  async generateContentSeries(request: ContentRequest & { count: number }): Promise<GeneratedContent[]> {
+  async generateContentSeries(userId: string, request: ContentRequest & { count: number }): Promise<GeneratedContent[]> {
     const contents: GeneratedContent[] = [];
 
     for (let i = 0; i < request.count; i++) {
-      const content = await this.generateContent(request);
+      const content = await this.generateContent(userId, request);
       contents.push(content);
 
       // Add slight delay to avoid rate limiting
@@ -154,7 +156,7 @@ Generate content that aligns with the brand voice and achieves the specified goa
     return contents;
   }
 
-  async optimizeContent(content: GeneratedContent, analytics?: any): Promise<GeneratedContent> {
+  async optimizeContent(userId: string, content: GeneratedContent, analytics?: any): Promise<GeneratedContent> {
     if (!analytics) return content;
 
     // Use analytics to optimize future content
@@ -181,18 +183,25 @@ Suggest an improved version that would perform better. Focus on:
 - Emotional triggers that work for ${content.metadata.businessType}`;
 
     try {
-      const response = await openai.chat([
-        {
-          role: 'system',
-          content: 'You are a social media optimization expert. Analyze performance data and suggest specific content improvements while maintaining brand voice.'
-        },
-        {
-          role: 'user',
-          content: optimizationPrompt
+      const aiResponse = await callUserLLM({
+        userId,
+        payload: {
+          model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a social media optimization expert. Analyze performance data and suggest specific content improvements while maintaining brand voice.'
+            },
+            {
+              role: 'user',
+              content: optimizationPrompt
+            }
+          ],
+          temperature: 0.7
         }
-      ]);
+      });
 
-      const optimizedContent = response.message.trim();
+      const optimizedContent = aiResponse.message.trim();
 
       if (optimizedContent && optimizedContent !== content.content && optimizedContent.length > 10) {
         return {

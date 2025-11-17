@@ -37,6 +37,7 @@
     "@composio/core": "^0.2.4",
     "@google/generative-ai": "^0.24.1",
     "@jest/globals": "latest",
+    "@mistralai/mistralai": "^1.10.0",
     "@modelcontextprotocol/sdk": "^1.20.1",
     "@neondatabase/serverless": "latest",
     "@prisma/client": "^5.6.0",

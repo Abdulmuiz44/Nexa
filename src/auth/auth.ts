@@ -1,7 +1,6 @@
 import type { NextAuthOptions } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials";
-import { supabaseServer } from "@/src/lib/supabaseServer"
-import { generateApiKey } from "@/lib/utils"
+import { supabaseAdmin } from "@/src/lib/supabaseAdmin"
 import bcrypt from 'bcryptjs';
 
 export const authOptions: NextAuthOptions = {
@@ -18,7 +17,7 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
-        const { data: user, error } = await supabaseServer
+        const { data: user, error } = await supabaseAdmin
           .from('users')
           .select('*')
           .eq('email', credentials.email)
@@ -58,7 +57,7 @@ export const authOptions: NextAuthOptions = {
         if (user) {
           const email = (user as any).email as string | undefined
           if (email) {
-            const { data: dbUser, error } = await supabaseServer
+            const { data: dbUser, error } = await supabaseAdmin
               .from('users')
               .select('id, api_key, plan, subscription_status, status')
               .eq('email', email)
@@ -78,7 +77,7 @@ export const authOptions: NextAuthOptions = {
 
         // For subsequent requests, if token is missing critical fields, refresh from DB using sub
         if ((!token.apiKey || !(token as any).userStatus) && token.sub) {
-          const { data: dbUser, error } = await supabaseServer
+          const { data: dbUser, error } = await supabaseAdmin
             .from('users')
             .select('id, api_key, plan, subscription_status, status')
             .eq('id', token.sub as string)
