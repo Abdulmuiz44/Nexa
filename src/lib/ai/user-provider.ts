@@ -1,7 +1,8 @@
 import { supabaseServer } from '@/src/lib/supabaseServer';
 import { decryptSecret } from '@/lib/crypto';
+import { callMistral } from './mistral-client';
 
-export type LLMSupportedProvider = 'novita' | 'openrouter' | 'groq' | 'openai' | 'gemini' | 'none';
+export type LLMSupportedProvider = 'novita' | 'openrouter' | 'groq' | 'openai' | 'gemini' | 'mistral' | 'none';
 
 const NOVITA_BASE_URL = process.env.NOVITA_BASE_URL || 'https://api.novita.ai/v3/openai';
 
@@ -113,6 +114,8 @@ export async function callUserLLM({ userId, payload }: CallLLMArgs): Promise<Pro
     case 'novita':
     case 'openrouter':
       return callNovita(apiKey, { ...payload, model });
+    case 'mistral':
+      return callMistral(apiKey, { ...payload, model });
     default:
       throw new Error(`Provider ${selectedProvider} is not wired yet.`);
   }

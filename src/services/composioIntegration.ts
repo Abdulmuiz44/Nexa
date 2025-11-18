@@ -1,6 +1,6 @@
 import { Composio } from '@composio/core';
 import { supabaseServer } from '@/src/lib/supabaseServer';
-import { openai } from '@/src/lib/ai/openai-client';
+import { callUserLLM } from '@/src/lib/ai/user-provider';
 
 interface ComposioConnectionConfig {
   userId: string;
@@ -389,16 +389,19 @@ Provide analysis in the following JSON format:
   "engagement_potential": 0-100
 }`;
 
-      const response = await openai.chat([
-        {
-          role: 'system',
-          content: 'You are an expert at analyzing social media content, particularly tweets. Provide detailed, actionable insights.',
-        },
-        {
-          role: 'user',
-          content: prompt,
-        },
-      ]);
+      const response = await this.callLLM(
+        [
+          {
+            role: 'system',
+            content: 'You are an expert at analyzing social media content, particularly tweets. Provide detailed, actionable insights.',
+          },
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        { temperature: 0.4, max_tokens: 200 }
+      );
 
       const analysis = JSON.parse(response.message || '{}');
       return analysis;
@@ -451,16 +454,19 @@ Provide a comprehensive pattern analysis in the following JSON format:
   "content_themes": ["main themes/topics user posts about"]
 }`;
 
-      const response = await openai.chat([
-        {
-          role: 'system',
-          content: 'You are an expert at analyzing social media patterns and providing actionable insights.',
-        },
-        {
-          role: 'user',
-          content: prompt,
-        },
-      ]);
+      const response = await this.callLLM(
+        [
+          {
+            role: 'system',
+            content: 'You are an expert at analyzing social media patterns and providing actionable insights.',
+          },
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        { temperature: 0.5, max_tokens: 400 }
+      );
 
       const patterns = JSON.parse(response.message || '{}');
       
@@ -493,16 +499,19 @@ ${context ? `Additional context: ${context}` : ''}
 
 Generate a tweet that matches this user's authentic style. Return only the tweet text, no additional formatting or explanation.`;
 
-      const response = await openai.chat([
-        {
-          role: 'system',
-          content: 'You are an expert at mimicking writing styles. Generate content that authentically matches the provided style.',
-        },
-        {
-          role: 'user',
-          content: prompt,
-        },
-      ]);
+      const response = await this.callLLM(
+        [
+          {
+            role: 'system',
+            content: 'You are an expert at mimicking writing styles. Generate content that authentically matches the provided style.',
+          },
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        { temperature: 0.8, max_tokens: 200 }
+      );
 
       return response.message || '';
     } catch (error) {
