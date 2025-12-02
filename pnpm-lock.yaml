@@ -14,9 +14,6 @@ importers:
       '@composio/core':
         specifier: ^0.2.4
         version: 0.2.4(ws@8.18.3(bufferutil@4.0.9))(zod@3.25.76)
-      '@google/generative-ai':
-        specifier: ^0.24.1
-        version: 0.24.1
       '@jest/globals':
         specifier: latest
         version: 30.2.0
@@ -224,9 +221,6 @@ importers:
       nodemailer:
         specifier: latest
         version: 7.0.9
-      openai:
-        specifier: latest
-        version: 6.5.0(ws@8.18.3(bufferutil@4.0.9))(zod@3.25.76)
       path:
         specifier: latest
         version: 0.12.7
@@ -907,10 +901,6 @@ packages:
 
   '@floating-ui/utils@0.2.10':
     resolution: {integrity: sha512-aGTxbpbg8/b5JfU1HXSrbH3wXZuLPJcNEcZQFMxLs3oSzgtVu6nFPkbbGGUvBcUjKV2YyB9Wxxabo+HEH9tcRQ==}
-
-  '@google/generative-ai@0.24.1':
-    resolution: {integrity: sha512-MqO+MLfM6kjxcKoy0p1wRzG3b4ZZXtPI+z2IE26UogS2Cm/XHO+7gGRBh6gcJsOiIVoH93UwKvW4HdgiOZCy9Q==}
-    engines: {node: '>=18.0.0'}
 
   '@humanwhocodes/config-array@0.13.0':
     resolution: {integrity: sha512-DZLEEqFWQFiyK6h5YIeynKx7JlvCYWL0cImfSRXZ9l4Sg2efkFGTuFf6vzXjK1cq6IYkU+Eg/JizXw+TD2vRNw==}
@@ -5241,18 +5231,6 @@ packages:
       zod:
         optional: true
 
-  openai@6.5.0:
-    resolution: {integrity: sha512-bNqJ15Ijbs41KuJ2iYz/mGAruFHzQQt7zXo4EvjNLoB64aJdgn1jlMeDTsXjEg+idVYafg57QB/5Rd16oqvZ6A==}
-    hasBin: true
-    peerDependencies:
-      ws: ^8.18.0
-      zod: ^3.25 || ^4.0
-    peerDependenciesMeta:
-      ws:
-        optional: true
-      zod:
-        optional: true
-
   openid-client@5.7.1:
     resolution: {integrity: sha512-jDBPgSVfTnkIh71Hg9pRvtJc6wTwqjRkN88+gCFtYWrlP4Yx2Dsrow8uPi3qLr/aeymPF3o2+dS+wOpglK04ew==}
 
@@ -7439,8 +7417,6 @@ snapshots:
       react-dom: 18.3.1(react@18.3.1)
 
   '@floating-ui/utils@0.2.10': {}
-
-  '@google/generative-ai@0.24.1': {}
 
   '@humanwhocodes/config-array@0.13.0':
     dependencies:
@@ -12628,11 +12604,6 @@ snapshots:
       mimic-function: 5.0.1
 
   openai@5.23.2(ws@8.18.3(bufferutil@4.0.9))(zod@3.25.76):
-    optionalDependencies:
-      ws: 8.18.3(bufferutil@4.0.9)
-      zod: 3.25.76
-
-  openai@6.5.0(ws@8.18.3(bufferutil@4.0.9))(zod@3.25.76):
     optionalDependencies:
       ws: 8.18.3(bufferutil@4.0.9)
       zod: 3.25.76
