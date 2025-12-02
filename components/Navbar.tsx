@@ -14,10 +14,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 
 const Navbar = () => {
   const { data: session, status } = useSession();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
     if (mobileMenuOpen) {
@@ -32,6 +34,8 @@ const Navbar = () => {
   }, [mobileMenuOpen]);
 
   const handleNavClick = () => setMobileMenuOpen(false);
+
+  const isActive = (path: string) => pathname === path;
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border">
@@ -48,23 +52,38 @@ const Navbar = () => {
 
         {/* Desktop Navigation */}
         <div className="hidden items-center gap-8 md:flex">
-        <Link href="#features" className="text-muted-foreground transition-colors hover:text-foreground">
-        Features
-        </Link>
-        <Link href="#how-it-works" className="text-muted-foreground transition-colors hover:text-foreground">
-          How It Works
-        </Link>
-        <Link href="/pricing" className="text-muted-foreground transition-colors hover:text-foreground">
-        Pricing
-        </Link>
-        <Link href="/docs" className="text-muted-foreground transition-colors hover:text-foreground">
-        Docs
-        </Link>
-        {status === "authenticated" && (
-          <Link href="/dashboard" className="text-muted-foreground hover:text-foreground transition-colors">
-            Dashboard
+          <Link
+            href="/#features"
+            className={`text-muted-foreground transition-colors hover:text-foreground ${isActive('/#features') ? 'text-foreground' : ''}`}
+          >
+            Features
           </Link>
-        )}
+          <Link
+            href="/#how-it-works"
+            className={`text-muted-foreground transition-colors hover:text-foreground ${isActive('/#how-it-works') ? 'text-foreground' : ''}`}
+          >
+            How It Works
+          </Link>
+          <Link
+            href="/pricing"
+            className={`text-muted-foreground transition-colors hover:text-foreground ${isActive('/pricing') ? 'text-foreground' : ''}`}
+          >
+            Pricing
+          </Link>
+          <Link
+            href="/docs"
+            className={`text-muted-foreground transition-colors hover:text-foreground ${isActive('/docs') ? 'text-foreground' : ''}`}
+          >
+            Docs
+          </Link>
+          {status === "authenticated" && (
+            <Link
+              href="/dashboard"
+              className={`text-muted-foreground hover:text-foreground transition-colors ${isActive('/dashboard') ? 'text-foreground' : ''}`}
+            >
+              Dashboard
+            </Link>
+          )}
         </div>
 
         {/* Mobile Menu Button */}
@@ -78,16 +97,16 @@ const Navbar = () => {
         </Button>
 
         <div className="hidden items-center gap-2 sm:gap-4 md:flex">
-        {status === "authenticated" ? (
-        <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative flex items-center gap-2 rounded-full px-3">
-        <Zap className="h-4 w-4 text-primary" />
-        <Avatar className="h-6 w-6">
-        <AvatarImage src={session.user?.image || "/placeholder-user.jpg"} alt={session.user?.name || ""} />
-          <AvatarFallback>{session.user?.name?.[0]}</AvatarFallback>
-          </Avatar>
-          </Button>
+          {status === "authenticated" ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative flex items-center gap-2 rounded-full px-3">
+                  <Zap className="h-4 w-4 text-primary" />
+                  <Avatar className="h-6 w-6">
+                    <AvatarImage src={session.user?.image || "/placeholder-user.jpg"} alt={session.user?.name || ""} />
+                    <AvatarFallback>{session.user?.name?.[0]}</AvatarFallback>
+                  </Avatar>
+                </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-56" align="end" forceMount>
                 <DropdownMenuLabel className="font-normal">
@@ -107,10 +126,10 @@ const Navbar = () => {
           ) : (
             <>
               <Button variant="ghost" asChild>
-              <Link href="/auth/login">Sign In</Link>
+                <Link href="/auth/login">Sign In</Link>
               </Button>
               <Button variant="hero" asChild>
-              <Link href="/auth/signup">Get Started</Link>
+                <Link href="/auth/signup">Get Started</Link>
               </Button>
             </>
           )}
@@ -121,26 +140,26 @@ const Navbar = () => {
       {mobileMenuOpen && (
         <div className="md:hidden bg-background/95 backdrop-blur-xl border-t border-border">
           <div className="container mx-auto space-y-4 px-4 py-4 sm:px-6">
-          <Link
-          href="#features"
-          className="block rounded-lg px-2 py-3 text-base font-medium text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
-          onClick={handleNavClick}
-          >
-          Features
-          </Link>
             <Link
-              href="#how-it-works"
+              href="/#features"
+              className="block rounded-lg px-2 py-3 text-base font-medium text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
+              onClick={handleNavClick}
+            >
+              Features
+            </Link>
+            <Link
+              href="/#how-it-works"
               className="block rounded-lg px-2 py-3 text-base font-medium text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
               onClick={handleNavClick}
             >
               How It Works
             </Link>
             <Link
-            href="/pricing"
-            className="block rounded-lg px-2 py-3 text-base font-medium text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
-            onClick={handleNavClick}
+              href="/pricing"
+              className="block rounded-lg px-2 py-3 text-base font-medium text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
+              onClick={handleNavClick}
             >
-            Pricing
+              Pricing
             </Link>
             <Link
               href="/docs"
@@ -152,11 +171,11 @@ const Navbar = () => {
             {status === "authenticated" && (
               <Link
                 href="/dashboard"
-              className="block rounded-lg px-2 py-3 text-base font-medium text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
-              onClick={handleNavClick}
-            >
+                className="block rounded-lg px-2 py-3 text-base font-medium text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
+                onClick={handleNavClick}
+              >
                 Dashboard
-            </Link>
+              </Link>
             )}
             <div className="pt-4 border-t border-border">
               {status === "authenticated" ? (
@@ -173,10 +192,10 @@ const Navbar = () => {
               ) : (
                 <div className="space-y-2">
                   <Button variant="ghost" asChild className="w-full justify-start">
-                  <Link href="/auth/login" onClick={handleNavClick}>Sign In</Link>
+                    <Link href="/auth/login" onClick={handleNavClick}>Sign In</Link>
                   </Button>
                   <Button variant="hero" asChild className="w-full">
-                  <Link href="/auth/signup" onClick={handleNavClick}>Get Started</Link>
+                    <Link href="/auth/signup" onClick={handleNavClick}>Get Started</Link>
                   </Button>
                 </div>
               )}

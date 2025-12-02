@@ -1,7 +1,8 @@
 import { ComposioIntegrationService } from './composioIntegration';
 import { EngagementSuiteService } from '@/src/lib/services/engagementSuiteService';
 import { supabaseServer } from '@/src/lib/supabaseServer';
-import { openaiClient } from '@/lib/openaiClient';
+import { callUserLLM } from '@/src/lib/ai/user-provider';
+import { recordOpenAIUsage } from '@/lib/utils/credits';
 
 interface AutonomousAgentConfig {
   userId: string;
@@ -213,9 +214,8 @@ export class AutonomousAgent {
         "subreddit": "suggested subreddit name (without r/)"
       }`;
 
-      const response = await openaiClient.chat.completions.create({
-        model: 'gpt-4',
-        messages: [
+      const response = await this.callAutonomousLLM(
+        [
           {
             role: 'system',
             content: 'You are an expert at creating engaging Reddit posts. Generate content that fits the platform culture.',
@@ -225,11 +225,11 @@ export class AutonomousAgent {
             content: prompt,
           },
         ],
-        temperature: 0.7,
-        response_format: { type: 'json_object' },
-      });
+        { temperature: 0.7, max_tokens: 400 },
+        'autonomous_reddit'
+      );
 
-      const postData = JSON.parse(response.choices[0].message.content || '{}');
+      const postData = JSON.parse(response.message || '{}');
 
       // Post to Reddit
       const result = await this.composioService.postToReddit({
@@ -288,6 +288,34 @@ export class AutonomousAgent {
     }
   }
 
+  private async callAutonomousLLM(
+    messages: { role: 'system' | 'user' | 'assistant' | 'tool'; content: string; tool_calls?: unknown[] }[],
+    options?: { temperature?: number; max_tokens?: number },
+    endpoint: string = 'autonomous_ai'
+  ) {
+    const aiResponse = await callUserLLM({
+      userId: this.config.userId,
+      payload: {
+        model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+        messages,
+        temperature: options?.temperature,
+        max_tokens: options?.max_tokens,
+      },
+    });
+
+    try {
+      const usage = aiResponse.usage || {};
+      const total = Number(usage.total_tokens ?? usage.totalTokens ?? 0);
+      if (total > 0) {
+        await recordOpenAIUsage(this.config.userId, { total_tokens: total }, { model: process.env.OPENAI_MODEL || 'gpt-4o-mini', endpoint });
+      }
+    } catch (error) {
+      console.error(`Autonomous LLM credit deduction (${endpoint}) error:`, error);
+    }
+
+    return aiResponse;
+  }
+
   /**
    * Find engagement opportunities from user's feed
    */
@@ -335,9 +363,8 @@ Provide analysis in JSON format:
   "reasoning": "why this engagement makes sense"
 }`;
 
-    const response = await openaiClient.chat.completions.create({
-      model: 'gpt-4',
-      messages: [
+    const response = await this.callAutonomousLLM(
+      [
         {
           role: 'system',
           content: 'You are an expert at social media engagement strategy. Determine optimal engagement approaches.',
@@ -347,11 +374,11 @@ Provide analysis in JSON format:
           content: prompt,
         },
       ],
-      temperature: 0.3,
-      response_format: { type: 'json_object' },
-    });
+      { temperature: 0.3, max_tokens: 350 },
+      'autonomous_engagement'
+    );
 
-    const analysis = JSON.parse(response.choices[0].message.content || '{}');
+    const analysis = JSON.parse(response.message || '{}');
 
     return {
       tweetId: tweet.id,

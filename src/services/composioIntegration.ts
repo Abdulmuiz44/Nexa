@@ -523,7 +523,7 @@ Generate a tweet that matches this user's authentic style. Return only the tweet
   /**
    * Auto-engage with relevant tweets (like, retweet, reply)
    */
-  async autoEngageWithTweet(
+  private async autoEngageWithTweet(
     tweetId: string,
     engagementType: 'like' | 'retweet' | 'reply',
     replyContent?: string
@@ -569,6 +569,21 @@ Generate a tweet that matches this user's authentic style. Return only the tweet
       console.error(`Error ${engagementType} tweet:`, error);
       return { success: false, error: error.message };
     }
+  }
+
+  private async callLLM(
+    messages: { role: 'system' | 'user' | 'assistant' | 'tool'; content: string; tool_calls?: unknown[] }[],
+    options?: { temperature?: number; max_tokens?: number }
+  ) {
+    return callUserLLM({
+      userId: this.userId,
+      payload: {
+        model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+        messages,
+        temperature: options?.temperature,
+        max_tokens: options?.max_tokens,
+      },
+    });
   }
 
   /**

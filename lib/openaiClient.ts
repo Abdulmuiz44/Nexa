@@ -1,22 +1,26 @@
-import OpenAI from 'openai'
+import { Mistral } from '@mistralai/mistralai'
 
-let openaiClientInstance: OpenAI | null = null
+let mistralClientInstance: Mistral | null = null
 
-function getOpenAIClient(): OpenAI {
-  if (openaiClientInstance) {
-    return openaiClientInstance
+function getMistralClient(): Mistral {
+  if (mistralClientInstance) {
+    return mistralClientInstance
   }
 
-  openaiClientInstance = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY || '',
+  mistralClientInstance = new Mistral({
+    apiKey: process.env.MISTRAL_API_KEY || '',
   })
-  return openaiClientInstance
+  return mistralClientInstance
 }
 
 // Export a proxy that lazily creates the client
-export const openaiClient = new Proxy({} as OpenAI, {
+export const mistralClient = new Proxy({} as Mistral, {
   get(_target, prop) {
-    const client = getOpenAIClient()
+    const client = getMistralClient()
     return (client as any)[prop]
   }
 })
+
+// Keep old export name for compatibility during migration
+export const openaiClient = mistralClient
+

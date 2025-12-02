@@ -1,4 +1,4 @@
-import OpenAI from 'openai';
+import { Mistral } from '@mistralai/mistralai';
 
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant';
@@ -10,52 +10,51 @@ export interface ChatResponse {
   tokensUsed?: number;
 }
 
-export class OpenAIClient {
-  private client: OpenAI;
-  private model = 'gpt-4';
+export class MistralClient {
+  private client: Mistral;
+  private model = 'mistral-large-latest';
 
   constructor() {
-    const apiKey = process.env.OPENAI_API_KEY;
+    const apiKey = process.env.MISTRAL_API_KEY;
     if (!apiKey) {
-      throw new Error('OPENAI_API_KEY environment variable is required');
+      throw new Error('MISTRAL_API_KEY environment variable is required');
     }
 
-    this.client = new OpenAI({
-      apiKey,
+    this.client = new Mistral({
+      apiKey: apiKey,
     });
   }
 
   async chat(messages: ChatMessage[]): Promise<ChatResponse> {
     try {
-      const response = await this.client.chat.completions.create({
+      const response = await this.client.chat.complete({
         model: this.model,
-        messages,
-        max_tokens: 2000,
+        messages: messages,
         temperature: 0.7,
       });
 
-      const message = response.choices[0]?.message?.content || '';
-      const tokensUsed = response.usage?.total_tokens;
+      const message = response.choices?.[0]?.message?.content || '';
+      const tokensUsed = response.usage?.totalTokens;
 
       return {
-        message,
+        message: typeof message === 'string' ? message : JSON.stringify(message),
         tokensUsed,
       };
     } catch (error: any) {
-      console.error('OpenAI API error:', error);
+      console.error('Mistral API error:', error);
 
       // Handle specific error types
       if (error?.status === 429) {
-        throw new Error('OpenAI rate limit exceeded. Please try again later.');
+        throw new Error('Mistral rate limit exceeded. Please try again later.');
       }
       if (error?.status === 401) {
-        throw new Error('OpenAI authentication failed. Check your API key.');
+        throw new Error('Mistral authentication failed. Check your API key.');
       }
       if (error?.status === 400) {
-        throw new Error('OpenAI request error. Please check your input.');
+        throw new Error('Mistral request error. Please check your input.');
       }
 
-      throw new Error(`OpenAI API error: ${error?.message || 'Unknown error'}`);
+      throw new Error(`Mistral API error: ${error?.message || 'Unknown error'}`);
     }
   }
 
@@ -91,7 +90,7 @@ export class OpenAIClient {
 
   // Get available models
   getAvailableModels(): string[] {
-    return ['gpt-4', 'gpt-3.5-turbo'];
+    return ['mistral-large-latest', 'mistral-small-latest', 'mistral-medium-latest'];
   }
 
   // Switch model
@@ -105,4 +104,7 @@ export class OpenAIClient {
 }
 
 // Export a singleton instance for backward compatibility
-export const openai = new OpenAIClient();
+export const mistral = new MistralClient();
+// Keep old export name for compatibility during migration
+export const openai = mistral;
+

@@ -116,7 +116,7 @@ Generate content that aligns with the brand voice and achieves the specified goa
     const hashtags = content.match(hashtagRegex) || [];
 
     // Remove hashtags from content for clean text
-    let cleanContent = content.replace(hashtagRegex, '').trim();
+    const cleanContent = content.replace(hashtagRegex, '').trim();
 
     // Add call-to-action if not present
     let callToAction = '';

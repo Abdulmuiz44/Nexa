@@ -1,5 +1,5 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import OpenAI from 'openai';
+import { callUserLLM } from '@/src/lib/ai/user-provider';
 import { Experiment, ExperimentVariantStats, ExperimentResults } from '@/types/features';
 
 let cachedSupabase: SupabaseClient | null | undefined = undefined;
@@ -23,8 +23,6 @@ function getSupabaseClient(): SupabaseClient {
   cachedSupabase = createClient(supabaseUrl, supabaseKey);
   return cachedSupabase;
 }
-
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
 
 export class ExperimentsService {
   /**
@@ -123,27 +121,31 @@ export class ExperimentsService {
   /**
    * Generate hook variants using AI
    */
-  private static async generateHookVariants(topic: string, count: number): Promise<string[]> {
+  private static async generateHookVariants(userId: string, topic: string, count: number): Promise<string[]> {
     try {
-      const response = await openai.chat.completions.create({
-        model: 'gpt-4',
-        messages: [
-          {
-            role: 'system',
-            content: 'Generate engaging hook phrases for social media posts. Each hook should be attention-grabbing and under 40 characters.'
-          },
-          {
-            role: 'user',
-            content: `Topic: ${topic}\n\nGenerate ${count} different hook variations. List them one per line.`
-          }
-        ],
-        temperature: 0.9,
-        max_tokens: 200,
+      const aiResponse = await callUserLLM({
+        userId,
+        payload: {
+          model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+          messages: [
+            {
+              role: 'system',
+              content: 'Generate engaging hook phrases for social media posts. Each hook should be attention-grabbing and under 40 characters.',
+            },
+            {
+              role: 'user',
+              content: `Topic: ${topic}\n\nGenerate ${count} different hook variations. List them one per line.`,
+            },
+          ],
+          temperature: 0.9,
+          max_tokens: 200,
+        },
       });
 
-      const hooks = response.choices[0]?.message?.content?.split('\n')
+      const hooks = aiResponse.message
+        .split('\n')
         .map(h => h.trim().replace(/^[-•*\d.)\]]\s*/, ''))
-        .filter(h => h.length > 0) || [];
+        .filter(h => h.length > 0);
 
       return hooks.slice(0, count);
     } catch (error) {

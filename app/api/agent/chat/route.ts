@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import OpenAI from 'openai';
 import { supabaseServer } from '@/src/lib/supabaseServer';
+import { callUserLLM } from '@/src/lib/ai/user-provider';
 
 export async function POST(req: Request) {
   try {
@@ -16,11 +16,6 @@ export async function POST(req: Request) {
     if (!message || typeof message !== 'string') {
       return NextResponse.json({ error: 'Message is required' }, { status: 400 });
     }
-
-    // Initialize OpenAI
-    const openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-    });
 
     // Get user onboarding data for context
     const { data: userData } = await supabaseServer
@@ -62,25 +57,25 @@ For content creation, match the user's brand tone and business type. Be creative
       return NextResponse.json({ error: 'Insufficient credits. Please top up.' }, { status: 402 });
     }
 
-    // Use OpenAI to process the message and determine if action is needed
-    const completion = await openai.chat.completions.create({
-      model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: message }
-      ],
-      temperature: 0.7,
-      max_tokens: 1000,
+    const aiResponse = await callUserLLM({
+      userId: session.user.id,
+      payload: {
+        model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: message }
+        ],
+        temperature: 0.7,
+        max_tokens: 1000,
+      }
     });
-
-    const aiResponse = completion.choices[0]?.message?.content || 'I apologize, but I couldn\'t process your request properly.';
 
     // Deduct credits based on tokens
     try {
-      const usage = (completion as any).usage || {};
-      const total = Number(usage.total_tokens || 0);
+      const usage = aiResponse.usage || {};
+      const total = Number(usage.total_tokens ?? usage.totalTokens ?? 0);
       if (total > 0) {
-        await recordOpenAIUsage(session.user.id, { total_tokens: total }, { model: process.env.OPENAI_MODEL || 'gpt-4o-mini', response_ids: [(completion as any).id], endpoint: 'agent_chat_api' });
+        await recordOpenAIUsage(session.user.id, { total_tokens: total }, { model: process.env.OPENAI_MODEL || 'gpt-4o-mini', endpoint: 'agent_chat_api' });
       }
     } catch (e) {
       console.error('credit deduction (agent chat) error', e);

@@ -1,5 +1,4 @@
 import { createClient } from '@supabase/supabase-js';
-import OpenAI from 'openai';
 import { PerformanceInsight, ContentPerformanceMetrics, PerformanceDashboardData } from '@/types/features';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -14,20 +13,6 @@ if (supabaseUrl && supabaseKey) {
     get(_target, prop) {
       return () => {
         throw new Error('Supabase not configured - missing environment variables');
-      };
-    },
-  });
-}
-
-let openai: any = null;
-if (process.env.OPENAI_API_KEY) {
-  openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-} else {
-  console.warn('OpenAI API key not set - PerformanceIntelligenceService AI features will not function');
-  openai = new Proxy({}, {
-    get(_target, prop) {
-      return () => {
-        throw new Error('OpenAI not configured - missing API key');
       };
     },
   });

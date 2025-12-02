@@ -3,14 +3,10 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { crawlContext } from '@/utils/crawler';
 import { supabaseServer } from '@/src/lib/supabaseServer';
-import OpenAI from 'openai';
+import { callUserLLM } from '@/src/lib/ai/user-provider';
 
 export async function POST(req: Request) {
   try {
-    const openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-    });
-
     const session = await getServerSession(authOptions);
 
     if (!session || !session.user) {
@@ -63,19 +59,24 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Insufficient credits. Please top up.' }, { status: 402 });
     }
 
-    const completion = await openai.chat.completions.create({
-      model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
-      messages: [{ role: 'user', content: prompt }],
+    const aiResponse = await callUserLLM({
+      userId,
+      payload: {
+        model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.7,
+        max_tokens: 800,
+      },
     });
 
-    const content = completion.choices[0]?.message?.content?.trim();
+    const content = aiResponse.message?.trim();
 
     // Deduct credits based on tokens
     try {
-      const usage = (completion as any).usage || {};
-      const total = Number(usage.total_tokens || 0);
+      const usage = aiResponse.usage || {};
+      const total = Number(usage.total_tokens ?? usage.totalTokens ?? 0);
       if (total > 0) {
-        await recordOpenAIUsage(userId, { total_tokens: total }, { model: process.env.OPENAI_MODEL || 'gpt-4o-mini', response_ids: [(completion as any).id], endpoint: 'generate_api' });
+        await recordOpenAIUsage(userId, { total_tokens: total }, { model: process.env.OPENAI_MODEL || 'gpt-4o-mini', endpoint: 'generate_api' });
       }
     } catch (e) {
       console.error('credit deduction (generate) error', e);
