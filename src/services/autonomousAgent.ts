@@ -2,7 +2,7 @@ import { ComposioIntegrationService } from './composioIntegration';
 import { EngagementSuiteService } from '@/src/lib/services/engagementSuiteService';
 import { supabaseServer } from '@/src/lib/supabaseServer';
 import { callUserLLM } from '@/src/lib/ai/user-provider';
-import { recordOpenAIUsage } from '@/lib/utils/credits';
+import { recordAIUsage } from '@/lib/utils/credits';
 
 interface AutonomousAgentConfig {
   userId: string;
@@ -95,7 +95,7 @@ export class AutonomousAgent {
     while (this.isRunning) {
       try {
         const shouldPost = await this.shouldPostNow();
-        
+
         if (shouldPost) {
           await this.generateAndPost();
         }
@@ -204,7 +204,7 @@ export class AutonomousAgent {
     try {
       // Generate Reddit post content
       const topic = this.config.contentTopics[Math.floor(Math.random() * this.config.contentTopics.length)];
-      
+
       const prompt = `Generate a Reddit post about "${topic}" for the audience: ${this.config.targetAudience}. 
       
       Provide a JSON response with:
@@ -307,7 +307,7 @@ export class AutonomousAgent {
       const usage = aiResponse.usage || {};
       const total = Number(usage.total_tokens ?? usage.totalTokens ?? 0);
       if (total > 0) {
-        await recordOpenAIUsage(this.config.userId, { total_tokens: total }, { model: process.env.OPENAI_MODEL || 'gpt-4o-mini', endpoint });
+        await recordAIUsage(this.config.userId, { total_tokens: total }, { model: process.env.OPENAI_MODEL || 'gpt-4o-mini', endpoint });
       }
     } catch (error) {
       console.error(`Autonomous LLM credit deduction (${endpoint}) error:`, error);

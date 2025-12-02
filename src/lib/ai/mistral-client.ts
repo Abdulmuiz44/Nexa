@@ -49,7 +49,7 @@ export class MistralClient {
         message: typeof message === 'string' ? message : JSON.stringify(message),
         tokensUsed,
         model: response.model,
-        tool_calls: toolCalls,
+        tool_calls: toolCalls || undefined,
         usage: {
           total_tokens: response.usage?.totalTokens,
           prompt_tokens: response.usage?.promptTokens,

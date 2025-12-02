@@ -53,7 +53,7 @@ export async function POST(req: Request) {
     `;
 
     // Pre-check wallet
-    const { getCreditBalance, recordOpenAIUsage } = await import('@/lib/utils/credits');
+    const { getCreditBalance, recordAIUsage } = await import('@/lib/utils/credits');
     const preBalance = await getCreditBalance(userId);
     if (preBalance <= 0) {
       return NextResponse.json({ error: 'Insufficient credits. Please top up.' }, { status: 402 });
@@ -76,7 +76,7 @@ export async function POST(req: Request) {
       const usage = aiResponse.usage || {};
       const total = Number(usage.total_tokens ?? usage.totalTokens ?? 0);
       if (total > 0) {
-        await recordOpenAIUsage(userId, { total_tokens: total }, { model: process.env.OPENAI_MODEL || 'gpt-4o-mini', endpoint: 'generate_api' });
+        await recordAIUsage(userId, { total_tokens: total }, { model: process.env.OPENAI_MODEL || 'gpt-4o-mini', endpoint: 'generate_api' });
       }
     } catch (e) {
       console.error('credit deduction (generate) error', e);

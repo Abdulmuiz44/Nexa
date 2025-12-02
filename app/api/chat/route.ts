@@ -385,7 +385,7 @@ If accounts aren't connected, inform the user they need to connect via the dashb
     let toolCalls: any[] | undefined = undefined;
     let totalTokensUsed = 0;
 
-    const { getCreditBalance, recordOpenAIUsage } = await import('@/lib/utils/credits');
+    const { getCreditBalance, recordAIUsage } = await import('@/lib/utils/credits');
     const preBalance = await getCreditBalance(session.user.id);
     if (preBalance <= 0) {
       return NextResponse.json({ error: 'Insufficient credits. Please top up.' }, { status: 402 });
@@ -513,7 +513,7 @@ If accounts aren't connected, inform the user they need to connect via the dashb
 
     try {
       if (totalTokensUsed > 0) {
-        await recordOpenAIUsage(session.user.id,
+        await recordAIUsage(session.user.id,
           { total_tokens: totalTokensUsed },
           {
             model: process.env.OPENAI_MODEL || 'gpt-4o-mini',

@@ -1,8 +1,7 @@
-import { OpenAIClient } from '../ai/openai-client';
-import { GeminiClient } from '../ai/gemini-client';
+import { mistral, MistralClient } from '../ai/mistral-client';
 import { SupabaseAdapter } from '../db/supabase-adapter';
 
-export type AIModel = 'openai' | 'gemini';
+export type AIModel = 'mistral';
 export type Platform = 'twitter' | 'reddit';
 export type Tone = 'casual' | 'professional' | 'educational' | 'promotional';
 
@@ -64,14 +63,12 @@ export interface CampaignCreationParams {
 }
 
 export class NexaAgentCore {
-  private openai: OpenAIClient;
-  private gemini: GeminiClient;
+  private mistral: MistralClient;
   private db: SupabaseAdapter;
   private maxRetries = 3;
 
   constructor() {
-    this.openai = new OpenAIClient();
-    this.gemini = new GeminiClient();
+    this.mistral = mistral;
     this.db = new SupabaseAdapter();
   }
 
@@ -89,14 +86,8 @@ export class NexaAgentCore {
       // Build the prompt with context
       const prompt = this.buildPrompt(message, context, history);
 
-      // Try OpenAI first, fallback to Gemini
-      let response: NexaResponse;
-      try {
-        response = await this.callAI(prompt, 'openai');
-      } catch (error) {
-        console.warn('OpenAI failed, falling back to Gemini:', error);
-        response = await this.callAI(prompt, 'gemini');
-      }
+      // Call Mistral
+      const response = await this.callAI(prompt, 'mistral');
 
       // Parse and validate the response
       const parsedResponse = this.parseAndValidateResponse(response);
@@ -111,7 +102,7 @@ export class NexaAgentCore {
         message: "I'm sorry, I encountered an error processing your request. Please try again.",
         actions: [],
         metadata: {
-          modelUsed: 'openai',
+          modelUsed: 'mistral',
           confidence: 0
         }
       };
@@ -157,7 +148,7 @@ export class NexaAgentCore {
       const contents = [];
       for (let i = 0; i < variations; i++) {
         const variationPrompt = `${contentPrompt}\n\nVariation ${i + 1}:`;
-        const content = await this.callAI(variationPrompt, 'openai', true);
+        const content = await this.callAI(variationPrompt, 'mistral', true);
 
         // Post-process for platform rules
         const processedContent = this.postProcessContent(content.message, platform, params);
@@ -374,8 +365,6 @@ export class NexaAgentCore {
     model: AIModel,
     isContentGeneration = false
   ): Promise<NexaResponse> {
-    const client = model === 'openai' ? this.openai : this.gemini;
-
     const systemPrompt = isContentGeneration ?
       'You are a social media content expert. Generate engaging content based on the user\'s request.' :
       `You are Nexa, an AI growth agent that helps users promote their AI tools on Twitter and Reddit.
@@ -390,11 +379,11 @@ You can perform these actions:
 Always respond with a helpful message and optionally suggest actions using the tool format.`;
 
     const messages = [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: prompt }
+      { role: 'system' as const, content: systemPrompt },
+      { role: 'user' as const, content: prompt }
     ];
 
-    const response = await client.chat(messages);
+    const response = await this.mistral.chat(messages);
 
     return {
       message: response.message,

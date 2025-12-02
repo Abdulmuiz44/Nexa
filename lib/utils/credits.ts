@@ -69,10 +69,10 @@ export async function spendCredits(userId: string, amountCredits: number, descri
   return { success: !!row?.success, new_balance: Number(row?.new_balance ?? 0) }
 }
 
-export async function recordOpenAIUsage(userId: string, usage: { total_tokens?: number, prompt_tokens?: number, completion_tokens?: number }, meta: Record<string, any> = {}) {
+export async function recordAIUsage(userId: string, usage: { total_tokens?: number, prompt_tokens?: number, completion_tokens?: number }, meta: Record<string, any> = {}) {
   const total = Number(usage?.total_tokens || 0)
   if (!total || total <= 0) return { deducted: 0, balance: await getCreditBalance(userId) }
   const credits = tokensToCredits(total)
-  const res = await spendCredits(userId, credits, 'openai_usage', null, { ...meta, total_tokens: total })
+  const res = await spendCredits(userId, credits, 'ai_usage', null, { ...meta, total_tokens: total })
   return { deducted: credits, balance: res.new_balance, success: res.success }
 }
