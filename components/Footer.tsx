@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Zap } from "lucide-react";
+import Image from "next/image";
 import NewsletterForm from "@/components/NewsletterForm";
 
 const Footer = () => {
@@ -45,7 +45,9 @@ const Footer = () => {
           <div className="lg:col-span-2">
             <Link href="/" className="inline-flex items-center gap-2 group mb-4">
               <div className="relative">
-                <Zap className="h-8 w-8 text-primary transition-colors group-hover:text-accent" />
+                <div className="relative h-8 w-8">
+                  <Image src="/NEXA-LOGO-ONLY.png" alt="Nexa Logo" fill className="object-contain" />
+                </div>
                 <div className="absolute inset-0 blur-xl bg-primary/30 transition-colors group-hover:bg-accent/30" />
               </div>
               <span className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">

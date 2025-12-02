@@ -1,8 +1,9 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Zap, Menu, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { useSession, signOut } from "next-auth/react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -41,9 +42,8 @@ const Navbar = () => {
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border">
       <div className="container mx-auto flex items-center justify-between px-4 py-3 sm:px-6">
         <Link href="/" className="flex items-center gap-2 group">
-          <div className="relative">
-            <Zap className="h-8 w-8 text-primary group-hover:text-accent transition-colors" />
-            <div className="absolute inset-0 blur-xl bg-primary/30 group-hover:bg-accent/30 transition-colors" />
+          <div className="relative h-8 w-8">
+            <Image src="/NEXA-LOGO-ONLY.png" alt="Nexa Logo" fill className="object-contain" />
           </div>
           <span className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
             Nexa
@@ -101,7 +101,9 @@ const Navbar = () => {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative flex items-center gap-2 rounded-full px-3">
-                  <Zap className="h-4 w-4 text-primary" />
+                  <div className="relative h-4 w-4">
+                    <Image src="/NEXA-LOGO-ONLY.png" alt="Nexa" fill className="object-contain" />
+                  </div>
                   <Avatar className="h-6 w-6">
                     <AvatarImage src={session.user?.image || "/placeholder-user.jpg"} alt={session.user?.name || ""} />
                     <AvatarFallback>{session.user?.name?.[0]}</AvatarFallback>
