@@ -50,8 +50,9 @@ export default function AgentChat() {
     setIsLoading(true);
 
     try {
-      // TODO: Replace with actual agent chat API
-      const response = await fetch('/api/agent/chat', {
+      // Use demo endpoint for unauthenticated users, full endpoint for authenticated users
+      const endpoint = session?.user?.id ? '/api/agent/chat' : '/api/demo/chat';
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -102,34 +103,31 @@ export default function AgentChat() {
   };
 
   return (
-      <Card className="flex h-[70vh] flex-col rounded-3xl border-border/60 bg-card/40 backdrop-blur md:h-[560px]">
+    <Card className="flex h-[70vh] flex-col rounded-3xl border-border/60 bg-card/40 backdrop-blur md:h-[560px]">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Bot className="h-5 w-5" />
           Nexa AI Agent
         </CardTitle>
       </CardHeader>
-        <CardContent className="flex-1 flex flex-col gap-4 p-4 sm:p-6">
-          <ScrollArea className="flex-1 pr-2 sm:pr-4" ref={scrollAreaRef}>
+      <CardContent className="flex-1 flex flex-col gap-4 p-4 sm:p-6">
+        <ScrollArea className="flex-1 pr-2 sm:pr-4" ref={scrollAreaRef}>
           <div className="space-y-4">
             {messages.map((message) => (
               <div
                 key={message.id}
-                className={`flex gap-3 ${
-                  message.role === 'user' ? 'justify-end' : 'justify-start'
-                }`}
+                className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'
+                  }`}
               >
                 <div
-                  className={`flex gap-2 max-w-[80%] ${
-                    message.role === 'user' ? 'flex-row-reverse' : 'flex-row'
-                  }`}
+                  className={`flex gap-2 max-w-[80%] ${message.role === 'user' ? 'flex-row-reverse' : 'flex-row'
+                    }`}
                 >
                   <div
-                    className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-                      message.role === 'user'
+                    className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${message.role === 'user'
                         ? 'bg-primary text-primary-foreground'
                         : 'bg-muted'
-                    }`}
+                      }`}
                   >
                     {message.role === 'user' ? (
                       <User className="h-4 w-4" />
@@ -138,11 +136,10 @@ export default function AgentChat() {
                     )}
                   </div>
                   <div
-                    className={`rounded-lg px-3 py-2 ${
-                      message.role === 'user'
+                    className={`rounded-lg px-3 py-2 ${message.role === 'user'
                         ? 'bg-primary text-primary-foreground'
                         : 'bg-muted'
-                    }`}
+                      }`}
                   >
                     <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                     <p className="text-xs opacity-70 mt-1" suppressHydrationWarning>
