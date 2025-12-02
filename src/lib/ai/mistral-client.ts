@@ -1,44 +1,60 @@
 import { Mistral } from '@mistralai/mistralai';
 
 export interface ChatMessage {
-  role: 'system' | 'user' | 'assistant';
+  role: 'system' | 'user' | 'assistant' | 'tool';
   content: string;
+  tool_calls?: any[];
 }
 
 export interface ChatResponse {
   message: string;
   tokensUsed?: number;
+  model?: string;
+  tool_calls?: any[];
+  usage?: { total_tokens?: number; prompt_tokens?: number; completion_tokens?: number };
 }
 
 export class MistralClient {
   private client: Mistral;
   private model = 'mistral-large-latest';
 
-  constructor() {
-    const apiKey = process.env.MISTRAL_API_KEY;
-    if (!apiKey) {
+  constructor(apiKey?: string) {
+    const key = apiKey || process.env.MISTRAL_API_KEY;
+    if (!key) {
       throw new Error('MISTRAL_API_KEY environment variable is required');
     }
 
     this.client = new Mistral({
-      apiKey: apiKey,
+      apiKey: key,
     });
   }
 
-  async chat(messages: ChatMessage[]): Promise<ChatResponse> {
+  async chat(messages: ChatMessage[], options?: { model?: string; temperature?: number; max_tokens?: number; tools?: any[]; toolChoice?: any }): Promise<ChatResponse> {
     try {
       const response = await this.client.chat.complete({
-        model: this.model,
-        messages: messages,
-        temperature: 0.7,
+        model: options?.model || this.model,
+        messages: messages as any,
+        temperature: options?.temperature || 0.7,
+        maxTokens: options?.max_tokens,
+        tools: options?.tools,
+        toolChoice: options?.toolChoice,
       });
 
-      const message = response.choices?.[0]?.message?.content || '';
+      const choice = response.choices?.[0];
+      const message = choice?.message?.content || '';
+      const toolCalls = choice?.message?.toolCalls;
       const tokensUsed = response.usage?.totalTokens;
 
       return {
         message: typeof message === 'string' ? message : JSON.stringify(message),
         tokensUsed,
+        model: response.model,
+        tool_calls: toolCalls,
+        usage: {
+          total_tokens: response.usage?.totalTokens,
+          prompt_tokens: response.usage?.promptTokens,
+          completion_tokens: response.usage?.completionTokens
+        }
       };
     } catch (error: any) {
       console.error('Mistral API error:', error);
@@ -93,3 +109,20 @@ export class MistralClient {
 
 // Export a singleton instance
 export const mistral = new MistralClient();
+
+// Export standalone function for user-provider compatibility
+export async function callMistral(apiKey: string, payload: any): Promise<ChatResponse> {
+  const client = new MistralClient(apiKey);
+
+  // Map payload to chat options
+  const messages = payload.messages;
+  const options = {
+    model: payload.model,
+    temperature: payload.temperature,
+    max_tokens: payload.max_tokens,
+    tools: payload.functions || payload.tools, // Handle both function calling styles if needed
+    toolChoice: payload.tool_choice
+  };
+
+  return client.chat(messages, options);
+}

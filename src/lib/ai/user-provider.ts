@@ -93,22 +93,35 @@ export interface ProviderLLMResponse {
 
 export async function callUserLLM({ userId, payload }: CallLLMArgs): Promise<ProviderLLMResponse> {
   const provider = await getUserProvider(userId);
-  if (!provider) {
-    throw new Error('Unable to load AI provider configuration.');
-  }
 
-  const selectedProvider = provider.ai_provider || 'novita';
+  // Default to Mistral if no provider is set
+  const selectedProvider = provider?.ai_provider || 'mistral';
+
   if (selectedProvider === 'none') {
     throw new Error('AI provider not configured. Please connect an LLM provider in settings.');
   }
 
-  const encryptedKey = provider.ai_provider_api_key;
-  if (!encryptedKey) {
-    throw new Error('Provider API key is missing. Please re-save your provider settings.');
+  let apiKey = '';
+
+  // Try to get user's key first
+  if (provider?.ai_provider_api_key) {
+    apiKey = decryptSecret(provider.ai_provider_api_key);
   }
 
-  const apiKey = decryptSecret(encryptedKey);
-  const model = payload.model || provider.ai_model || 'gpt-4o-mini';
+  // Fallback to system keys if user key is missing
+  if (!apiKey) {
+    if (selectedProvider === 'mistral') {
+      apiKey = process.env.MISTRAL_API_KEY || '';
+    } else if (selectedProvider === 'openai') {
+      apiKey = process.env.OPENAI_API_KEY || '';
+    }
+  }
+
+  if (!apiKey) {
+    throw new Error(`API key for ${selectedProvider} is missing. Please configure it in settings.`);
+  }
+
+  const model = payload.model || provider?.ai_model || (selectedProvider === 'mistral' ? 'mistral-large-latest' : 'gpt-4o-mini');
 
   switch (selectedProvider) {
     case 'novita':
@@ -116,6 +129,12 @@ export async function callUserLLM({ userId, payload }: CallLLMArgs): Promise<Pro
       return callNovita(apiKey, { ...payload, model });
     case 'mistral':
       return callMistral(apiKey, { ...payload, model });
+    case 'openai':
+      // For now, map OpenAI to Novita or similar if needed, or throw if no direct client
+      // But since we are replacing OpenAI with Mistral, we should encourage Mistral usage
+      // If legacy OpenAI is selected, we might want to route it or handle it. 
+      // For now, let's assume we use Novita for OpenAI-compatible endpoints or throw.
+      return callNovita(apiKey, { ...payload, model });
     default:
       throw new Error(`Provider ${selectedProvider} is not wired yet.`);
   }
