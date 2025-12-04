@@ -77,7 +77,7 @@ export default function AppSidebar({ onNavigate, onSelectConversation, selectedC
         if (!res.ok) return;
         const data = await res.json();
         if (!abort) setScheduledCount(Number(data?.count || 0));
-      } catch {}
+      } catch { }
     };
     loadCount();
     const timer = setInterval(loadCount, 60_000);
@@ -110,7 +110,7 @@ export default function AppSidebar({ onNavigate, onSelectConversation, selectedC
         if (!res.ok) return;
         const data = await res.json();
         if (!abort) setNotificationCount(Number(data?.count || 0));
-      } catch {}
+      } catch { }
     };
     loadNotificationCount();
     const timer = setInterval(loadNotificationCount, 30_000); // Check every 30 seconds
@@ -121,6 +121,9 @@ export default function AppSidebar({ onNavigate, onSelectConversation, selectedC
     <div className="sticky top-0 h-[100dvh] flex w-64 flex-col bg-card/60 backdrop-blur-sm border-r border-border text-white">
       <div className="flex h-16 items-center border-b border-border px-6">
         <Link href="/" className="flex items-center gap-2">
+          <div className="relative h-8 w-8">
+            <img src="/NEXA-LOGO-ONLY.png" alt="Nexa Logo" className="object-contain w-full h-full" />
+          </div>
           <span className="text-lg font-bold">Nexa</span>
         </Link>
       </div>
@@ -134,9 +137,8 @@ export default function AppSidebar({ onNavigate, onSelectConversation, selectedC
                 key={item.href}
                 href={item.href}
                 onClick={onNavigate}
-                className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:bg-accent/50 ${
-                  isActive ? "bg-accent text-white" : "text-white/80 hover:text-white"
-                }`}
+                className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:bg-accent/50 ${isActive ? "bg-accent text-white" : "text-white/80 hover:text-white"
+                  }`}
               >
                 <Icon className="h-4 w-4" />
                 <span className="font-medium">{item.title}</span>
@@ -160,9 +162,8 @@ export default function AppSidebar({ onNavigate, onSelectConversation, selectedC
               <button
                 key={c.id}
                 onClick={() => { onSelectConversation?.(c.id); onNavigate?.(); }}
-                className={`w-full text-left rounded-lg px-3 py-2 text-sm transition-colors ${
-                  selectedConversationId === c.id ? 'bg-accent text-white' : 'text-white/80 hover:text-white hover:bg-accent/30'
-                }`}
+                className={`w-full text-left rounded-lg px-3 py-2 text-sm transition-colors ${selectedConversationId === c.id ? 'bg-accent text-white' : 'text-white/80 hover:text-white hover:bg-accent/30'
+                  }`}
               >
                 {new Date(c.created_at).toISOString().replace('T', ' ').slice(0, 16) + 'Z'}
               </button>

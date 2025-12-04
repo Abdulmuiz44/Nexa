@@ -8,23 +8,28 @@ export const size = {
 }
 export const contentType = 'image/png'
 
-export default function AppleTouchIcon() {
+export default async function AppleTouchIcon() {
     return new ImageResponse(
         (
             <div
                 style={{
-                    fontSize: 120,
-                    background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)',
                     width: '100%',
                     height: '100%',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    color: 'white',
-                    fontWeight: 'bold',
+                    background: 'white',
                 }}
             >
-                N
+                <img
+                    src={`${process.env.NEXT_PUBLIC_APP_URL}/NEXA-LOGO-ONLY.png`}
+                    alt="Nexa"
+                    style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'contain'
+                    }}
+                />
             </div>
         ),
         {
