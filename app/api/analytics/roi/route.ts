@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseClient } from '@/lib/supabaseClient';
+import { getSupabaseClient } from '@/lib/supabaseClient';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
@@ -32,8 +32,10 @@ export async function GET(request: NextRequest) {
         startDate = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
     }
 
+    const supabase = getSupabaseClient();
+
     // Get campaign costs and credits used
-    const { data: creditTransactions, error: creditsError } = await supabaseClient
+    const { data: creditTransactions, error: creditsError } = await supabase
       .from('credit_transactions')
       .select('amount, created_at, type')
       .eq('user_id', userId)
@@ -49,7 +51,7 @@ export async function GET(request: NextRequest) {
     const totalInvestment = totalCreditsUsed * 0.10; // $0.10 per credit
 
     // Get posts and their performance metrics
-    const { data: posts, error: postsError } = await supabaseClient
+    const { data: posts, error: postsError } = await supabase
       .from('posts')
       .select('id, platform, published_at, metrics, url')
       .eq('user_id', userId)

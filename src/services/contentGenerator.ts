@@ -45,7 +45,7 @@ export class ContentGenerator {
       const aiResponse = await callUserLLM({
         userId,
         payload: {
-          model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+          model: process.env.MISTRAL_MODEL || 'mistral-large-latest',
           messages: [
             { role: 'system', content: systemMessage },
             { role: 'user', content: prompt }
@@ -186,7 +186,7 @@ Suggest an improved version that would perform better. Focus on:
       const aiResponse = await callUserLLM({
         userId,
         payload: {
-          model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+          model: process.env.MISTRAL_MODEL || 'mistral-large-latest',
           messages: [
             {
               role: 'system',

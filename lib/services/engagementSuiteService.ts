@@ -141,13 +141,17 @@ export class EngagementSuiteService {
   ): Promise<string> {
     try {
       const supabase = ensureSupabase();
-      const { data: user } = await supabase
-        .from('users')
-        .select('onboarding_data')
-        .eq('id', userId)
-        .single();
+      let userInfo: any = {};
 
-      const userInfo = user?.onboarding_data || {};
+      if (supabase) {
+        const { data: user } = await supabase
+          .from('users')
+          .select('onboarding_data')
+          .eq('id', userId)
+          .single();
+
+        userInfo = user?.onboarding_data || {};
+      }
 
       const response = await callUserLLM({
         userId,

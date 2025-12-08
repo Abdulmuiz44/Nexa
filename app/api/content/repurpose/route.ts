@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseClient } from '@/lib/supabaseClient';
+import { getSupabaseClient } from '@/lib/supabaseClient';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
@@ -11,9 +11,10 @@ export async function GET() {
     }
 
     const userId = session.user.id;
+    const supabase = getSupabaseClient();
 
     // Get user's repurposed content
-    const { data: content, error } = await supabaseClient
+    const { data: content, error } = await supabase
       .from('repurposed_content')
       .select(`
         *,
@@ -64,8 +65,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'URL and content type are required' }, { status: 400 });
     }
 
+    const supabase = getSupabaseClient();
+
     // Create repurposed content entry
-    const { data: contentEntry, error: contentError } = await supabaseClient
+    const { data: contentEntry, error: contentError } = await supabase
       .from('repurposed_content')
       .insert({
         user_id: userId,
@@ -91,7 +94,7 @@ export async function POST(request: NextRequest) {
     const socialPosts = generateMockSocialPosts(mockTitle, mockSummary);
 
     // Update content entry with processed data
-    const { error: updateError } = await supabaseClient
+    const { error: updateError } = await supabase
       .from('repurposed_content')
       .update({
         title: mockTitle,
@@ -115,7 +118,7 @@ export async function POST(request: NextRequest) {
         tone: post.tone,
       }));
 
-      const { error: postsError } = await supabaseClient
+      const { error: postsError } = await supabase
         .from('repurposed_social_posts')
         .insert(postsData);
 

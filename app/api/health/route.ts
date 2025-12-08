@@ -39,36 +39,27 @@ async function checkDatabase(): Promise<HealthCheckResult> {
   }
 }
 
-async function checkOpenAI(): Promise<HealthCheckResult> {
+async function checkMistral(): Promise<HealthCheckResult> {
   try {
-    const apiKey = process.env.OPENAI_API_KEY;
+    const apiKey = process.env.MISTRAL_API_KEY;
     if (!apiKey) {
       return {
-        service: 'OpenAI',
+        service: 'Mistral',
         status: 'error',
-        message: 'OPENAI_API_KEY not configured',
+        message: 'MISTRAL_API_KEY not configured',
       };
     }
 
-    if (!apiKey.startsWith('sk-')) {
-      return {
-        service: 'OpenAI',
-        status: 'warning',
-        message: 'OPENAI_API_KEY format looks incorrect',
-      };
-    }
-
-    // Note: We don't make actual API calls here to avoid rate limits
     return {
-      service: 'OpenAI',
+      service: 'Mistral',
       status: 'healthy',
       message: 'API key configured',
     };
   } catch (error: any) {
     return {
-      service: 'OpenAI',
+      service: 'Mistral',
       status: 'error',
-      message: 'OpenAI check failed',
+      message: 'Mistral check failed',
       details: error.message,
     };
   }
@@ -204,7 +195,7 @@ export async function GET(req: Request) {
     // Run all health checks
     const checks = await Promise.all([
       checkDatabase(),
-      checkOpenAI(),
+      checkMistral(),
       checkComposio(),
       checkFlutterwave(),
       checkNextAuth(),

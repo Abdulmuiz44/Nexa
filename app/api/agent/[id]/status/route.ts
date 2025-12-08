@@ -15,8 +15,14 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       success: true,
       state,
     })
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Failed to get agent status:", error)
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 })
+    return NextResponse.json(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to get agent status',
+      },
+      { status: 500 },
+    )
   }
 }

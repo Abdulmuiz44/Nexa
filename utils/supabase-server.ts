@@ -17,7 +17,7 @@ export function createClient() {
     }) as any
   }
 
-  const cookieStore = cookies()
+  const cookieStore = cookies() as any
 
   return createServerClient(
     supabaseUrl,

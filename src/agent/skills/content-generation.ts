@@ -16,7 +16,7 @@ export class ContentGenerationSkill implements Skill {
       const prompt = this.buildPrompt(topic, tone, length, targetAudience)
 
       const response = await this.llm.generateText({
-        model: "gpt-4",
+        model: process.env.MISTRAL_MODEL || "mistral-large-latest",
         messages: [
           {
             role: "system",

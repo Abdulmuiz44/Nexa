@@ -48,7 +48,7 @@ export class MarketResearchSkill implements Skill {
   ): Promise<any> {
     // Market size and trends analysis
     const marketAnalysis = await this.llm.generateText({
-      model: "gpt-4",
+      model: process.env.MISTRAL_MODEL || "mistral-large-latest",
       messages: [
         {
           role: "system",
@@ -75,7 +75,7 @@ export class MarketResearchSkill implements Skill {
 
     // Competitive analysis
     const competitiveAnalysis = await this.llm.generateText({
-      model: "gpt-4",
+      model: process.env.MISTRAL_MODEL || "mistral-large-latest",
       messages: [
         {
           role: "system",
@@ -101,7 +101,7 @@ export class MarketResearchSkill implements Skill {
 
     // Content strategy recommendations
     const contentStrategy = await this.llm.generateText({
-      model: "gpt-4",
+      model: process.env.MISTRAL_MODEL || "mistral-large-latest",
       messages: [
         {
           role: "system",

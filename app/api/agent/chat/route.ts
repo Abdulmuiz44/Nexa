@@ -60,7 +60,7 @@ For content creation, match the user's brand tone and business type. Be creative
     const aiResponse = await callUserLLM({
       userId: session.user.id,
       payload: {
-        model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+        model: process.env.MISTRAL_MODEL || 'mistral-large-latest',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: message }
@@ -73,9 +73,10 @@ For content creation, match the user's brand tone and business type. Be creative
     // Deduct credits based on tokens
     try {
       const usage = aiResponse.usage || {};
-      const total = Number(usage.total_tokens ?? usage.totalTokens ?? 0);
+      const anyUsage = usage as any;
+      const total = Number(anyUsage.total_tokens ?? anyUsage.totalTokens ?? 0);
       if (total > 0) {
-        await recordAIUsage(session.user.id, { total_tokens: total }, { model: process.env.OPENAI_MODEL || 'gpt-4o-mini', endpoint: 'agent_chat_api' });
+        await recordAIUsage(session.user.id, { total_tokens: total }, { model: aiResponse.model || process.env.MISTRAL_MODEL || 'mistral-large-latest', endpoint: 'agent_chat_api' });
       }
     } catch (e) {
       console.error('credit deduction (agent chat) error', e);

@@ -296,7 +296,7 @@ export class AutonomousAgent {
     const aiResponse = await callUserLLM({
       userId: this.config.userId,
       payload: {
-        model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+        model: process.env.MISTRAL_MODEL || 'mistral-large-latest',
         messages,
         temperature: options?.temperature,
         max_tokens: options?.max_tokens,
@@ -305,9 +305,10 @@ export class AutonomousAgent {
 
     try {
       const usage = aiResponse.usage || {};
-      const total = Number(usage.total_tokens ?? usage.totalTokens ?? 0);
+      const anyUsage = usage as any;
+      const total = Number(anyUsage.total_tokens ?? anyUsage.totalTokens ?? 0);
       if (total > 0) {
-        await recordAIUsage(this.config.userId, { total_tokens: total }, { model: process.env.OPENAI_MODEL || 'gpt-4o-mini', endpoint });
+        await recordAIUsage(this.config.userId, { total_tokens: total }, { model: aiResponse.model || process.env.MISTRAL_MODEL || 'mistral-large-latest', endpoint });
       }
     } catch (error) {
       console.error(`Autonomous LLM credit deduction (${endpoint}) error:`, error);

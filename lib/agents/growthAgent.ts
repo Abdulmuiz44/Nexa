@@ -3,7 +3,7 @@ import { composio } from '@/lib/composio';
 import { supabaseServer } from '@/src/lib/supabaseServer';
 
 export class GrowthAgent extends NexaBase {
-  async executeAction(action: string, params: Record<string, any>): Promise<any> {
+  async executeAction(action: string, params: any): Promise<any> {
     try {
       switch (action) {
         case 'create_post':

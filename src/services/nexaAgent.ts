@@ -96,7 +96,7 @@ export class NexaAgent {
         }
       };
 
-      const generatedContent = await contentGenerator.generateContent(contentRequest);
+      const generatedContent = await contentGenerator.generateContent(this.userId, contentRequest);
 
       if (request.scheduledTime) {
         // Schedule for later
@@ -109,7 +109,8 @@ export class NexaAgent {
       }
     } catch (error) {
       console.error('Error generating/scheduling post:', error);
-      await this.logActivity('post_generation_failed', `Failed to create post: ${error.message}`);
+      const message = error instanceof Error ? error.message : String(error);
+      await this.logActivity('post_generation_failed', `Failed to create post: ${message}`);
       return { success: false };
     }
   }
@@ -128,7 +129,7 @@ export class NexaAgent {
       }
     };
 
-    return await contentGenerator.generateContentSeries({ ...contentRequest, count });
+    return await contentGenerator.generateContentSeries(this.userId, { ...contentRequest, count });
   }
 
   private async getActiveConnections() {
@@ -194,7 +195,12 @@ export class NexaAgent {
 
     try {
       // Post via Composio
-      const result = await composio.tools.execute({
+      const composioClient = composio as any;
+      if (!composioClient) {
+        throw new Error('Composio is not configured');
+      }
+
+      const result = await composioClient.tools.execute({
         connectionId: connection.data.composio_connection_id,
         appName: connection.data.toolkit_slug,
         actionName: content.platform === 'twitter' ? 'create_tweet' : 'submit_post',
@@ -215,7 +221,7 @@ export class NexaAgent {
           content: content.content,
           status: 'published',
           published_at: new Date(),
-          platform_post_id: result.executionId,
+          platform_post_id: (result as any).executionId,
           metadata: {
             generatedBy: 'nexa_agent',
             confidence: content.confidence,
@@ -242,7 +248,7 @@ export class NexaAgent {
           content: content.content,
           status: 'failed',
           metadata: {
-            error: error.message,
+            error: error instanceof Error ? error.message : String(error),
             generatedBy: 'nexa_agent',
           }
         });

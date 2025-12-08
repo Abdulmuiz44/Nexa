@@ -69,7 +69,7 @@ export class ContentRepurposingService {
       const response = await callUserLLM({
         userId,
         payload: {
-          model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+          model: process.env.MISTRAL_MODEL || 'mistral-large-latest',
           messages: [
             {
               role: 'system',
@@ -191,7 +191,7 @@ export class ContentRepurposingService {
       const response = await callUserLLM({
         userId,
         payload: {
-          model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+          model: process.env.MISTRAL_MODEL || 'mistral-large-latest',
           messages: [
             {
               role: 'system',

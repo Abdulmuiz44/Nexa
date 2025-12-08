@@ -74,22 +74,20 @@ const handler = createMcpHandler(
       });
 
       // Submit the post - use text post if body is provided, otherwise link post
-      let submissionPromise;
+      let submission: any;
       if (body) {
-        submissionPromise = reddit.submitSelfpost({
+        submission = await (reddit as any).submitSelfpost({
           subredditName: subreddit,
           title: title,
           text: body,
         });
       } else {
-        submissionPromise = reddit.submitLink({
+        submission = await (reddit as any).submitLink({
           subredditName: subreddit,
           title: title,
           url: 'https://example.com', // Placeholder URL for link posts
         });
       }
-      
-      const submission = await submissionPromise;
 
       return {
         content: [{ type: "text", text: `Successfully posted to r/${subreddit}: https://reddit.com${submission.permalink}` }],

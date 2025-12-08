@@ -55,7 +55,7 @@ export async function POST(req: Request) {
 
     if (count > 1) {
       // Generate multiple posts
-      const contentSeries = await contentGenerator.generateContentSeries({
+      const contentSeries = await contentGenerator.generateContentSeries(session.user.id, {
         platform,
         topic,
         campaignId,
@@ -119,7 +119,7 @@ export async function POST(req: Request) {
       });
     } else {
       // Generate single post
-      const generatedContent = await contentGenerator.generateContent({
+      const generatedContent = await contentGenerator.generateContent(session.user.id, {
         platform,
         topic,
         campaignId,

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseClient } from '@/lib/supabaseClient';
+import { getSupabaseClient } from '@/lib/supabaseClient';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
@@ -11,9 +11,10 @@ export async function GET() {
     }
 
     const userId = session.user.id;
+    const supabase = getSupabaseClient();
 
     // Get user's posting history and performance data
-    const { data: posts, error: postsError } = await supabaseClient
+    const { data: posts, error: postsError } = await supabase
       .from('posts')
       .select(`
         id,
@@ -53,8 +54,10 @@ export async function POST(request: NextRequest) {
     const userId = session.user.id;
     const { forceRegenerate } = await request.json();
 
+    const supabase = getSupabaseClient();
+
     // Force regenerate insights (could implement caching logic here)
-    const { data: posts, error: postsError } = await supabaseClient
+    const { data: posts, error: postsError } = await supabase
       .from('posts')
       .select(`
         id,

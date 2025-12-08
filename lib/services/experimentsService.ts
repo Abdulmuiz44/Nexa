@@ -29,6 +29,7 @@ export class ExperimentsService {
    * Create a new experiment
    */
   static async createExperiment(experimentData: Omit<Experiment, 'id' | 'created_at' | 'updated_at'>): Promise<Experiment> {
+    const supabase = getSupabaseClient();
     const { data, error } = await supabase
       .from('experiments')
       .insert(experimentData)
@@ -70,7 +71,7 @@ export class ExperimentsService {
     switch (experimentType) {
       case 'time':
         // Generate different posting times
-        const basHour = controlConfig.hour || 9;
+        const baseHour = controlConfig.hour || 9;
         variants.push(
           { hour: (baseHour + 3) % 24, timezone: controlConfig.timezone },
           { hour: (baseHour + 6) % 24, timezone: controlConfig.timezone }
@@ -121,10 +122,10 @@ export class ExperimentsService {
   /**
    * Generate hook variants using AI
    */
-  private static async generateHookVariants(userId: string, topic: string, count: number): Promise<string[]> {
+  private static async generateHookVariants(topic: string, count: number): Promise<string[]> {
     try {
       const aiResponse = await callUserLLM({
-        userId,
+        userId: 'system',
         payload: {
           model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
           messages: [
@@ -160,6 +161,7 @@ export class ExperimentsService {
    * Start an experiment
    */
   static async startExperiment(experimentId: string): Promise<Experiment> {
+    const supabase = getSupabaseClient();
     const { data, error } = await supabase
       .from('experiments')
       .update({
@@ -187,6 +189,7 @@ export class ExperimentsService {
     const engagementRate = impressions > 0 ? engagements / impressions : 0;
 
     // Get current variant stats
+    const supabase = getSupabaseClient();
     const { data: variant } = await supabase
       .from('experiment_variants')
       .select('*')
@@ -254,6 +257,7 @@ export class ExperimentsService {
    * Analyze experiment results
    */
   static async analyzeExperiment(experimentId: string): Promise<ExperimentResults> {
+    const supabase = getSupabaseClient();
     const { data: experiment } = await supabase
       .from('experiments')
       .select('*')
@@ -273,10 +277,11 @@ export class ExperimentsService {
     // Find control (index 0) and best performing variant
     const control = variants[0];
     const testVariants = variants.slice(1);
-    
-    const winner = variants.reduce((best, current) => 
-      current.avg_engagement_rate > best.avg_engagement_rate ? current : best
-    , variants[0]);
+
+    const typedVariants = variants as ExperimentVariantStats[];
+    const winner = typedVariants.reduce((best: ExperimentVariantStats, current: ExperimentVariantStats) =>
+      current.avg_engagement_rate > best.avg_engagement_rate ? current : best,
+    typedVariants[0]);
 
     // Calculate statistical significance
     const significance = this.calculateSignificance(
@@ -324,10 +329,7 @@ export class ExperimentsService {
     return {
       experiment: experiment as Experiment,
       variants: variants as ExperimentVariantStats[],
-      winner: isConclusive ? {
-        variant: winner as ExperimentVariantStats,
-        improvement_percentage: improvement
-      } : undefined,
+      winner: isConclusive ? (winner as ExperimentVariantStats) : undefined,
       statistical_significance: significance,
       is_conclusive: isConclusive,
       recommendation
@@ -338,6 +340,7 @@ export class ExperimentsService {
    * Get all experiments for a user
    */
   static async getExperiments(userId: string, status?: Experiment['status']): Promise<Experiment[]> {
+    const supabase = getSupabaseClient();
     let query = supabase
       .from('experiments')
       .select('*')
@@ -358,6 +361,7 @@ export class ExperimentsService {
    * Get experiment details with variants
    */
   static async getExperimentDetails(experimentId: string): Promise<{ experiment: Experiment; variants: ExperimentVariantStats[] }> {
+    const supabase = getSupabaseClient();
     const { data: experiment } = await supabase
       .from('experiments')
       .select('*')
@@ -382,6 +386,7 @@ export class ExperimentsService {
    * Cancel an experiment
    */
   static async cancelExperiment(experimentId: string): Promise<void> {
+    const supabase = getSupabaseClient();
     const { error } = await supabase
       .from('experiments')
       .update({ status: 'cancelled' })
@@ -394,6 +399,7 @@ export class ExperimentsService {
    * Delete an experiment
    */
   static async deleteExperiment(experimentId: string, userId: string): Promise<void> {
+    const supabase = getSupabaseClient();
     const { error } = await supabase
       .from('experiments')
       .delete()
@@ -410,6 +416,7 @@ export class ExperimentsService {
     const recommendations: string[] = [];
 
     // Analyze past posts to suggest experiments
+    const supabase = getSupabaseClient();
     const { data: posts } = await supabase
       .from('posts')
       .select(`content, analytics (engagement_rate)`)

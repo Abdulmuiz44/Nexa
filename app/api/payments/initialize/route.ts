@@ -20,23 +20,23 @@ export async function POST(request: NextRequest) {
     const result = await flutterwave.initializePayment(body)
 
     if (result.status === "success") {
-      logger.info("Payment initialization successful", {
+      logger.info({
         campaignId: body.campaignId,
         amount: body.amount,
         reference: result.data?.reference,
-      })
+      }, "Payment initialization successful")
 
       return NextResponse.json(result)
     } else {
-      logger.error("Payment initialization failed", {
+      logger.error({
         campaignId: body.campaignId,
         error: result.message,
-      })
+      }, "Payment initialization failed")
 
       return NextResponse.json(result, { status: 400 })
     }
   } catch (error) {
-    logger.error("Payment initialization endpoint error", { error })
+    logger.error({ error }, "Payment initialization endpoint error")
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

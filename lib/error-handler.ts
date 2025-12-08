@@ -290,7 +290,7 @@ export async function withRetry<T>(
       const jitter = Math.random() * 0.1 * delay;
       const actualDelay = Math.min(delay + jitter, finalConfig.maxDelayMs);
 
-      logger.warn('retry', `Retrying after ${actualDelay}ms (attempt ${attempt + 1}/${finalConfig.maxRetries})`, {
+      logger.warn('system', `Retrying after ${actualDelay}ms (attempt ${attempt + 1}/${finalConfig.maxRetries})`, {
         error: error instanceof Error ? error.message : String(error),
       });
 
@@ -320,7 +320,7 @@ export class CircuitBreaker {
     if (this.state === 'OPEN') {
       if (Date.now() - this.lastFailureTime > this.resetTimeoutMs) {
         this.state = 'HALF_OPEN';
-        logger.info('circuit_breaker', `Circuit breaker ${this.name} transitioned to HALF_OPEN`);
+        logger.info('system', `Circuit breaker ${this.name} transitioned to HALF_OPEN`);
       } else {
         throw new NexaError(
           `Circuit breaker ${this.name} is open`,
@@ -346,7 +346,7 @@ export class CircuitBreaker {
     this.failureCount = 0;
     if (this.state === 'HALF_OPEN') {
       this.state = 'CLOSED';
-      logger.info('circuit_breaker', `Circuit breaker ${this.name} is now CLOSED`);
+      logger.info('system', `Circuit breaker ${this.name} is now CLOSED`);
     }
   }
 
@@ -356,7 +356,7 @@ export class CircuitBreaker {
 
     if (this.failureCount >= this.failureThreshold) {
       this.state = 'OPEN';
-      logger.warn('circuit_breaker', `Circuit breaker ${this.name} opened after ${this.failureCount} failures`);
+      logger.warn('system', `Circuit breaker ${this.name} opened after ${this.failureCount} failures`);
     }
   }
 
@@ -367,6 +367,6 @@ export class CircuitBreaker {
   reset(): void {
     this.failureCount = 0;
     this.state = 'CLOSED';
-    logger.info('circuit_breaker', `Circuit breaker ${this.name} manually reset`);
+    logger.info('system', `Circuit breaker ${this.name} manually reset`);
   }
 }

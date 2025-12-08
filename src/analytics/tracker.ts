@@ -43,16 +43,16 @@ export class AnalyticsTracker {
         await this.updateCampaignMetrics(event.campaignId, event)
       }
 
-      logger.info("Analytics event tracked", {
+      logger.info({
         event: event.event,
         campaignId: event.campaignId,
         channel: event.channel,
-      })
+      }, "Analytics event tracked")
 
       // In production, you would send this to your analytics service
       // await this.sendToAnalyticsService(eventWithTimestamp)
     } catch (error) {
-      logger.error("Failed to track analytics event", { error, event })
+      logger.error({ error, event }, "Failed to track analytics event")
     }
   }
 
@@ -85,7 +85,7 @@ export class AnalyticsTracker {
 
       return metrics
     } catch (error) {
-      logger.error("Failed to get campaign metrics", { error, campaignId })
+      logger.error({ error, campaignId }, "Failed to get campaign metrics")
       return null
     }
   }
@@ -103,7 +103,7 @@ export class AnalyticsTracker {
 
       return allMetrics
     } catch (error) {
-      logger.error("Failed to get all campaign metrics", { error })
+      logger.error({ error }, "Failed to get all campaign metrics")
       return []
     }
   }
@@ -158,7 +158,7 @@ export class AnalyticsTracker {
 
       this.metrics.set(campaignId, metrics)
     } catch (error) {
-      logger.error("Failed to update campaign metrics", { error, campaignId, event })
+      logger.error({ error, campaignId, event }, "Failed to update campaign metrics")
     }
   }
 
@@ -174,7 +174,7 @@ export class AnalyticsTracker {
         .sort((a, b) => (b.timestamp?.getTime() || 0) - (a.timestamp?.getTime() || 0))
         .slice(0, limit)
     } catch (error) {
-      logger.error("Failed to get event history", { error })
+      logger.error({ error }, "Failed to get event history")
       return []
     }
   }
@@ -227,7 +227,7 @@ export class AnalyticsTracker {
         reportGeneratedAt: new Date(),
       }
     } catch (error) {
-      logger.error("Failed to generate analytics report", { error, campaignId })
+      logger.error({ error, campaignId }, "Failed to generate analytics report")
       return null
     }
   }

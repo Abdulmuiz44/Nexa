@@ -1,5 +1,5 @@
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { createClient as createServerClient } from '@/lib/supabaseServer';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { supabaseServer } from '../supabaseServer';
 
 export type Platform = 'twitter' | 'reddit';
 export type PostStatus = 'draft' | 'scheduled' | 'published' | 'failed';
@@ -88,7 +88,7 @@ export class SupabaseAdapter {
 
   constructor() {
     // Use server-side client for database operations
-    this.supabase = createServerClient();
+    this.supabase = supabaseServer;
   }
 
   // User operations

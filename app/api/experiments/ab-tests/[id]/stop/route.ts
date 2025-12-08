@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseClient } from '@/lib/supabaseClient';
+import { getSupabaseClient } from '@/lib/supabaseClient';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
@@ -15,7 +15,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const testId = resolvedParams.id;
 
     // Get the test and its variants
-    const { data: test, error: testError } = await supabaseClient
+    const supabase = getSupabaseClient();
+
+    const { data: test, error: testError } = await supabase
       .from('ab_tests')
       .select(`
         *,
@@ -39,14 +41,14 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: 'No variants found' }, { status: 400 });
     }
 
-    const winner = variants.reduce((best, current) => {
+    const winner = (variants as any[]).reduce((best: any, current: any) => {
       const bestRate = best.engagements / Math.max(best.impressions, 1);
       const currentRate = current.engagements / Math.max(current.impressions, 1);
       return currentRate > bestRate ? current : best;
     });
 
     // Update test with winner and status
-    const { error: updateError } = await supabaseClient
+    const { error: updateError } = await supabase
       .from('ab_tests')
       .update({
         status: 'completed',
@@ -61,7 +63,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
 
     // Mark the winner variant
-    await supabaseClient
+    await supabase
       .from('ab_test_variants')
       .update({ is_winner: true })
       .eq('id', winner.id);
@@ -83,8 +85,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 function calculateImprovement(variants: any[], winner: any): number {
   const winnerRate = winner.engagements / Math.max(winner.impressions, 1);
   const avgOtherRate = variants
-    .filter(v => v.id !== winner.id)
-    .reduce((sum, v) => sum + (v.engagements / Math.max(v.impressions, 1)), 0) / Math.max(variants.length - 1, 1);
+    .filter((v: any) => v.id !== winner.id)
+    .reduce((sum: number, v: any) => sum + (v.engagements / Math.max(v.impressions, 1)), 0) /
+    Math.max(variants.length - 1, 1);
 
   if (avgOtherRate === 0) return 0;
   return ((winnerRate - avgOtherRate) / avgOtherRate) * 100;

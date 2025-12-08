@@ -107,7 +107,7 @@ export async function post_to_platform({ platform, userId, content, mediaUrl }: 
 
       const profileSub = acct?.username ? `u_${acct.username}` : undefined
       const title = content.slice(0, 280)
-      const submission = await reddit.submitSelfpost({
+      const submission: any = await (reddit as any).submitSelfpost({
         subredditName: profileSub || 'u_undefined',
         title,
         text: content,

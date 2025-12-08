@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    logger.error("Analytics tracking API error", { error })
+    logger.error({ error }, 'Analytics tracking API error')
     return NextResponse.json({ error: "Failed to track event" }, { status: 500 })
   }
 }

@@ -65,15 +65,15 @@ export class PineconeVectorStore {
       })
 
       if (response.ok) {
-        logger.info("Documents upserted to Pinecone", { count: documents.length })
+        logger.info({ count: documents.length }, "Documents upserted to Pinecone")
         return true
       } else {
         const error = await response.text()
-        logger.error("Failed to upsert documents to Pinecone", { error })
+        logger.error({ error }, "Failed to upsert documents to Pinecone")
         return false
       }
     } catch (error) {
-      logger.error("Pinecone upsert error", { error })
+      logger.error({ error }, "Pinecone upsert error")
       return false
     }
   }
@@ -105,11 +105,11 @@ export class PineconeVectorStore {
           metadata: match.metadata,
         }))
       } else {
-        logger.error("Pinecone search failed", { status: response.status })
+        logger.error({ status: response.status }, "Pinecone search failed")
         return []
       }
     } catch (error) {
-      logger.error("Pinecone search error", { error })
+      logger.error({ error }, "Pinecone search error")
       return []
     }
   }
@@ -135,7 +135,7 @@ export class PineconeVectorStore {
         throw new Error("Failed to generate embedding")
       }
     } catch (error) {
-      logger.error("Embedding generation error", { error })
+      logger.error({ error }, "Embedding generation error")
       throw error
     }
   }
@@ -155,14 +155,14 @@ export class PineconeVectorStore {
       })
 
       if (response.ok) {
-        logger.info("Documents deleted from Pinecone", { count: ids.length })
+        logger.info({ count: ids.length }, "Documents deleted from Pinecone")
         return true
       } else {
         logger.error("Failed to delete documents from Pinecone")
         return false
       }
     } catch (error) {
-      logger.error("Pinecone delete error", { error })
+      logger.error({ error }, "Pinecone delete error")
       return false
     }
   }

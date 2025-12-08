@@ -1,15 +1,15 @@
-import OpenAI from "openai"
 import type { LLMRequest, LLMResponse } from "../../types/agent"
 import type { Logger } from "../utils/logger"
+import { MistralClient } from "../../lib/ai/mistral-client"
 
 export class LLMWrapper {
-  private client: OpenAI
+  private client: MistralClient
   private logger: Logger
   private requestCount = 0
   private tokenUsage = { prompt: 0, completion: 0, total: 0 }
 
   constructor(apiKey: string, logger: Logger) {
-    this.client = new OpenAI({ apiKey })
+    this.client = new MistralClient(apiKey)
     this.logger = logger
   }
 
@@ -24,46 +24,44 @@ export class LLMWrapper {
         requestId: this.requestCount,
       })
 
-      const response = await this.client.chat.completions.create({
-        model: request.model,
-        messages: request.messages,
-        max_tokens: request.maxTokens,
+      const response = await this.client.chat(request.messages as any, {
+        model: request.model || "mistral-large-latest",
         temperature: request.temperature,
-        top_p: request.topP,
-        frequency_penalty: request.frequencyPenalty,
-        presence_penalty: request.presencePenalty,
+        max_tokens: request.maxTokens,
       })
 
-      const choice = response.choices[0]
-      if (!choice?.message?.content) {
+      const content = response.message
+      if (!content) {
         throw new Error("No content in LLM response")
       }
 
-      const usage = response.usage || { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 }
+      const usage = response.usage || { total_tokens: 0, prompt_tokens: 0, completion_tokens: 0 }
 
       // Update usage tracking
-      this.tokenUsage.prompt += usage.prompt_tokens
-      this.tokenUsage.completion += usage.completion_tokens
-      this.tokenUsage.total += usage.total_tokens
+      this.tokenUsage.prompt += usage.prompt_tokens || 0
+      this.tokenUsage.completion += usage.completion_tokens || 0
+      this.tokenUsage.total += usage.total_tokens || 0
 
       const executionTime = Date.now() - startTime
 
+      const tokensUsed = usage.total_tokens ?? response.tokensUsed ?? 0
+
       this.logger.info("LLM request completed", {
-        model: request.model,
+        model: response.model || request.model,
         executionTime,
-        tokensUsed: usage.total_tokens,
+        tokensUsed,
         requestId: this.requestCount,
       })
 
       return {
-        content: choice.message.content,
+        content,
         usage: {
-          promptTokens: usage.prompt_tokens,
-          completionTokens: usage.completion_tokens,
-          totalTokens: usage.total_tokens,
+          promptTokens: usage.prompt_tokens || 0,
+          completionTokens: usage.completion_tokens || 0,
+          totalTokens: tokensUsed,
         },
-        model: response.model,
-        finishReason: choice.finish_reason || "unknown",
+        model: response.model || request.model,
+        finishReason: "stop",
       }
     } catch (error) {
       const executionTime = Date.now() - startTime

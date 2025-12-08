@@ -93,7 +93,7 @@ Generate a personalized, professional email that feels natural and engaging.
 `
 
     const response = await this.llm.generateText({
-      model: "gpt-4",
+      model: process.env.MISTRAL_MODEL || "mistral-large-latest",
       messages: [
         {
           role: "system",

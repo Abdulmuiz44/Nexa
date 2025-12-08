@@ -306,7 +306,7 @@ export class PerformanceIntelligenceService {
         .eq('period', 'weekly')
         .order('period_start', { ascending: false })
         .limit(4)
-        .then(res => res.data || [])
+        .then((res: any) => res.data || [])
     ]);
 
     // Get best posting times

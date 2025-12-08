@@ -19,7 +19,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: "Failed to generate analytics report" }, { status: 500 })
     }
   } catch (error) {
-    logger.error("Analytics API error", { error })
+    logger.error({ error }, "Analytics API error")
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

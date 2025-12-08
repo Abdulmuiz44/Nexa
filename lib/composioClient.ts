@@ -79,11 +79,12 @@ export const composioHelpers = {
     try {
       const service = new ComposioIntegrationService(userId);
       const result = await service.postTweet({ content });
-      return { 
-        success: true, 
-        postId: result.id || 'unknown', 
-        url: result.url || `https://twitter.com/${userId}/status/${result.id}`,
-        data: result
+      const tweetId = result.tweetId || (result as any).id;
+      return {
+        success: true,
+        postId: tweetId || 'unknown',
+        url: result.url || (tweetId ? `https://twitter.com/${userId}/status/${tweetId}` : undefined),
+        data: result,
       };
     } catch (error) {
       console.error('Error posting to Twitter:', error);
@@ -95,11 +96,11 @@ export const composioHelpers = {
     try {
       const service = new ComposioIntegrationService(userId);
       const result = await service.postToReddit({ subreddit, title, content });
-      return { 
-        success: true, 
-        postId: result.id || 'unknown', 
+      return {
+        success: true,
+        postId: result.postId || (result as any).id || 'unknown',
         url: result.url || `https://reddit.com/r/${subreddit}`,
-        data: result
+        data: result,
       };
     } catch (error) {
       console.error('Error posting to Reddit:', error);

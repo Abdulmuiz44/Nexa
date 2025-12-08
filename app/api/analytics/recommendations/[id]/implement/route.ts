@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseClient } from '@/lib/supabaseClient';
+import { getSupabaseClient } from '@/lib/supabaseClient';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
@@ -18,8 +18,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: 'Recommendation ID is required' }, { status: 400 });
     }
 
+    const supabase = getSupabaseClient();
+
     // Mark recommendation as implemented
-    const { error } = await supabaseClient
+    const { error } = await supabase
       .from('recommendations')
       .update({
         implemented: true,

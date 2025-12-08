@@ -212,7 +212,7 @@ export class ComposioIntegrationService {
     }
 
     try {
-      const connection = await this.getConnection(platform);
+      const connection = await this.getConnection(platform ?? 'twitter');
       
       // Get the connected account details from Composio
       const response = await this.composio.connectedAccounts.get(connection.composio_connection_id);
@@ -523,7 +523,7 @@ Generate a tweet that matches this user's authentic style. Return only the tweet
   /**
    * Auto-engage with relevant tweets (like, retweet, reply)
    */
-  private async autoEngageWithTweet(
+  async autoEngageWithTweet(
     tweetId: string,
     engagementType: 'like' | 'retweet' | 'reply',
     replyContent?: string
@@ -745,7 +745,7 @@ Generate a tweet that matches this user's authentic style. Return only the tweet
   /**
    * Execute any Composio action
    */
-  async executeAction(actionName: string, params: any, platform: 'twitter' | 'reddit'): Promise<any> {
+  async executeAction(actionName: string, params: any, platform: 'twitter' | 'reddit' = 'twitter'): Promise<any> {
     if (!this.composio) {
       throw new Error('Composio not initialized');
     }

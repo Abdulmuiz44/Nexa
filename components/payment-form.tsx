@@ -14,11 +14,12 @@ import { createClient } from '@/utils/supabase';
 interface PaymentFormProps {
   amount: number;
   planId: string;
+  campaignId: string;
   onPaymentSuccess: (reference: string) => void;
   onPaymentError: (error: string) => void;
 }
 
-export function PaymentForm({ amount, planId, onPaymentSuccess, onPaymentError }: PaymentFormProps) {
+export function PaymentForm({ amount, planId, campaignId, onPaymentSuccess, onPaymentError }: PaymentFormProps) {
   const [formData, setFormData] = useState({
     email: "",
     name: "",
@@ -49,6 +50,7 @@ export function PaymentForm({ amount, planId, onPaymentSuccess, onPaymentError }
           amount,
           user_id: user.id,
           planId,
+          campaignId,
         }),
       });
 

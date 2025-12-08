@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseClient } from '@/lib/supabaseClient';
+import { getSupabaseClient } from '@/lib/supabaseClient';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
@@ -12,8 +12,10 @@ export async function POST() {
 
     const userId = session.user.id;
 
+    const supabase = getSupabaseClient();
+
     // Mark all notifications as read
-    const { error } = await supabaseClient
+    const { error } = await supabase
       .from('notifications')
       .update({ read: true })
       .eq('user_id', userId)

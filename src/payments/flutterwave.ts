@@ -66,10 +66,10 @@ export class FlutterwavePayment {
       const result = await response.json()
 
       if (result.status === "success") {
-        logger.info("Payment initialized successfully", {
+        logger.info({
           reference: result.data.tx_ref,
           campaignId: paymentData.campaignId,
-        })
+        }, "Payment initialized successfully")
 
         return {
           status: "success",
@@ -79,14 +79,14 @@ export class FlutterwavePayment {
           },
         }
       } else {
-        logger.error("Payment initialization failed", { error: result })
+        logger.error({ error: result }, "Payment initialization failed")
         return {
           status: "error",
           message: result.message || "Payment initialization failed",
         }
       }
     } catch (error) {
-      logger.error("Payment initialization error", { error })
+      logger.error({ error }, "Payment initialization error")
       return {
         status: "error",
         message: "Internal payment error",
@@ -107,25 +107,25 @@ export class FlutterwavePayment {
       const result = await response.json()
 
       if (result.status === "success" && result.data.status === "successful") {
-        logger.info("Payment verified successfully", {
+        logger.info({
           transactionId,
           amount: result.data.amount,
           currency: result.data.currency,
-        })
+        }, "Payment verified successfully")
 
         return {
           status: "success",
           data: result.data,
         }
       } else {
-        logger.warn("Payment verification failed", { transactionId, result })
+        logger.warn({ transactionId, result }, "Payment verification failed")
         return {
           status: "error",
           message: "Payment verification failed",
         }
       }
     } catch (error) {
-      logger.error("Payment verification error", { error, transactionId })
+      logger.error({ error, transactionId }, "Payment verification error")
       return {
         status: "error",
         message: "Payment verification error",
@@ -161,7 +161,7 @@ export class FlutterwavePayment {
         }
       }
     } catch (error) {
-      logger.error("Get payment status error", { error, reference })
+      logger.error({ error, reference }, "Get payment status error")
       return {
         status: "error",
         message: "Failed to get payment status",

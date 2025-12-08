@@ -401,7 +401,7 @@ If accounts aren't connected, inform the user they need to connect via the dashb
       return callUserLLM({
         userId: session.user.id,
         payload: {
-          model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+          model: process.env.MISTRAL_MODEL || 'mistral-large-latest',
           messages,
           temperature: 0.7,
           max_tokens: 1000,
@@ -516,7 +516,7 @@ If accounts aren't connected, inform the user they need to connect via the dashb
         await recordAIUsage(session.user.id,
           { total_tokens: totalTokensUsed },
           {
-            model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+            model: process.env.MISTRAL_MODEL || 'mistral-large-latest',
             endpoint: 'agent_chat_api',
           }
         );

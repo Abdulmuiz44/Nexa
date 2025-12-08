@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseClient } from '@/lib/supabaseClient';
+import { getSupabaseClient } from '@/lib/supabaseClient';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
@@ -11,9 +11,10 @@ export async function GET() {
     }
 
     const userId = session.user.id;
+    const supabase = getSupabaseClient();
 
     // Get user's tracked competitors
-    const { data: competitors, error } = await supabaseClient
+    const { data: competitors, error } = await supabase
       .from('competitor_tracking')
       .select('*')
       .eq('user_id', userId)
@@ -59,6 +60,7 @@ export async function POST(request: NextRequest) {
     }
 
     const userId = session.user.id;
+    const supabase = getSupabaseClient();
     const { handle, platform } = await request.json();
 
     if (!handle || !platform) {
@@ -66,7 +68,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if competitor already exists
-    const { data: existing } = await supabaseClient
+    const { data: existing } = await supabase
       .from('competitor_tracking')
       .select('id')
       .eq('user_id', userId)
@@ -79,7 +81,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Add competitor to tracking
-    const { data, error } = await supabaseClient
+    const { data, error } = await supabase
       .from('competitor_tracking')
       .insert({
         user_id: userId,
@@ -132,6 +134,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     const userId = session.user.id;
+    const supabase = getSupabaseClient();
     const { searchParams } = new URL(request.url);
     const competitorId = searchParams.get('id');
 
@@ -139,7 +142,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Competitor ID is required' }, { status: 400 });
     }
 
-    const { error } = await supabaseClient
+    const { error } = await supabase
       .from('competitor_tracking')
       .delete()
       .eq('id', competitorId)

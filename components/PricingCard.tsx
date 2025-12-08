@@ -10,7 +10,7 @@ import Link from 'next/link';
 interface PricingCardProps {
   title: string;
   tagline: string;
-  price: string;
+  price: number | string;
   period: string;
   features: string[];
   planId: string;

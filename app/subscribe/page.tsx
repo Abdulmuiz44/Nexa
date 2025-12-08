@@ -62,7 +62,8 @@ const SubscribeForm = () => {
             </CardHeader>
             <CardContent>
               <PaymentForm
-                campaignId="" // campaignId is not relevant here
+                planId={selectedPlan.planId}
+                campaignId={selectedPlan.planId}
                 amount={selectedPlan.price}
                 onPaymentSuccess={handlePaymentSuccess}
                 onPaymentError={handlePaymentError}

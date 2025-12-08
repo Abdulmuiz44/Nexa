@@ -35,6 +35,15 @@ interface ContentRepurposingProps {
   userId: string;
 }
 
+const getContentTypeIcon = (type: string) => {
+  switch (type) {
+    case 'blog': return FileText;
+    case 'video': return Video;
+    case 'article': return FileText;
+    default: return LinkIcon;
+  }
+};
+
 export function ContentRepurposing({ userId }: ContentRepurposingProps) {
   const [repurposedContent, setRepurposedContent] = useState<RepurposedContent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -102,15 +111,6 @@ export function ContentRepurposing({ userId }: ContentRepurposingProps) {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-  };
-
-  const getContentTypeIcon = (type: string): React.ComponentType<{ className?: string }> => {
-    switch (type) {
-      case 'blog': return FileText;
-      case 'video': return Video;
-      case 'article': return FileText;
-      default: return LinkIcon;
-    }
   };
 
   const getStatusColor = (status: string) => {

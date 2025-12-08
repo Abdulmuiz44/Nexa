@@ -29,7 +29,12 @@ export const postSchedulerWorker = new Worker(
     }
 
     try {
-      const result = await composio.tools.execute({
+      const composioClient = composio as any;
+      if (!composioClient) {
+        throw new Error('Composio is not configured');
+      }
+
+      const result = await composioClient.tools.execute({
         connectionId: connection.composio_connection_id,
         appName: connection.toolkit_slug,
         actionName: post.platform === 'twitter' ? 'create_tweet' : post.platform === 'reddit' ? 'submit_post' : 'post_content',
@@ -44,7 +49,7 @@ export const postSchedulerWorker = new Worker(
         .update({
           status: 'published',
           published_at: new Date(),
-          platform_post_id: result.executionId,
+          platform_post_id: (result as any).executionId,
         })
         .eq('id', postId);
 
@@ -66,14 +71,14 @@ export const postSchedulerWorker = new Worker(
   },
   {
     connection,
-    removeOnComplete: 10,
-    removeOnFail: 5,
+    removeOnComplete: { count: 10 },
+    removeOnFail: { count: 5 },
     attempts: 3,
     backoff: {
       type: 'exponential',
       delay: 2000,
     },
-  }
+  } as any
 );
 
 // Analytics job
@@ -90,12 +95,17 @@ export const analyticsWorker = new Worker(
         // Fetch metrics based on toolkit
         let metrics;
         if (connection.toolkit_slug === 'twitter') {
-          metrics = await composio.tools.execute({
+          const composioClient = composio as any;
+          if (!composioClient) {
+            continue;
+          }
+
+          metrics = await composioClient.tools.execute({
             connectionId: connection.composio_connection_id,
             appName: connection.toolkit_slug,
             actionName: 'get_account_info',
             input: {},
-          });
+          }) as any;
         } else if (connection.toolkit_slug === 'reddit') {
           // Add Reddit metrics action
         }
@@ -107,11 +117,11 @@ export const analyticsWorker = new Worker(
             .insert({
               post_id: null, // For account-level metrics
               platform: connection.toolkit_slug as any,
-              impressions: metrics.impressions || 0,
-              engagements: metrics.engagements || 0,
-              likes: metrics.likes || 0,
-              comments: metrics.comments || 0,
-              shares: metrics.shares || 0,
+              impressions: (metrics as any).impressions || 0,
+              engagements: (metrics as any).engagements || 0,
+              likes: (metrics as any).likes || 0,
+              comments: (metrics as any).comments || 0,
+              shares: (metrics as any).shares || 0,
               meta: metrics,
             });
         }
@@ -122,8 +132,5 @@ export const analyticsWorker = new Worker(
   },
   {
     connection,
-    repeat: {
-      every: 4 * 60 * 60 * 1000, // 4 hours
-    },
   }
 );

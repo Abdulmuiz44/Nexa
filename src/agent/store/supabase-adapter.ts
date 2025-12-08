@@ -20,6 +20,11 @@ export class SupabaseAdapter implements AgentStore {
     }
     return data
   }
+
+  // Convenience alias for compatibility with Agent API routes
+  async getState(agentId: string): Promise<AgentState | null> {
+    return this.loadState(agentId)
+  }
   async deleteState(agentId: string): Promise<void> {
     const { error } = await supabaseServer.from('agent_states').delete().eq('id', agentId)
     if (error) throw error
@@ -88,6 +93,22 @@ export class SupabaseAdapter implements AgentStore {
       .limit(limit)
     if (error) return []
     return data
+  }
+
+  // Basic activity log retrieval for agent logs API
+  async getLogs(agentId: string, options?: { limit?: number; offset?: number }): Promise<any[]> {
+    const limit = options?.limit ?? 50
+    const offset = options?.offset ?? 0
+
+    const { data, error } = await supabaseServer
+      .from('activity_log')
+      .select('*')
+      .eq('user_id', agentId)
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1)
+
+    if (error) return []
+    return data || []
   }
 
   async close(): Promise<void> {

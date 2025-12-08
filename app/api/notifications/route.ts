@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseClient } from '@/lib/supabaseClient';
+import { getSupabaseClient } from '@/lib/supabaseClient';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
@@ -12,8 +12,10 @@ export async function GET() {
 
     const userId = session.user.id;
 
+    const supabase = getSupabaseClient();
+
     // Get user's notifications
-    const { data: notifications, error } = await supabaseClient
+    const { data: notifications, error } = await supabase
       .from('notifications')
       .select('*')
       .eq('user_id', userId)
@@ -60,8 +62,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Type, title, and message are required' }, { status: 400 });
     }
 
+    const supabase = getSupabaseClient();
+
     // Create notification
-    const { data, error } = await supabaseClient
+    const { data, error } = await supabase
       .from('notifications')
       .insert({
         user_id: userId,

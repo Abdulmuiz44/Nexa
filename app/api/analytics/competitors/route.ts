@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseClient } from '@/lib/supabaseClient';
+import { getSupabaseClient } from '@/lib/supabaseClient';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
@@ -11,9 +11,10 @@ export async function GET() {
     }
 
     const userId = session.user.id;
+    const supabase = getSupabaseClient();
 
     // Get user's tracked competitors
-    const { data: competitors, error } = await supabaseClient
+    const { data: competitors, error } = await supabase
       .from('competitor_tracking')
       .select('*')
       .eq('user_id', userId)
@@ -65,8 +66,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Handle and platform are required' }, { status: 400 });
     }
 
+    const supabase = getSupabaseClient();
+
     // Check if competitor already exists
-    const { data: existing } = await supabaseClient
+    const { data: existing } = await supabase
       .from('competitor_tracking')
       .select('id')
       .eq('user_id', userId)
@@ -79,7 +82,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Add competitor to tracking
-    const { data, error } = await supabaseClient
+    const { data, error } = await supabase
       .from('competitor_tracking')
       .insert({
         user_id: userId,

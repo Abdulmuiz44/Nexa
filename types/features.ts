@@ -217,6 +217,7 @@ export interface ExperimentResults {
   winner?: ExperimentVariantStats;
   statistical_significance: number;
   recommendation: string;
+  is_conclusive?: boolean;
 }
 
 // =====================================================

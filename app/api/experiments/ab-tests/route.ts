@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseClient } from '@/lib/supabaseClient';
+import { getSupabaseClient } from '@/lib/supabaseClient';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
@@ -11,9 +11,10 @@ export async function GET() {
     }
 
     const userId = session.user.id;
+    const supabase = getSupabaseClient();
 
     // Get user's A/B tests
-    const { data: tests, error } = await supabaseClient
+    const { data: tests, error } = await supabase
       .from('ab_tests')
       .select(`
         *,
@@ -28,7 +29,7 @@ export async function GET() {
     }
 
     // Transform data for frontend
-    const transformedTests = (tests || []).map(test => ({
+    const transformedTests = (tests || []).map((test: any) => ({
       id: test.id,
       name: test.name,
       status: test.status,
@@ -37,8 +38,14 @@ export async function GET() {
       winner: test.winner_variant_id,
       startDate: test.start_date,
       endDate: test.end_date,
-      totalImpressions: (test.variants || []).reduce((sum, v) => sum + (v.impressions || 0), 0),
-      totalEngagements: (test.variants || []).reduce((sum, v) => sum + (v.engagements || 0), 0),
+      totalImpressions: (test.variants || []).reduce(
+        (sum: number, v: any) => sum + (v.impressions || 0),
+        0,
+      ),
+      totalEngagements: (test.variants || []).reduce(
+        (sum: number, v: any) => sum + (v.engagements || 0),
+        0,
+      ),
       created_at: test.created_at,
     }));
 
@@ -67,8 +74,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid test data' }, { status: 400 });
     }
 
+    const supabase = getSupabaseClient();
+
     // Create the A/B test
-    const { data: test, error: testError } = await supabaseClient
+    const { data: test, error: testError } = await supabase
       .from('ab_tests')
       .insert({
         user_id: userId,
@@ -96,14 +105,14 @@ export async function POST(request: NextRequest) {
       engagement_rate: 0,
     }));
 
-    const { error: variantsError } = await supabaseClient
+    const { error: variantsError } = await supabase
       .from('ab_test_variants')
       .insert(variantsData);
 
     if (variantsError) {
       console.error('Error creating test variants:', variantsError);
       // Clean up the test if variants creation failed
-      await supabaseClient.from('ab_tests').delete().eq('id', test.id);
+      await supabase.from('ab_tests').delete().eq('id', test.id);
       return NextResponse.json({ error: 'Failed to create test variants' }, { status: 500 });
     }
 

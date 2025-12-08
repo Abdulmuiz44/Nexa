@@ -32,8 +32,10 @@ export const scheduledPostsWorker = new Worker(
     if (new Date(post.scheduled_at).getTime() > Date.now()) {
       // Re-enqueue with remaining delay
       const delay = new Date(post.scheduled_at).getTime() - Date.now()
-      await job.update({ scheduledPostId })
-      await job.retry().catch(() => {})
+      const anyJob = job as any
+      await anyJob.update({ scheduledPostId })
+      await anyJob.retry().catch(() => {})
+
       return { rescheduled: true, delay }
     }
 

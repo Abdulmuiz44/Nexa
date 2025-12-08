@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseClient } from '@/lib/supabaseClient';
+import { getSupabaseClient } from '@/lib/supabaseClient';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
@@ -15,7 +15,8 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     const notificationId = resolvedParams.id;
 
     // Delete notification
-    const { error } = await supabaseClient
+    const supabase = getSupabaseClient();
+    const { error } = await supabase
       .from('notifications')
       .delete()
       .eq('id', notificationId)
