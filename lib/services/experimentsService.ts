@@ -40,7 +40,7 @@ export class ExperimentsService {
 
     // Create variant tracking records
     const allVariants = [experimentData.control_variant, ...experimentData.test_variants];
-    
+
     for (const variant of allVariants) {
       await supabase.from('experiment_variants').insert({
         experiment_id: data.id,
@@ -127,7 +127,7 @@ export class ExperimentsService {
       const aiResponse = await callUserLLM({
         userId: 'system',
         payload: {
-          model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+          model: process.env.MISTRAL_MODEL || 'mistral-large-latest',
           messages: [
             {
               role: 'system',
@@ -203,8 +203,8 @@ export class ExperimentsService {
     const newPostsCount = variant.posts_count + 1;
     const newTotalImpressions = variant.total_impressions + impressions;
     const newTotalEngagements = variant.total_engagements + engagements;
-    const newAvgEngagementRate = newTotalImpressions > 0 
-      ? newTotalEngagements / newTotalImpressions 
+    const newAvgEngagementRate = newTotalImpressions > 0
+      ? newTotalEngagements / newTotalImpressions
       : 0;
 
     await supabase
@@ -238,7 +238,7 @@ export class ExperimentsService {
     const pPooled = (controlEngagements + testEngagements) / (controlImpressions + testImpressions);
 
     const se = Math.sqrt(pPooled * (1 - pPooled) * ((1 / controlImpressions) + (1 / testImpressions)));
-    
+
     if (se === 0) return 0;
 
     const zScore = Math.abs(p1 - p2) / se;
@@ -249,7 +249,7 @@ export class ExperimentsService {
     if (zScore > 1.96) return 0.95;
     if (zScore > 1.65) return 0.90;
     if (zScore > 1.28) return 0.80;
-    
+
     return Math.min(0.75, zScore / 2.58);
   }
 
@@ -281,7 +281,7 @@ export class ExperimentsService {
     const typedVariants = variants as ExperimentVariantStats[];
     const winner = typedVariants.reduce((best: ExperimentVariantStats, current: ExperimentVariantStats) =>
       current.avg_engagement_rate > best.avg_engagement_rate ? current : best,
-    typedVariants[0]);
+      typedVariants[0]);
 
     // Calculate statistical significance
     const significance = this.calculateSignificance(
@@ -431,7 +431,7 @@ export class ExperimentsService {
     // Check emoji usage correlation
     const withEmoji = posts.filter((p: any) => /[\u{1F600}-\u{1F64F}]/u.test(p.content));
     const withoutEmoji = posts.filter((p: any) => !/[\u{1F600}-\u{1F64F}]/u.test(p.content));
-    
+
     if (withEmoji.length > 5 && withoutEmoji.length > 5) {
       recommendations.push('Test emoji usage - you have enough data to compare performance');
     }
@@ -439,7 +439,7 @@ export class ExperimentsService {
     // Check question vs statement
     const questions = posts.filter((p: any) => p.content.includes('?'));
     const statements = posts.filter((p: any) => !p.content.includes('?'));
-    
+
     if (questions.length > 5 && statements.length > 5) {
       recommendations.push('Test questions vs statements - see which format your audience prefers');
     }

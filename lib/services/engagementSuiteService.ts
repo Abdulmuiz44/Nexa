@@ -48,7 +48,7 @@ export class EngagementSuiteService {
 
     // In production, this would call Twitter/Reddit APIs via Composio
     // For now, we'll simulate finding opportunities
-    
+
     // Fetch from real platforms would go here
     // Example: const tweets = await composio.searchTweets({ keywords, limit });
 
@@ -80,7 +80,7 @@ export class EngagementSuiteService {
       const response = await callUserLLM({
         userId,
         payload: {
-          model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+          model: process.env.MISTRAL_MODEL || 'mistral-large-latest',
           messages: [
             {
               role: 'system',
@@ -121,7 +121,7 @@ export class EngagementSuiteService {
 
     const topics = user?.onboarding_data?.content_topics || [];
     const contentLower = content.toLowerCase();
-    
+
     let matches = 0;
     topics.forEach((topic: string) => {
       if (contentLower.includes(topic.toLowerCase())) {
@@ -156,7 +156,7 @@ export class EngagementSuiteService {
       const response = await callUserLLM({
         userId,
         payload: {
-          model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+          model: process.env.MISTRAL_MODEL || 'mistral-large-latest',
           messages: [
             {
               role: 'system',

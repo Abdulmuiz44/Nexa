@@ -172,13 +172,35 @@ export class AutonomousAgent {
    */
   private async generateAndPostTweet(): Promise<void> {
     try {
-      // Select a random topic
+      // 1. Check Content Hub for high-potential items first
+      const { data: hubItems } = await supabaseServer
+        .from('content_hub')
+        .select('*')
+        .eq('user_id', this.config.userId)
+        .eq('status', 'processed')
+        .order('engagement_potential', { ascending: false })
+        .limit(5);
+
+      let context = `Target audience: ${this.config.targetAudience}`;
+      let baseContent = '';
+
+      if (hubItems && hubItems.length > 0) {
+        // Use a high-potential item as the base
+        const item = hubItems[Math.floor(Math.random() * hubItems.length)];
+        baseContent = item.raw_content;
+        context += `\nBase this post on the following high-value content: "${item.title}". Summary: ${item.summary || item.raw_content}`;
+
+        // Mark as used if we want to avoid repetition (optional)
+        // await supabaseServer.from('content_hub').update({ status: 'used' }).eq('id', item.id);
+      }
+
+      // Select a random topic if no hub content or as an alternative
       const topic = this.config.contentTopics[Math.floor(Math.random() * this.config.contentTopics.length)];
 
       // Generate tweet in user's style
       const tweetContent = await this.composioService.generateTweetInUserStyle(
         topic,
-        `Target audience: ${this.config.targetAudience}`
+        context
       );
 
       // Post the tweet
@@ -202,10 +224,25 @@ export class AutonomousAgent {
    */
   private async generateAndPostReddit(): Promise<void> {
     try {
+      // 1. Check Content Hub for ideas
+      const { data: hubItems } = await supabaseServer
+        .from('content_hub')
+        .select('*')
+        .eq('user_id', this.config.userId)
+        .eq('status', 'processed')
+        .limit(3);
+
+      let hubContext = "";
+      if (hubItems && hubItems.length > 0) {
+        const item = hubItems[Math.floor(Math.random() * hubItems.length)];
+        hubContext = `\nUse this content as inspiration or source: "${item.raw_content}"`;
+      }
+
       // Generate Reddit post content
       const topic = this.config.contentTopics[Math.floor(Math.random() * this.config.contentTopics.length)];
 
       const prompt = `Generate a Reddit post about "${topic}" for the audience: ${this.config.targetAudience}. 
+      ${hubContext}
       
       Provide a JSON response with:
       {
@@ -225,7 +262,7 @@ export class AutonomousAgent {
             content: prompt,
           },
         ],
-        { temperature: 0.7, max_tokens: 400 },
+        { temperature: 0.7, max_tokens: 600 },
         'autonomous_reddit'
       );
 

@@ -21,6 +21,7 @@ import {
   Users,
   FlaskConical,
   Bell,
+  Database,
 } from "lucide-react";
 import { supabaseClient } from "@/lib/supabaseClient";
 import {
@@ -42,6 +43,7 @@ const navItems = [
   { title: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
   { title: "Performance", href: "/dashboard/performance", icon: TrendingUp },
   { title: "Scheduled", href: "/dashboard/scheduled", icon: CalendarIcon },
+  { title: "Content Hub", href: "/dashboard/content-hub", icon: Database },
   { title: "Reports", href: "/dashboard/reports", icon: FileText },
   { title: "Logs", href: "/dashboard/logs", icon: Activity },
   { title: "Connections", href: "/dashboard/connections", icon: LinkIcon },
