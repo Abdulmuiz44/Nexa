@@ -21,7 +21,7 @@ export default async function Icon() {
                 }}
             >
                 <img
-                    src={`${process.env.NEXT_PUBLIC_APP_URL}/NEXA-LOGO-ONLY.png`}
+                    src={`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/NEXA-LOGO-ONLY.png`}
                     alt="Nexa"
                     style={{
                         width: '100%',
