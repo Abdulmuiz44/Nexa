@@ -183,7 +183,7 @@ export default function AppSidebar({ onNavigate, onSelectConversation, selectedC
             <DropdownMenuTrigger asChild>
               <button className="flex w-full items-center gap-3 rounded-md p-1 hover:bg-accent/40 focus:outline-none">
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src={session?.user?.image || "/placeholder-user.jpg"} alt={session?.user?.name || ''} />
+                  <AvatarImage src={session?.user?.image || ""} alt={session?.user?.name || ''} />
                   <AvatarFallback>{session?.user?.name?.[0]}</AvatarFallback>
                 </Avatar>
                 <div className="min-w-0 text-left">

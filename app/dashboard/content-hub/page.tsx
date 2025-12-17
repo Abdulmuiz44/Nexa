@@ -18,7 +18,12 @@ export default function ContentHubPage() {
         try {
             const response = await fetch('/api/content-hub');
             const data = await response.json();
-            setItems(data);
+            if (Array.isArray(data)) {
+                setItems(data);
+            } else {
+                console.error('Invalid response format:', data);
+                toast.error(data.error || 'Failed to load content hub');
+            }
         } catch (error) {
             toast.error('Failed to load content hub');
             console.error(error);

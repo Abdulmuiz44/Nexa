@@ -16,6 +16,14 @@ export const ContentGrid: React.FC<ContentGridProps> = ({ items, onDelete, onEdi
     const [search, setSearch] = useState('');
     const [typeFilter, setTypeFilter] = useState('all');
 
+    if (!Array.isArray(items)) {
+        return (
+            <div className="flex h-40 flex-col items-center justify-center rounded-lg border border-dashed text-center">
+                <p className="text-sm text-muted-foreground">Unable to load content items.</p>
+            </div>
+        );
+    }
+
     const filteredItems = items.filter(item => {
         const matchesSearch =
             item.title.toLowerCase().includes(search.toLowerCase()) ||

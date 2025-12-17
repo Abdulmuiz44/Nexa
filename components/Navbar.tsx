@@ -105,7 +105,7 @@ const Navbar = () => {
                     <Image src="/NEXA-LOGO-ONLY.png" alt="Nexa" fill className="object-contain" />
                   </div>
                   <Avatar className="h-6 w-6">
-                    <AvatarImage src={session.user?.image || "/placeholder-user.jpg"} alt={session.user?.name || ""} />
+                    <AvatarImage src={session.user?.image || ""} alt={session.user?.name || ""} />
                     <AvatarFallback>{session.user?.name?.[0]}</AvatarFallback>
                   </Avatar>
                 </Button>
