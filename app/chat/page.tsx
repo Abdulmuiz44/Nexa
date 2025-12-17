@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -41,7 +41,7 @@ export default function ChatPage() {
         const conns = Array.isArray(data?.connections) ? data.connections : [];
         setTwitterConnected(conns.some((c: any) => String(c.toolkit_slug || '').includes('twitter')));
         setRedditConnected(conns.some((c: any) => String(c.toolkit_slug || '').includes('reddit')));
-      } catch {}
+      } catch { }
     };
     loadConnections();
     return () => { mounted = false };
@@ -116,6 +116,9 @@ export default function ChatPage() {
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="w-64 overflow-y-auto p-0">
+            <SheetHeader className="sr-only">
+              <SheetTitle>Navigation Menu</SheetTitle>
+            </SheetHeader>
             <AppSidebar onNavigate={() => setMenuOpen(false)} onSelectConversation={setSelectedConversationId} selectedConversationId={selectedConversationId} />
           </SheetContent>
         </Sheet>

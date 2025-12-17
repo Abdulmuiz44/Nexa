@@ -84,6 +84,7 @@
     "cmdk": "^1.1.1",
     "cors": "^2.8.5",
     "crypto": "latest",
+    "date-fns": "^4.1.0",
     "dotenv": "^17.2.3",
     "dotenv-extended": "^2.9.0",
     "embla-carousel-react": "^8.6.0",

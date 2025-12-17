@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { MoreVertical, ExternalLink, Trash2, Edit, Calendar } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { formatDistanceToNow } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 interface ContentHubItem {
     id: string;
@@ -96,7 +97,3 @@ export const ContentCard: React.FC<ContentCardProps> = ({ item, onDelete, onEdit
         </Card>
     );
 };
-
-function cn(...classes: any[]) {
-    return classes.filter(Boolean).join(' ');
-}

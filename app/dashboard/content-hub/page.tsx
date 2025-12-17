@@ -7,9 +7,10 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Plus, Database, Sparkles, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { ContentHubItem } from '@/lib/services/contentHubService';
 
 export default function ContentHubPage() {
-    const [items, setItems] = useState([]);
+    const [items, setItems] = useState<ContentHubItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingItem, setEditingItem] = useState(null);

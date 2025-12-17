@@ -80,7 +80,7 @@ async function ensureRedditClient(userId: string): Promise<Snoowrap> {
   return client
 }
 
-export async function post_to_platform({ platform, userId, content, mediaUrl }: PostInput): Promise<PostResponse> {
+export async function post_to_platform({ platform, userId, content }: PostInput): Promise<PostResponse> {
   try {
     if (platform === 'twitter') {
       const client = await ensureTwitterClient(userId)
