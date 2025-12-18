@@ -4,6 +4,9 @@ export interface ChatMessage {
   role: 'system' | 'user' | 'assistant' | 'tool';
   content: string;
   tool_calls?: any[];
+  toolCalls?: any[];
+  tool_call_id?: string;
+  toolCallId?: string;
 }
 
 export interface ChatResponse {
@@ -31,9 +34,17 @@ export class MistralClient {
 
   async chat(messages: ChatMessage[], options?: { model?: string; temperature?: number; max_tokens?: number; tools?: any[]; toolChoice?: any }): Promise<ChatResponse> {
     try {
+      // Map messages to ensure camelCase for tools (Mistral SDK requirement)
+      const mappedMessages = messages.map(msg => ({
+        role: msg.role,
+        content: msg.content,
+        toolCalls: msg.toolCalls || msg.tool_calls,
+        toolCallId: msg.toolCallId || msg.tool_call_id,
+      }));
+
       const response = await this.client.chat.complete({
         model: options?.model || this.model,
-        messages: messages as any,
+        messages: mappedMessages as any,
         temperature: options?.temperature || 0.7,
         maxTokens: options?.max_tokens,
         tools: options?.tools,
