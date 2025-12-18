@@ -393,12 +393,13 @@ If accounts aren't connected, inform the user they need to connect via the dashb
         .select('role, content, metadata')
         .eq('conversation_id', convId)
         .order('created_at', { ascending: true })
-        .limit(10);
+        .limit(20);
 
       const history: LLMMessage[] = (historyData || []).map(m => ({
         role: m.role as any,
         content: m.content,
         tool_calls: m.metadata?.tool_calls_data,
+        tool_call_id: m.metadata?.tool_call_id,
       }));
 
       return [
@@ -530,6 +531,39 @@ If accounts aren't connected, inform the user they need to connect via the dashb
           metadata: { timestamp: new Date().toISOString() },
         });
 
+      // Save tool calls if they occurred
+      if (toolCalls && toolCalls.length > 0) {
+        // Save the first assistant message that had tool calls
+        await supabaseServer
+          .from('messages')
+          .insert({
+            conversation_id: conversationId,
+            role: 'assistant',
+            content: '', // Initial content is usually empty when called with tools
+            metadata: {
+              timestamp: new Date().toISOString(),
+              tool_calls: toolCalls.length,
+              tool_calls_data: toolCalls,
+            },
+          });
+
+        // Save each tool response
+        for (const tr of toolResults) {
+          await supabaseServer
+            .from('messages')
+            .insert({
+              conversation_id: conversationId,
+              role: 'tool',
+              content: tr.content,
+              metadata: {
+                timestamp: new Date().toISOString(),
+                tool_call_id: (tr as any).tool_call_id,
+              },
+            });
+        }
+      }
+
+      // Save the final assistant response
       await supabaseServer
         .from('messages')
         .insert({
@@ -538,8 +572,6 @@ If accounts aren't connected, inform the user they need to connect via the dashb
           content: aiResponse,
           metadata: {
             timestamp: new Date().toISOString(),
-            tool_calls: toolCalls ? toolCalls.length : 0,
-            tool_calls_data: toolCalls,
           },
         });
     } catch (dbError) {
