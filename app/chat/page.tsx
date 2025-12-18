@@ -21,8 +21,7 @@ export default function ChatEntryPage() {
           .from('conversations')
           .insert({
             user_id: userId,
-            source: 'web',
-            title: 'New Chat'
+            source: 'web'
           })
           .select('id')
           .single();
