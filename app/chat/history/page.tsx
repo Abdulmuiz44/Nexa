@@ -28,7 +28,7 @@ export default function ChatHistoryPage() {
 
     useEffect(() => {
         const loadHistory = async () => {
-            if (status !== 'authenticated' || !userId) return;
+            if (status !== 'authenticated' || !userId || !supabaseClient) return;
 
             try {
                 const { data, error } = await supabaseClient
@@ -146,7 +146,7 @@ export default function ChatHistoryPage() {
                                                     </div>
                                                 </div>
                                                 <p className="text-sm text-muted-foreground truncate italic">
-                                                    "{conv.last_message.substring(0, 100)}{conv.last_message.length > 100 ? '...' : ''}"
+                                                    "{conv.last_message ? (conv.last_message.substring(0, 100) + (conv.last_message.length > 100 ? '...' : '')) : 'No messages yet'}"
                                                 </p>
                                             </div>
                                             <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
