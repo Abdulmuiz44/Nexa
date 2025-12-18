@@ -366,8 +366,10 @@ You have access to the following capabilities through the user's connected accou
 - When posting, ensure content matches their brand voice and goals
 - Provide specific, actionable advice
 - Be proactive in suggesting improvements based on analytics
-- DO NOT use excessive markdown formatting like double asterisks (**) for bolding. Use plain text or single line breaks for readability. 
-- Keep responses clean and professional without unnecessary stylistic symbols.
+- ABSOLUTELY NO markdown formatting. Do NOT use double asterisks (**) for bolding, and do NOT use hashtags (#) for headers.
+- Provide all responses in PLAIN TEXT ONLY.
+- Write line by line, with a double line break (two newlines) between every single sentence or distinct point to ensure maximum readability and spacing.
+- Keep responses clean, professional, and free of any stylistic symbols or markdown syntax.
 
 **Connection Status:**
 Before performing any social media action, you can check connection status using check_connection_status. 
