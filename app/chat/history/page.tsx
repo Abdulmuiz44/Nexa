@@ -35,6 +35,7 @@ export default function ChatHistoryPage() {
                     .from('conversations')
                     .select(`
             id,
+            title,
             created_at,
             messages (
               content,
@@ -53,7 +54,7 @@ export default function ChatHistoryPage() {
                     );
                     return {
                         id: conv.id,
-                        title: 'Conversation Session',
+                        title: conv.title || 'Untitled Chat',
                         created_at: conv.created_at,
                         last_message: sortedMessages[0]?.content || 'No messages yet'
                     };
