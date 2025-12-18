@@ -264,12 +264,12 @@ export class AnalyticsEngine {
     return {
       weekly: weeklyStats,
       monthly: monthlyStats,
-      insights: this.generateInsights(weeklyStats, monthlyStats),
+      insights: this.generateInsights(weeklyStats),
       recommendations: this.generateRecommendations(weeklyStats),
     };
   }
 
-  private generateInsights(weekly: any, _monthly: any): string[] {
+  private generateInsights(weekly: any): string[] {
     const insights: string[] = [];
 
     if (weekly.totalPosts > 0) {
