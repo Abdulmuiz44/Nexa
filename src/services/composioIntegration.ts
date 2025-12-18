@@ -2,12 +2,6 @@ import { Composio } from '@composio/core';
 import { supabaseServer } from '@/src/lib/supabaseServer';
 import { callUserLLM } from '@/src/lib/ai/user-provider';
 
-interface ComposioConnectionConfig {
-  userId: string;
-  platform: 'twitter' | 'reddit';
-  redirectUri?: string;
-}
-
 interface TweetData {
   content: string;
   mediaUrls?: string[];
@@ -52,7 +46,7 @@ export class ComposioIntegrationService {
   constructor(userId: string) {
     this.userId = userId;
     const apiKey = process.env.COMPOSIO_API_KEY;
-    
+
     if (apiKey) {
       this.composio = new Composio({ apiKey });
     } else {
@@ -144,14 +138,13 @@ export class ComposioIntegrationService {
 
     try {
       const callbackUrl = redirectUri || `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/composio/callback`;
-      
+
       console.log('Initiating Reddit connection for entity:', this.userId);
       console.log('Callback URL:', callbackUrl);
-      
+
       // Build connection URL manually using Composio's direct API
-      const apiKey = process.env.COMPOSIO_API_KEY;
       const connectionId = `conn_${this.userId}_reddit_${Date.now()}`;
-      
+
       // Use Composio's hosted connection page
       const composioBaseUrl = 'https://backend.composio.dev/api/v1';
       const authUrl = `${composioBaseUrl}/connectedAccounts?` + new URLSearchParams({
@@ -213,7 +206,7 @@ export class ComposioIntegrationService {
 
     try {
       const connection = await this.getConnection(platform ?? 'twitter');
-      
+
       // Get the connected account details from Composio
       const response = await this.composio.connectedAccounts.get(connection.composio_connection_id);
       const account = response?.data || response;
@@ -282,7 +275,7 @@ export class ComposioIntegrationService {
     }
 
     try {
-      const connection = await this.getConnection('twitter');
+      await this.getConnection('twitter');
 
       // Execute the tweet action through Composio
       const result = await this.composio.tools.execute('TWITTER_CREATION_OF_A_POST', {
@@ -325,7 +318,7 @@ export class ComposioIntegrationService {
     }
 
     try {
-      const connection = await this.getConnection('twitter');
+      await this.getConnection('twitter');
 
       const result = await this.composio.tools.execute('TWITTER_GET_USER_TWEETS', {
         userId: this.userId,
@@ -352,7 +345,7 @@ export class ComposioIntegrationService {
     }
 
     try {
-      const connection = await this.getConnection('twitter');
+      await this.getConnection('twitter');
 
       const result = await this.composio.tools.execute('TWITTER_GET_HOME_TIMELINE', {
         userId: this.userId,
@@ -469,7 +462,7 @@ Provide a comprehensive pattern analysis in the following JSON format:
       );
 
       const patterns = JSON.parse(response.message || '{}');
-      
+
       // Save patterns to database for future reference
       await this.saveUserPatterns(patterns);
 
@@ -533,7 +526,7 @@ Generate a tweet that matches this user's authentic style. Return only the tweet
     }
 
     try {
-      const connection = await this.getConnection('twitter');
+      await this.getConnection('twitter');
 
       let toolName: string;
       let params: any = { tweet_id: tweetId };
@@ -595,10 +588,10 @@ Generate a tweet that matches this user's authentic style. Return only the tweet
     }
 
     try {
-      const connection = await this.getConnection('reddit');
+      await this.getConnection('reddit');
 
       const toolName = postData.content ? 'REDDIT_SUBMIT_TEXT_POST' : 'REDDIT_SUBMIT_LINK_POST';
-      
+
       const result = await this.composio.tools.execute(toolName, {
         userId: this.userId,
         arguments: {
@@ -728,7 +721,7 @@ Generate a tweet that matches this user's authentic style. Return only the tweet
     }
 
     try {
-      const connection = await this.getConnection('twitter');
+      await this.getConnection('twitter');
 
       const result = await this.composio.tools.execute('TWITTER_GET_TWEET', {
         userId: this.userId,
@@ -751,7 +744,7 @@ Generate a tweet that matches this user's authentic style. Return only the tweet
     }
 
     try {
-      const connection = await this.getConnection(platform);
+      await this.getConnection(platform);
 
       const result = await this.composio.tools.execute(actionName, {
         userId: this.userId,

@@ -136,7 +136,6 @@ export class AutonomousAgent {
         case 'custom':
           // Check against custom schedule
           if (!this.config.customSchedule) return false;
-          const currentTime = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
           const isScheduledTime = this.config.customSchedule.some(time => {
             const [hour, minute] = time.split(':');
             return Math.abs(parseInt(hour) - currentHour) === 0 && Math.abs(parseInt(minute) - currentMinute) < 30;
@@ -182,12 +181,10 @@ export class AutonomousAgent {
         .limit(5);
 
       let context = `Target audience: ${this.config.targetAudience}`;
-      let baseContent = '';
 
       if (hubItems && hubItems.length > 0) {
         // Use a high-potential item as the base
         const item = hubItems[Math.floor(Math.random() * hubItems.length)];
-        baseContent = item.raw_content;
         context += `\nBase this post on the following high-value content: "${item.title}". Summary: ${item.summary || item.raw_content}`;
 
         // Mark as used if we want to avoid repetition (optional)

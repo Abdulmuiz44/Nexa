@@ -1,12 +1,7 @@
 import { composio } from '@/lib/composio';
 import { supabaseServer } from '@/src/lib/supabaseServer';
 
-interface PostAnalytics {
-  postId: string;
-  platform: 'twitter' | 'reddit';
-  connectionId: string;
-  platformPostId: string;
-}
+
 
 export class AnalyticsEngine {
   async collectPostAnalytics(postId: string): Promise<void> {
@@ -274,7 +269,7 @@ export class AnalyticsEngine {
     };
   }
 
-  private generateInsights(weekly: any, monthly: any): string[] {
+  private generateInsights(weekly: any, _monthly: any): string[] {
     const insights: string[] = [];
 
     if (weekly.totalPosts > 0) {

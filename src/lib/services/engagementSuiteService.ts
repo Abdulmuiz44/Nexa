@@ -224,15 +224,8 @@ export class EngagementSuiteService {
       const patterns = await composioService.getUserPatterns();
 
       // Generate contextual reply based on user's style
-      const prompt = `Generate a reply to this tweet in the user's authentic voice:
+      // We'll use the API to handle the actual LLM call with style patterns
 
-Tweet: "${tweet.text || tweet.content}"
-Tweet analysis: ${JSON.stringify(analysis)}
-
-User's voice characteristics: ${patterns.voice_characteristics || 'engaging and professional'}
-Common reply style: ${patterns.common_hooks?.[0] || 'helpful and conversational'}
-
-Generate a short, natural reply (max 280 chars) that would fit the user's posting style.`;
 
       const response = await fetch('/api/generate/content', {
         method: 'POST',

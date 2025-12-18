@@ -84,7 +84,7 @@ export const postSchedulerWorker = new Worker(
 // Analytics job
 export const analyticsWorker = new Worker(
   'analytics',
-  async (_job) => {
+  async () => {
     // Get all active connections
     const { data: connections } = await supabaseServer
       .from('composio_connections')
