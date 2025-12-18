@@ -252,11 +252,17 @@ export class ComposioIntegrationService {
         // Optionally verify with Composio that the connection is still active
         try {
           const composioAccount = await this.getConnectedAccount(platform);
-          return composioAccount && composioAccount.status === 'ACTIVE';
+          const isActive = composioAccount && (
+            composioAccount.status === 'ACTIVE' ||
+            composioAccount.Status === 'ACTIVE' ||
+            composioAccount.state === 'ACTIVE'
+          );
+          return !!isActive;
         } catch (verifyError) {
           console.warn(`Could not verify ${platform} connection status with Composio:`, verifyError);
-          // Assume it's active if we have it in our DB but can't verify
-          return true;
+          // If we can't verify with Composio, we should be cautious and return false
+          // instead of assuming it's active just because it's in our DB.
+          return false;
         }
       }
       return false;

@@ -113,11 +113,11 @@ export async function POST(req: Request) {
           return { balance: balanceData?.balance || 0 };
 
         case 'check_connection_status':
-          const twitterConn = await composioHelpers.getConnection('twitter', userId);
-          const redditConn = await composioHelpers.getConnection('reddit', userId);
+          const isTwitterConnected = await composioHelpers.hasActiveConnection('twitter', userId);
+          const isRedditConnected = await composioHelpers.hasActiveConnection('reddit', userId);
           return {
-            twitter: twitterConn ? 'connected' : 'not_connected',
-            reddit: redditConn ? 'connected' : 'not_connected',
+            twitter: isTwitterConnected ? 'connected' : 'not_connected',
+            reddit: isRedditConnected ? 'connected' : 'not_connected',
           };
 
         default:

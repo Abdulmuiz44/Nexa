@@ -58,6 +58,17 @@ export const composioHelpers = {
     }
   },
 
+  // Check if connection is truly active and verified
+  hasActiveConnection: async (platform: string, userId: string) => {
+    try {
+      const service = new ComposioIntegrationService(userId);
+      return await service.hasActiveConnection(platform as 'twitter' | 'reddit');
+    } catch (error) {
+      console.error('Error checking active connection:', error);
+      return false;
+    }
+  },
+
   // Initiate connection
   initiateConnection: async (appName: string, userId: string, redirectUri?: string) => {
     try {
