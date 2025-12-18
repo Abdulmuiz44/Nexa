@@ -92,14 +92,15 @@ export default function AppSidebar({ onNavigate, onSelectConversation, selectedC
   useEffect(() => {
     const loadConversations = async () => {
       if (status !== 'authenticated' || !userId) return;
-      if (!supabaseClient) return;
-      const { data } = await supabaseClient
-        .from('conversations')
-        .select('id, created_at')
-        .eq('user_id', userId)
-        .eq('source', 'web')
-        .order('created_at', { ascending: false });
-      setConversations(data || []);
+      try {
+        const response = await fetch('/api/chat/history?limit=10');
+        if (response.ok) {
+          const { conversations: data } = await response.json();
+          setConversations(data || []);
+        }
+      } catch (err) {
+        console.error('Sidebar: Failed to load history:', err);
+      }
     };
     loadConversations();
   }, [status, userId]);

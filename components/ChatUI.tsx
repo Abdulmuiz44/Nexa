@@ -65,28 +65,26 @@ export default function ChatUI({ conversationId }: { conversationId?: string }) 
         let targetConversationId = conversationId;
 
         if (!targetConversationId) {
-          // Get the latest conversation
-          const { data: latest } = await supabaseClient
-            .from('conversations')
-            .select('id')
-            .eq('user_id', userId)
-            .eq('source', 'web')
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle();
-          targetConversationId = latest?.id;
+          // Get the latest conversation via history API
+          const response = await fetch('/api/chat/history?limit=1');
+          if (response.ok) {
+            const { conversations: historyData } = await response.json();
+            targetConversationId = historyData?.[0]?.id;
+          }
         }
 
         if (targetConversationId) {
-          // Load messages
-          const { data: messagesData } = await supabaseClient
-            .from('messages')
-            .select('*')
-            .eq('conversation_id', targetConversationId)
-            .order('created_at', { ascending: true });
+          // Load messages via messages API
+          const response = await fetch(`/api/chat/messages/${targetConversationId}`);
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to fetch messages');
+          }
+
+          const { messages: messagesData } = await response.json();
 
           if (messagesData && messagesData.length > 0) {
-            const loadedMessages: Message[] = messagesData.map(msg => ({
+            const loadedMessages: Message[] = messagesData.map((msg: any) => ({
               id: msg.id,
               role: msg.role as 'user' | 'assistant',
               content: msg.content,

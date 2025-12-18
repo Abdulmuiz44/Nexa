@@ -28,38 +28,16 @@ export default function ChatHistoryPage() {
 
     useEffect(() => {
         const loadHistory = async () => {
-            if (status !== 'authenticated' || !userId || !supabaseClient) return;
+            if (status !== 'authenticated' || !userId) return;
 
             try {
-                const { data, error } = await supabaseClient
-                    .from('conversations')
-                    .select(`
-            id,
-            title,
-            created_at,
-            messages (
-              content,
-              created_at
-            )
-          `)
-                    .eq('user_id', userId)
-                    .eq('source', 'web')
-                    .order('created_at', { ascending: false });
+                const response = await fetch('/api/chat/history?limit=50');
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Failed to fetch history');
+                }
 
-                if (error) throw error;
-
-                const formatted = (data || []).map((conv: any) => {
-                    const sortedMessages = (conv.messages || []).sort(
-                        (a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-                    );
-                    return {
-                        id: conv.id,
-                        title: conv.title || 'Untitled Chat',
-                        created_at: conv.created_at,
-                        last_message: sortedMessages[0]?.content || 'No messages yet'
-                    };
-                });
-
+                const { conversations: formatted } = await response.json();
                 setConversations(formatted);
             } catch (err) {
                 console.error('Error loading chat history:', err);
