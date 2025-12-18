@@ -10,7 +10,7 @@ const testimonials = [
     quote: "Nexa reduced my weekly social media work from 15 hours to just 2. We went from 5K followers to 50K in 6 months with better engagement.",
     name: 'Sarah Johnson',
     title: 'Founder, CloudSync',
-    avatar: '/placeholder-user.jpg',
+    avatar: '',
     rating: 5,
     metric: '+900% follower growth',
     timeframe: 'in 6 months'
@@ -19,7 +19,7 @@ const testimonials = [
     quote: "The AI truly understands our brand voice. Our LinkedIn engagement rate jumped 3.2x. It's like having a full-time growth marketer that never sleeps.",
     name: 'Michael Chen',
     title: 'CMO, TechFlow Inc.',
-    avatar: '/placeholder.jpg',
+    avatar: '',
     rating: 5,
     metric: '3.2x engagement increase',
     timeframe: 'in 60 days'
@@ -28,7 +28,7 @@ const testimonials = [
     quote: "What impressed us most is the brand safety. Every post aligns with our values. We gained 2,400 qualified leads through Reddit engagement—something we couldn't do manually.",
     name: 'Jessica Rodriguez',
     title: 'Growth Lead, BuildStack',
-    avatar: '/placeholder-user.jpg',
+    avatar: '',
     rating: 5,
     metric: '2,400+ qualified leads',
     timeframe: 'in 90 days'
@@ -48,12 +48,12 @@ const Testimonials = () => {
             See verified metrics from companies using Nexa to accelerate their growth.
           </p>
         </div>
-        
+
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 sm:gap-6 md:gap-8">
           {testimonials.map((testimonial, idx) => (
-            <Card 
-              key={idx} 
-              className="group h-full rounded-3xl border-border bg-card/50 transition-all duration-300 hover:-translate-y-1 hover:scale-105 hover:border-primary/50 hover:shadow-neon opacity-0 animate-in fade-in slide-in-from-bottom-4 duration-700" 
+            <Card
+              key={idx}
+              className="group h-full rounded-3xl border-border bg-card/50 transition-all duration-300 hover:-translate-y-1 hover:scale-105 hover:border-primary/50 hover:shadow-neon opacity-0 animate-in fade-in slide-in-from-bottom-4 duration-700"
               style={{ animationDelay: `${idx * 0.2}s` }}
             >
               <CardContent className="flex h-full flex-col justify-between p-6">
@@ -63,10 +63,10 @@ const Testimonials = () => {
                     <Star key={i} className="h-5 w-5 text-primary fill-primary" />
                   ))}
                 </div>
-                
+
                 {/* Quote */}
                 <p className="mb-6 text-base font-light leading-relaxed text-foreground sm:text-lg">{testimonial.quote}</p>
-                
+
                 {/* Metric Badge */}
                 <div className="mb-4 inline-flex items-center gap-2 rounded-lg bg-primary/10 px-3 py-2 w-fit">
                   <TrendingUp className="h-4 w-4 text-primary" />
@@ -75,7 +75,7 @@ const Testimonials = () => {
                     <p className="text-xs text-muted-foreground">{testimonial.timeframe}</p>
                   </div>
                 </div>
-                
+
                 {/* Author */}
                 <div className="flex items-center gap-4">
                   <Avatar>

@@ -502,8 +502,8 @@ Requirements:
   private async postToPlatform(
     postId: string,
     platform: Platform,
-    content: string,
-    userId: string
+    _content: string,
+    _userId: string
   ): Promise<{ platformPostId: string; platformPostUrl: string }> {
     // This would call the platform APIs
     // For now, mock response

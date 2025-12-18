@@ -221,11 +221,8 @@ export class EngagementSuiteService {
   private static async generateReply(tweet: any, analysis: any, userId: string): Promise<string> {
     try {
       const composioService = new ComposioIntegrationService(userId);
-      const patterns = await composioService.getUserPatterns();
-
       // Generate contextual reply based on user's style
       // We'll use the API to handle the actual LLM call with style patterns
-
 
       const response = await fetch('/api/generate/content', {
         method: 'POST',

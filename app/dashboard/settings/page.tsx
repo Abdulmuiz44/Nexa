@@ -21,7 +21,7 @@ export default function SettingsPage() {
   const [avatarUrl, setAvatarUrl] = useState("");
   const [bio, setBio] = useState("");
   const { toast } = useToast();
-  
+
   useEffect(() => {
     const load = async () => {
       try {
@@ -48,7 +48,7 @@ export default function SettingsPage() {
         body: JSON.stringify({ name, avatar_url: avatarUrl }),
       });
       if (!res.ok) {
-        const data = await res.json().catch(()=>({}));
+        const data = await res.json().catch(() => ({}));
         toast({ title: 'Failed to save profile', description: data.error || 'Try again later', variant: 'destructive' });
       } else {
         toast({ title: 'Profile updated' });
@@ -78,7 +78,7 @@ export default function SettingsPage() {
             <CardContent className="space-y-6">
               <div className="flex items-center gap-6">
                 <Avatar className="h-20 w-20">
-                  <AvatarImage src={avatarUrl || "/placeholder-user.jpg"} alt="Profile" />
+                  <AvatarImage src={avatarUrl} alt="Profile" />
                   <AvatarFallback>{name?.[0] || 'U'}</AvatarFallback>
                 </Avatar>
                 <div className="space-y-2 w-full max-w-sm">

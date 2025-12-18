@@ -48,15 +48,16 @@ export interface ProviderLLMResponse {
 export async function callUserLLM({ userId, payload }: CallLLMArgs): Promise<ProviderLLMResponse> {
   const provider = await getUserProvider(userId);
 
-  // Enforce Mistral
-  const selectedProvider = 'mistral';
-
-  let apiKey = '';
+  // Forcing Mistral for now to ensure reliability during transition
+  let apiKey = process.env.MISTRAL_API_KEY || '';
 
   // Try to get user's key first if they have one saved
   if (provider?.ai_provider_api_key) {
     try {
-      apiKey = decryptSecret(provider.ai_provider_api_key);
+      const userApiKey = decryptSecret(provider.ai_provider_api_key);
+      if (userApiKey) {
+        apiKey = userApiKey;
+      }
     } catch (e) {
       console.warn('Failed to decrypt user API key, falling back to system key', e);
     }
