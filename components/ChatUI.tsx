@@ -21,14 +21,14 @@ interface Message {
 }
 
 export default function ChatUI({ conversationId }: { conversationId?: string }) {
-const { data: session, status } = useSession();
-const [messages, setMessages] = useState<Message[]>([]);
-const [input, setInput] = useState('');
-const [isLoading, setIsLoading] = useState(false);
-const [isLoadingHistory, setIsLoadingHistory] = useState(true);
-const [agentMode, setAgentMode] = useState<'manual' | 'autonomous' | 'review'>('manual');
-const [confirmOpen, setConfirmOpen] = useState(false);
-const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const { data: session, status } = useSession();
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(true);
+  const [agentMode, setAgentMode] = useState<'manual' | 'autonomous' | 'review'>('manual');
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   const userId = (session?.user as any)?.id;
 
@@ -158,6 +158,7 @@ const scrollAreaRef = useRef<HTMLDivElement>(null);
           message: userMessage.content,
           userId: userId,
           agentMode,
+          conversationId,
         }),
       });
 
@@ -209,7 +210,7 @@ const scrollAreaRef = useRef<HTMLDivElement>(null);
         content: 'Sorry, I encountered a network error. Please check your connection and try again.',
         timestamp: new Date(),
         type: 'text'
-        };
+      };
       setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
@@ -241,7 +242,7 @@ const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   // Show loading while session is being determined
   if (status === 'loading') {
-  return (
+    return (
       <div className="flex-1 p-4 sm:p-6">
         <div className="mx-auto flex h-full max-w-4xl flex-col items-center justify-center">
           <div className="text-center">
@@ -276,13 +277,13 @@ const scrollAreaRef = useRef<HTMLDivElement>(null);
     <div className="flex-1 p-4 sm:p-6">
       <div className="mx-auto flex h-full max-w-4xl flex-col">
         <div className="mb-6 flex flex-col gap-2 sm:mb-8">
-        <div className="flex items-center justify-between">
-        <h1 className="flex items-center gap-3 text-2xl font-bold sm:text-3xl">
-          <Bot className="h-7 w-7 text-primary sm:h-8 sm:w-8" />
-            Chat with Nexa
-          </h1>
-        <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">Mode:</span>
+          <div className="flex items-center justify-between">
+            <h1 className="flex items-center gap-3 text-2xl font-bold sm:text-3xl">
+              <Bot className="h-7 w-7 text-primary sm:h-8 sm:w-8" />
+              Chat with Nexa
+            </h1>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Mode:</span>
               <Select value={agentMode} onValueChange={(value: 'manual' | 'autonomous' | 'review') => setAgentMode(value)}>
                 <SelectTrigger className="w-32">
                   <SelectValue />
@@ -303,61 +304,57 @@ const scrollAreaRef = useRef<HTMLDivElement>(null);
         <Card className="flex flex-1 flex-col rounded-3xl border-border/60 bg-card/40 backdrop-blur">
           <CardContent className="flex flex-1 flex-col gap-4 p-4 sm:p-6">
             <ScrollArea className="flex-1 pr-2 sm:pr-4" ref={scrollAreaRef}>
-            <div className="space-y-4">
-            {isLoadingHistory ? (
+              <div className="space-y-4">
+                {isLoadingHistory ? (
                   <div className="flex justify-center items-center py-8">
                     <Loader2 className="h-6 w-6 animate-spin" />
                     <span className="ml-2">Loading conversation...</span>
                   </div>
                 ) : (
                   messages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={`flex gap-3 ${
-                      message.role === 'user' ? 'justify-end' : 'justify-start'
-                    }`}
-                  >
                     <div
-                      className={`flex gap-2 max-w-[80%] ${
-                        message.role === 'user' ? 'flex-row-reverse' : 'flex-row'
-                      }`}
+                      key={message.id}
+                      className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'
+                        }`}
                     >
                       <div
-                        className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-                          message.role === 'user'
-                            ? 'bg-primary text-primary-foreground'
-                            : 'bg-muted'
-                        }`}
+                        className={`flex gap-2 max-w-[80%] ${message.role === 'user' ? 'flex-row-reverse' : 'flex-row'
+                          }`}
                       >
-                        {message.role === 'user' ? (
-                          <User className="h-4 w-4" />
-                        ) : (
-                          <Bot className="h-4 w-4" />
-                        )}
-                      </div>
-                      <div
-                        className={`rounded-lg px-3 py-2 ${
-                          message.role === 'user'
-                            ? 'bg-primary text-primary-foreground'
-                            : 'bg-muted'
-                        }`}
-                      >
-                        {message.type && message.type !== 'text' && (
-                          <Badge
-                            className={`mb-2 text-xs ${getMessageBadgeColor(message.type)}`}
-                            variant="secondary"
-                          >
-                            {getMessageTypeLabel(message.type)}
-                          </Badge>
-                        )}
-                        <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                        <p className="text-xs opacity-70 mt-1">
-                          {message.timestamp.toLocaleTimeString()}
-                        </p>
+                        <div
+                          className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${message.role === 'user'
+                              ? 'bg-primary text-primary-foreground'
+                              : 'bg-muted'
+                            }`}
+                        >
+                          {message.role === 'user' ? (
+                            <User className="h-4 w-4" />
+                          ) : (
+                            <Bot className="h-4 w-4" />
+                          )}
+                        </div>
+                        <div
+                          className={`rounded-lg px-3 py-2 ${message.role === 'user'
+                              ? 'bg-primary text-primary-foreground'
+                              : 'bg-muted'
+                            }`}
+                        >
+                          {message.type && message.type !== 'text' && (
+                            <Badge
+                              className={`mb-2 text-xs ${getMessageBadgeColor(message.type)}`}
+                              variant="secondary"
+                            >
+                              {getMessageTypeLabel(message.type)}
+                            </Badge>
+                          )}
+                          <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                          <p className="text-xs opacity-70 mt-1">
+                            {message.timestamp.toLocaleTimeString()}
+                          </p>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                )))}
+                  )))}
                 {isLoading && (
                   <div className="flex gap-3 justify-start">
                     <div className="flex gap-2 max-w-[80%]">
@@ -417,7 +414,7 @@ const scrollAreaRef = useRef<HTMLDivElement>(null);
         open={confirmOpen}
         onOpenChange={setConfirmOpen}
         defaultPlatform={'twitter'}
-        initialContent={(messages.findLast?.((m:any)=>m.role==='assistant')?.content) || messages.filter(m=>m.role==='assistant').slice(-1)[0]?.content || ''}
+        initialContent={(messages.findLast?.((m: any) => m.role === 'assistant')?.content) || messages.filter(m => m.role === 'assistant').slice(-1)[0]?.content || ''}
         onSuccess={() => {
           // Optionally show a toast
         }}

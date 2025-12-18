@@ -12,7 +12,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { message, userId, agentMode = 'manual' } = await req.json();
+    const { message, userId, agentMode = 'manual', conversationId: requestedConversationId } = await req.json();
 
     if (!message || typeof message !== 'string') {
       return NextResponse.json({ error: 'Message is required' }, { status: 400 });
@@ -366,6 +366,8 @@ You have access to the following capabilities through the user's connected accou
 - When posting, ensure content matches their brand voice and goals
 - Provide specific, actionable advice
 - Be proactive in suggesting improvements based on analytics
+- DO NOT use excessive markdown formatting like double asterisks (**) for bolding. Use plain text or single line breaks for readability. 
+- Keep responses clean and professional without unnecessary stylistic symbols.
 
 **Connection Status:**
 Before performing any social media action, you can check connection status using check_connection_status. 
@@ -379,6 +381,52 @@ If accounts aren't connected, inform the user they need to connect via the dashb
     } else {
       systemPrompt += '\n\nMANUAL MODE: Only execute actions when explicitly requested by the user. Provide guidance and suggestions but wait for user approval. Explain available options clearly.';
     }
+
+    const buildHistoryMessages = async (convId: string): Promise<LLMMessage[]> => {
+      const { data: historyData } = await supabaseServer
+        .from('messages')
+        .select('role, content, metadata')
+        .eq('conversation_id', convId)
+        .order('created_at', { ascending: true })
+        .limit(10);
+
+      const history: LLMMessage[] = (historyData || []).map(m => ({
+        role: m.role as any,
+        content: m.content,
+        tool_calls: m.metadata?.tool_calls_data,
+      }));
+
+      return [
+        { role: 'system', content: systemPrompt },
+        ...history,
+        { role: 'user', content: message },
+      ];
+    };
+
+    // Initialize conversation
+    let conversationId = requestedConversationId;
+    if (!conversationId) {
+      const { data: latest } = await supabaseServer
+        .from('conversations')
+        .select('id')
+        .eq('user_id', session.user.id)
+        .eq('source', 'web')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      conversationId = latest?.id;
+    }
+
+    if (!conversationId) {
+      const { data: newConv } = await supabaseServer
+        .from('conversations')
+        .insert({ user_id: session.user.id, source: 'web' })
+        .select('id')
+        .single();
+      conversationId = newConv?.id;
+    }
+
+    const messages = await buildHistoryMessages(conversationId!);
 
     // Use configured provider to process the message
     let aiResponse = '';
@@ -411,12 +459,7 @@ If accounts aren't connected, inform the user they need to connect via the dashb
       });
     };
 
-    const buildBaseMessages = (): LLMMessage[] => [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: message },
-    ];
-
-    const completion = await makeLLMRequest(buildBaseMessages(), tools, 'auto');
+    const completion = await makeLLMRequest(messages, tools, 'auto');
     aiResponse = completion.message;
     toolCalls = completion.tool_calls;
     totalTokensUsed += Number(completion.usage?.total_tokens || 0);
@@ -444,8 +487,7 @@ If accounts aren't connected, inform the user they need to connect via the dashb
 
       const followUpCompletion = await makeLLMRequest(
         [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: message },
+          ...messages,
           {
             role: 'assistant',
             content: aiResponse,
@@ -461,28 +503,6 @@ If accounts aren't connected, inform the user they need to connect via the dashb
       totalTokensUsed += Number(followUpCompletion.usage?.total_tokens || 0);
     }
     try {
-      const { data: conversation } = await supabaseServer
-        .from('conversations')
-        .select('id')
-        .eq('user_id', session.user.id)
-        .eq('source', 'web')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
-
-      let conversationId = conversation?.id;
-      if (!conversationId) {
-        const { data: newConversation } = await supabaseServer
-          .from('conversations')
-          .insert({
-            user_id: session.user.id,
-            source: 'web',
-          })
-          .select('id')
-          .single();
-        conversationId = newConversation?.id;
-      }
-
       if (!conversationId) {
         throw new Error('Failed to initialize conversation');
       }
@@ -505,6 +525,7 @@ If accounts aren't connected, inform the user they need to connect via the dashb
           metadata: {
             timestamp: new Date().toISOString(),
             tool_calls: toolCalls ? toolCalls.length : 0,
+            tool_calls_data: toolCalls,
           },
         });
     } catch (dbError) {
