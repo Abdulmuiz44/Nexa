@@ -13,7 +13,7 @@ export default function ChatEntryPage() {
 
   useEffect(() => {
     const initializeNewChat = async () => {
-      if (status !== 'authenticated' || !userId) return;
+      if (status !== 'authenticated' || !userId || !supabaseClient) return;
 
       try {
         // Create a new conversation session
