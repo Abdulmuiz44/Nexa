@@ -16,19 +16,20 @@ export default function ChatEntryPage() {
       if (status !== 'authenticated' || !userId || !supabaseClient) return;
 
       try {
-        // Create a new conversation session
-        const { data: newConv, error } = await supabaseClient
-          .from('conversations')
-          .insert({
-            user_id: userId,
-            source: 'web',
-            title: 'New Chat'
-          })
-          .select('id')
-          .single();
+        // Create a new conversation session via API to bypass client-side RLS issues
+        const response = await fetch('/api/chat/session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: 'New Chat', source: 'web' })
+        });
 
-        if (error) throw error;
-        if (newConv) {
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to create session');
+        }
+
+        const { session: newConv } = await response.json();
+        if (newConv && newConv.id) {
           router.replace(`/chat/${newConv.id}`);
         }
       } catch (err) {
