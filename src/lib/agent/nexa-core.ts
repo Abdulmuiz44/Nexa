@@ -116,15 +116,15 @@ export class NexaAgentCore {
     try {
       switch (toolCall.name) {
         case 'generate_content':
-          return await this.generateContent(toolCall.parameters, userId);
+          return await this.generateContent(toolCall.parameters as any, userId);
         case 'schedule_post':
-          return await this.schedulePost(toolCall.parameters, userId);
+          return await this.schedulePost(toolCall.parameters as any, userId);
         case 'post_now':
-          return await this.postNow(toolCall.parameters, userId);
+          return await this.postNow(toolCall.parameters as any, userId);
         case 'create_campaign':
-          return await this.createCampaign(toolCall.parameters, userId);
+          return await this.createCampaign(toolCall.parameters as any, userId);
         case 'get_analytics':
-          return await this.getAnalytics(toolCall.parameters, userId);
+          return await this.getAnalytics(toolCall.parameters as any, userId);
         default:
           throw new Error(`Unknown tool: ${toolCall.name}`);
       }
@@ -165,7 +165,7 @@ export class NexaAgentCore {
       const postIds = [];
       for (const content of contents) {
         const postId = await this.db.createPost({
-          userId,
+          user_id: userId,
           content: content.content,
           platform,
           status: 'draft',
@@ -184,7 +184,7 @@ export class NexaAgentCore {
         postIds,
         message: `Generated ${variations} content variations for ${platform} about "${topic}"`
       };
-    } catch (error) {
+    } catch (error: any) {
       throw new Error(`Failed to generate content: ${error.message}`);
     }
   }
@@ -203,12 +203,12 @@ export class NexaAgentCore {
 
     // Schedule the post
     const postId = await this.db.createPost({
-      userId,
+      user_id: userId,
       content,
       platform,
       status: 'scheduled',
-      scheduledAt: scheduledTime,
-      campaignId,
+      scheduled_at: scheduledTime,
+      campaign_id: campaignId,
       metadata: {
         scheduled: true
       }
@@ -238,12 +238,12 @@ export class NexaAgentCore {
 
     // Create post record
     const postId = await this.db.createPost({
-      userId,
+      user_id: userId,
       content,
       platform,
       status: 'published',
-      publishedAt: new Date(),
-      campaignId,
+      published_at: new Date(),
+      campaign_id: campaignId,
       metadata: {
         postedImmediately: true
       }
@@ -281,14 +281,14 @@ export class NexaAgentCore {
 
     // Create campaign
     const campaignId = await this.db.createCampaign({
-      userId,
+      user_id: userId,
       name,
       platforms,
-      durationDays,
-      postsPerDay,
+      duration_days: durationDays,
+      posts_per_day: postsPerDay,
       topic,
       status: 'active',
-      startDate: startDate || new Date(),
+      start_date: startDate || new Date(),
       metadata: {
         totalPosts: durationDays * postsPerDay
       }
