@@ -22,6 +22,7 @@ import {
   FlaskConical,
   Bell,
   Database,
+  History,
 } from "lucide-react";
 import { supabaseClient } from "@/lib/supabaseClient";
 import {
@@ -35,6 +36,7 @@ import {
 
 const navItems = [
   { title: "Chat", href: "/chat", icon: MessageSquare },
+  { title: "History", href: "/chat/history", icon: History },
   { title: "Campaigns", href: "/dashboard/campaigns", icon: MessageSquare },
   { title: "Approvals", href: "/dashboard/approvals", icon: CheckCircle },
   { title: "Repurpose", href: "/dashboard/repurpose", icon: Recycle },
@@ -161,14 +163,15 @@ export default function AppSidebar({ onNavigate, onSelectConversation, selectedC
               <div className="text-white/60 text-sm px-3 py-2">No conversations yet</div>
             )}
             {conversations.map((c) => (
-              <button
+              <Link
                 key={c.id}
-                onClick={() => { onSelectConversation?.(c.id); onNavigate?.(); }}
-                className={`w-full text-left rounded-lg px-3 py-2 text-sm transition-colors ${selectedConversationId === c.id ? 'bg-accent text-white' : 'text-white/80 hover:text-white hover:bg-accent/30'
+                href={`/chat/history/${c.id}`}
+                onClick={onNavigate}
+                className={`w-full block text-left rounded-lg px-3 py-2 text-sm transition-colors ${selectedConversationId === c.id ? 'bg-accent text-white' : 'text-white/80 hover:text-white hover:bg-accent/30'
                   }`}
               >
                 {new Date(c.created_at).toISOString().replace('T', ' ').slice(0, 16) + 'Z'}
-              </button>
+              </Link>
             ))}
           </div>
         </div>

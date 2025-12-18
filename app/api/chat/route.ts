@@ -464,8 +464,17 @@ If accounts aren't connected, inform the user they need to connect via the dashb
       });
     };
 
+    const scrubMarkdown = (text: string): string => {
+      return text
+        .replace(/\*\*/g, '') // Remove double asterisks
+        .replace(/\*/g, '')   // Remove single asterisks
+        .replace(/^#+\s/gm, '') // Remove headers
+        .replace(/^---\s*$/gm, '') // Remove horizontal rules
+        .trim();
+    };
+
     const completion = await makeLLMRequest(messages, tools, 'auto');
-    aiResponse = completion.message;
+    aiResponse = scrubMarkdown(completion.message);
     toolCalls = completion.tool_calls;
     totalTokensUsed += Number(completion.usage?.total_tokens || 0);
 
@@ -504,7 +513,7 @@ If accounts aren't connected, inform the user they need to connect via the dashb
         undefined
       );
 
-      aiResponse = followUpCompletion.message || "Action completed, but I couldn't generate a response.";
+      aiResponse = scrubMarkdown(followUpCompletion.message);
       totalTokensUsed += Number(followUpCompletion.usage?.total_tokens || 0);
     }
     try {
