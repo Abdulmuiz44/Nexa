@@ -167,7 +167,7 @@ export default function AppSidebar({ onNavigate, onSelectConversation, selectedC
                 key={c.id}
                 href={`/chat/history/${c.id}`}
                 onClick={onNavigate}
-                className={`w-full block text-left rounded-lg px-3 py-2 text-sm transition-colors ${selectedConversationId === c.id ? 'bg-accent text-white' : 'text-white/80 hover:text-white hover:bg-accent/30'
+                className={`w-full block text-left rounded-lg px-3 py-2 text-sm transition-colors ${pathname.includes(c.id) ? 'bg-accent text-white' : 'text-white/80 hover:text-white hover:bg-accent/30'
                   }`}
               >
                 {new Date(c.created_at).toISOString().replace('T', ' ').slice(0, 16) + 'Z'}

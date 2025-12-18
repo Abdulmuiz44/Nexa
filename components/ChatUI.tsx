@@ -323,8 +323,8 @@ export default function ChatUI({ conversationId }: { conversationId?: string }) 
                       >
                         <div
                           className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${message.role === 'user'
-                              ? 'bg-primary text-primary-foreground'
-                              : 'bg-muted'
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-muted'
                             }`}
                         >
                           {message.role === 'user' ? (
@@ -335,8 +335,8 @@ export default function ChatUI({ conversationId }: { conversationId?: string }) 
                         </div>
                         <div
                           className={`rounded-lg px-3 py-2 ${message.role === 'user'
-                              ? 'bg-primary text-primary-foreground'
-                              : 'bg-muted'
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-muted'
                             }`}
                         >
                           {message.type && message.type !== 'text' && (
