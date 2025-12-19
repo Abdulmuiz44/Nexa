@@ -479,8 +479,8 @@ If accounts aren't connected, inform the user they need to connect via the dashb
     toolCalls = completion.tool_calls;
     totalTokensUsed += Number(completion.usage?.total_tokens || 0);
 
+    const toolResults: LLMMessage[] = [];
     if (toolCalls && toolCalls.length > 0) {
-      const toolResults: LLMMessage[] = [];
 
       for (const toolCall of toolCalls) {
         try {
