@@ -65,68 +65,28 @@ export class ComposioIntegrationService {
     try {
       const callbackUrl = redirectUri || `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/composio/callback`;
 
-      console.log('Initiating Twitter connection with auth config for entity:', this.userId);
-      console.log('Callback URL:', callbackUrl);
+      console.log('Initiating Twitter connection for entity:', this.userId);
 
-      // Use Composio's hosted connection page with auth config
-      const composioBaseUrl = 'https://backend.composio.dev/api/v1';
-      const authUrl = `${composioBaseUrl}/connectedAccounts?` + new URLSearchParams({
+      const session = await this.composio.connectedAccounts.initiate({
         appName: 'twitter',
         entityId: this.userId,
-        authConfigId: 'ac_vUASEFFIWuaE', // Include the auth config ID
+        authConfigId: 'ac_vUASEFFIWuaE',
         redirectUrl: callbackUrl,
-        showActiveConnections: 'false'
-      }).toString();
-
-      console.log('Generated auth URL:', authUrl);
-
-      return {
-        authUrl,
-        connectionId: `conn_${this.userId}_twitter_${Date.now()}`, // Keep for backward compatibility
-      };
-    } catch (error: any) {
-      console.error('Error initiating Twitter connection with auth config:', {
-        message: error.message,
-        code: error.code,
-        details: error.details || error.errorId,
-        fullError: error
       });
 
-      // Fallback to the old method if the new one fails
-      console.log('Falling back to manual URL building...');
-      return this.fallbackInitiateTwitterConnection(redirectUri);
+      console.log('Composio session created:', session);
+
+      return {
+        authUrl: session.redirectUrl || session.url || '',
+        connectionId: session.connectionId || session.id || '',
+      };
+    } catch (error: any) {
+      console.error('Error initiating Twitter connection:', error);
+      throw error;
     }
   }
 
-  /**
-   * Fallback method for initiating Twitter connection (manual URL building)
-   */
-  private async fallbackInitiateTwitterConnection(redirectUri?: string): Promise<{ authUrl: string; connectionId: string }> {
-    const callbackUrl = redirectUri || `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/composio/callback`;
 
-    console.log('Using fallback Twitter connection for entity:', this.userId);
-    console.log('Callback URL:', callbackUrl);
-
-    // Build connection URL manually using Composio's direct API
-    const connectionId = `conn_${this.userId}_twitter_${Date.now()}`;
-
-    // Use Composio's hosted connection page with auth config
-    const composioBaseUrl = 'https://backend.composio.dev/api/v1';
-    const authUrl = `${composioBaseUrl}/connectedAccounts?` + new URLSearchParams({
-      appName: 'twitter',
-      entityId: this.userId,
-      authConfigId: 'ac_vUASEFFIWuaE', // Include the auth config ID
-      redirectUrl: callbackUrl,
-      showActiveConnections: 'false'
-    }).toString();
-
-    console.log('Generated fallback auth URL:', authUrl);
-
-    return {
-      authUrl,
-      connectionId,
-    };
-  }
 
   /**
    * Initiate OAuth connection to Reddit
@@ -140,33 +100,19 @@ export class ComposioIntegrationService {
       const callbackUrl = redirectUri || `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/composio/callback`;
 
       console.log('Initiating Reddit connection for entity:', this.userId);
-      console.log('Callback URL:', callbackUrl);
 
-      // Build connection URL manually using Composio's direct API
-      const connectionId = `conn_${this.userId}_reddit_${Date.now()}`;
-
-      // Use Composio's hosted connection page
-      const composioBaseUrl = 'https://backend.composio.dev/api/v1';
-      const authUrl = `${composioBaseUrl}/connectedAccounts?` + new URLSearchParams({
+      const session = await this.composio.connectedAccounts.initiate({
         appName: 'reddit',
         entityId: this.userId,
         redirectUrl: callbackUrl,
-        showActiveConnections: 'false'
-      }).toString();
-
-      console.log('Generated auth URL:', authUrl);
+      });
 
       return {
-        authUrl,
-        connectionId,
+        authUrl: session.redirectUrl || session.url || '',
+        connectionId: session.connectionId || session.id || '',
       };
     } catch (error: any) {
-      console.error('Error initiating Reddit connection:', {
-        message: error.message,
-        code: error.code,
-        details: error.details || error.errorId,
-        fullError: error
-      });
+      console.error('Error initiating Reddit connection:', error);
       throw error;
     }
   }
