@@ -47,6 +47,8 @@ export interface ContentGenerationRequest {
 export interface ContentGenerationResult {
   twitter?: string;
   reddit?: string;
+  linkedin?: string;
+  [key: string]: any; // Allow other platforms
   analysis?: string;
   metadata: {
     generatedAt: number;

@@ -258,31 +258,83 @@ export async function* streamWorkflow(
 
   const initialState: WorkflowState = {
     ...state,
-    executionLog: [],
+    executionLog: ['Starting workflow...'],
     timestamp: Date.now(),
   };
 
   try {
-    // Use streaming mode if available
-    for await (const update of await graph.streamEvents(initialState, {
-      version: 'v2',
-    })) {
-      // Yield intermediate states
-      if (update.event === 'on_chain_end') {
-        yield {
-          ...initialState,
-          ...update.data.output,
-          timestamp: Date.now(),
-        };
-      }
+    // Yield initial state
+    yield initialState;
+
+    // Execute workflow and yield updates
+    let currentState = initialState;
+
+    // Generate content
+    logger.info('workflow', 'Starting content generation');
+    const generateResult = await executeWorkflowNode(
+      'generate',
+      nodeGenerateContent,
+      currentState
+    );
+    currentState = { ...currentState, ...generateResult };
+    yield currentState;
+
+    // Check if we should publish
+    if (currentState.contentVariations && Object.keys(currentState.contentVariations).length > 0) {
+      // Publish content
+      logger.info('workflow', 'Starting content publishing');
+      const publishResult = await executeWorkflowNode(
+        'publish',
+        nodePublishContent,
+        currentState
+      );
+      currentState = { ...currentState, ...publishResult };
+      yield currentState;
+
+      // Fetch analytics
+      logger.info('workflow', 'Starting analytics fetch');
+      const analyticsResult = await executeWorkflowNode(
+        'analytics',
+        nodeAnalytics,
+        currentState
+      );
+      currentState = { ...currentState, ...analyticsResult };
+      yield currentState;
+    } else {
+      currentState.executionLog.push('ℹ No content generated, skipping publish and analytics');
+      yield currentState;
     }
+
+    logger.info('workflow', 'Workflow completed successfully');
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
+    logger.error('workflow', `Workflow failed: ${errorMsg}`);
     yield {
       ...initialState,
       error: errorMsg,
       executionLog: [...initialState.executionLog, `✗ Workflow failed: ${errorMsg}`],
       timestamp: Date.now(),
     };
+  }
+}
+
+/**
+ * Helper to execute a single workflow node
+ */
+async function executeWorkflowNode<T extends Partial<WorkflowState>>(
+  nodeName: string,
+  node: (state: WorkflowState) => Promise<T>,
+  state: WorkflowState
+): Promise<T> {
+  try {
+    const result = await node(state);
+    return result;
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    logger.error('workflow', `Node ${nodeName} failed: ${errorMsg}`);
+    return {
+      error: errorMsg,
+      executionLog: [...state.executionLog, `✗ ${nodeName} failed: ${errorMsg}`],
+    } as T;
   }
 }
