@@ -3,7 +3,6 @@
  * Coordinates content generation → publishing → analytics
  */
 
-import { StateGraph, START, END } from '@langchain/langgraph';
 import { getContentAgent } from './contentAgent';
 import { executeComposioTool } from '@/lib/tools/composioTools';
 import { createLogger } from '@/lib/logger';
@@ -24,7 +23,7 @@ export interface WorkflowState extends AgentState {
  * Node: Generate Content using Content Agent
  */
 async function nodeGenerateContent(state: WorkflowState): Promise<Partial<WorkflowState>> {
-  logger.info('workflow', 'Entering nodeGenerateContent', {
+  logger.info('Starting content generation', {
     userId: state.userId,
     toolkits: state.toolkits,
   });
@@ -55,17 +54,6 @@ async function nodeGenerateContent(state: WorkflowState): Promise<Partial<Workfl
 }
 
 /**
- * Node: Route to next step (publish or end)
- */
-function routeNext(state: WorkflowState): string {
-  // Check if user wants to publish (or auto-publish)
-  if (state.contentVariations && Object.keys(state.contentVariations).length > 0) {
-    return 'publish';
-  }
-  return END;
-}
-
-/**
  * Node: Publish content to social media
  */
 async function nodePublishContent(state: WorkflowState): Promise<Partial<WorkflowState>> {
@@ -76,12 +64,13 @@ async function nodePublishContent(state: WorkflowState): Promise<Partial<Workflo
     };
   }
 
-  logger.info('workflow', 'Entering nodePublishContent', {
+  logger.info('Starting content publishing', {
     userId: state.userId,
     platforms: Object.keys(state.contentVariations).filter((k) => k !== 'metadata'),
   });
 
   const postIds: string[] = [];
+  const newLog = [...state.executionLog];
 
   for (const platform of state.toolkits) {
     const content = state.contentVariations[platform];
@@ -94,15 +83,15 @@ async function nodePublishContent(state: WorkflowState): Promise<Partial<Workflo
         content,
       });
 
-      if (result.success && result.postId) {
+      if (result.success && 'postId' in result && result.postId) {
         postIds.push(result.postId);
-        state.executionLog.push(`✓ Posted to ${platform}: ${result.postId}`);
+        newLog.push(`✓ Posted to ${platform}: ${result.postId}`);
       } else {
-        state.executionLog.push(`✗ Failed to post to ${platform}`);
+        newLog.push(`✗ Failed to post to ${platform}`);
       }
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
-      state.executionLog.push(`✗ Error posting to ${platform}: ${errorMsg}`);
+      newLog.push(`✗ Error posting to ${platform}: ${errorMsg}`);
     }
   }
 
@@ -110,7 +99,7 @@ async function nodePublishContent(state: WorkflowState): Promise<Partial<Workflo
     postIds,
     published: postIds.length > 0,
     executionLog: [
-      ...state.executionLog,
+      ...newLog,
       `✓ Publishing complete: ${postIds.length} posts published`,
     ],
   };
@@ -126,7 +115,7 @@ async function nodeAnalytics(state: WorkflowState): Promise<Partial<WorkflowStat
     };
   }
 
-  logger.info('workflow', 'Entering nodeAnalytics', {
+  logger.info('Starting analytics fetch', {
     userId: state.userId,
     postCount: state.postIds.length,
   });
@@ -151,82 +140,11 @@ async function nodeAnalytics(state: WorkflowState): Promise<Partial<WorkflowStat
 }
 
 /**
- * Build the workflow graph
- */
-export function buildWorkflowGraph() {
-  const workflow = new StateGraph<WorkflowState>({
-    channels: {
-      userId: {
-        value: '',
-        default: '',
-      },
-      userBrief: {
-        value: '',
-        default: '',
-      },
-      toolkits: {
-        value: [],
-        default: [],
-      },
-      contentVariations: {
-        value: undefined,
-        default: undefined,
-      },
-      executionLog: {
-        value: [],
-        default: [],
-      },
-      postIds: {
-        value: [],
-        default: [],
-      },
-      published: {
-        value: false,
-        default: false,
-      },
-      metrics: {
-        value: undefined,
-        default: undefined,
-      },
-      error: {
-        value: undefined,
-        default: undefined,
-      },
-      timestamp: {
-        value: 0,
-        default: Date.now(),
-      },
-    },
-  });
-
-  // Add nodes
-  workflow.addNode('generate', nodeGenerateContent);
-  workflow.addNode('publish', nodePublishContent);
-  workflow.addNode('analytics', nodeAnalytics);
-
-  // Set entry point
-  workflow.setEntryPoint('generate');
-
-  // Add edges
-  workflow.addConditionalEdges('generate', routeNext, {
-    publish: 'publish',
-    [END]: END,
-  });
-
-  workflow.addEdge('publish', 'analytics');
-  workflow.addEdge('analytics', END);
-
-  return workflow.compile();
-}
-
-/**
- * Execute workflow
+ * Execute workflow (synchronous)
  */
 export async function executeWorkflow(
   state: Omit<WorkflowState, 'executionLog' | 'timestamp'>
 ): Promise<WorkflowState> {
-  const graph = buildWorkflowGraph();
-
   const initialState: WorkflowState = {
     ...state,
     executionLog: [],
@@ -234,10 +152,41 @@ export async function executeWorkflow(
   };
 
   try {
-    const result = await graph.invoke(initialState);
-    return result as WorkflowState;
+    // Step 1: Generate content
+    let currentState = initialState;
+    const generateResult = await nodeGenerateContent(currentState);
+    currentState = { ...currentState, ...generateResult };
+
+    if (currentState.error) {
+      return currentState;
+    }
+
+    // Step 2: Publish content (if generated)
+    if (currentState.contentVariations && Object.keys(currentState.contentVariations).length > 0) {
+      const publishResult = await nodePublishContent(currentState);
+      currentState = { ...currentState, ...publishResult };
+
+      if (currentState.error) {
+        return currentState;
+      }
+
+      // Step 3: Fetch analytics (if published)
+      if (currentState.published && currentState.postIds && currentState.postIds.length > 0) {
+        const analyticsResult = await nodeAnalytics(currentState);
+        currentState = { ...currentState, ...analyticsResult };
+      }
+    } else {
+      currentState.executionLog.push('ℹ No content generated, skipping publish and analytics');
+    }
+
+    logger.info('Workflow completed successfully', {
+      userId: currentState.userId,
+    });
+
+    return currentState;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
+    logger.error(`Workflow failed: ${errorMsg}`);
 
     return {
       ...initialState,
@@ -268,7 +217,7 @@ export async function* streamWorkflow(
 
     // ========== STEP 1: Generate Content ==========
     try {
-      logger.info('workflow', 'Starting content generation', {
+      logger.info('Starting content generation', {
         userId: currentState.userId,
         toolkits: currentState.toolkits,
       });
@@ -276,6 +225,10 @@ export async function* streamWorkflow(
       const generateResult = await nodeGenerateContent(currentState);
       currentState = { ...currentState, ...generateResult };
       yield currentState;
+
+      if (currentState.error) {
+        return;
+      }
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
       currentState = {
@@ -283,15 +236,15 @@ export async function* streamWorkflow(
         error: errorMsg,
         executionLog: [...currentState.executionLog, `✗ Generate failed: ${errorMsg}`],
       };
-      logger.error('workflow', `Generate failed: ${errorMsg}`, { userId: currentState.userId });
+      logger.error(`Generate failed: ${errorMsg}`);
       yield currentState;
-      return; // Stop workflow on generation failure
+      return;
     }
 
     // ========== STEP 2: Publish Content (if generated) ==========
     if (currentState.contentVariations && Object.keys(currentState.contentVariations).length > 0) {
       try {
-        logger.info('workflow', 'Starting content publishing', {
+        logger.info('Starting content publishing', {
           userId: currentState.userId,
           platforms: Object.keys(currentState.contentVariations),
         });
@@ -299,6 +252,10 @@ export async function* streamWorkflow(
         const publishResult = await nodePublishContent(currentState);
         currentState = { ...currentState, ...publishResult };
         yield currentState;
+
+        if (currentState.error) {
+          return;
+        }
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
         currentState = {
@@ -306,15 +263,15 @@ export async function* streamWorkflow(
           error: errorMsg,
           executionLog: [...currentState.executionLog, `✗ Publish failed: ${errorMsg}`],
         };
-        logger.error('workflow', `Publish failed: ${errorMsg}`, { userId: currentState.userId });
+        logger.error(`Publish failed: ${errorMsg}`);
         yield currentState;
-        return; // Stop workflow on publish failure
+        return;
       }
 
       // ========== STEP 3: Fetch Analytics (if published) ==========
       if (currentState.published && currentState.postIds && currentState.postIds.length > 0) {
         try {
-          logger.info('workflow', 'Starting analytics fetch', {
+          logger.info('Starting analytics fetch', {
             userId: currentState.userId,
             postCount: currentState.postIds.length,
           });
@@ -329,9 +286,9 @@ export async function* streamWorkflow(
             error: errorMsg,
             executionLog: [...currentState.executionLog, `✗ Analytics failed: ${errorMsg}`],
           };
-          logger.error('workflow', `Analytics failed: ${errorMsg}`, { userId: currentState.userId });
+          logger.error(`Analytics failed: ${errorMsg}`);
           yield currentState;
-          return; // Stop workflow on analytics failure
+          return;
         }
       }
     } else {
@@ -340,12 +297,12 @@ export async function* streamWorkflow(
       return;
     }
 
-    logger.info('workflow', 'Workflow completed successfully', {
+    logger.info('Workflow completed successfully', {
       userId: currentState.userId,
     });
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
-    logger.error('workflow', `Workflow fatal error: ${errorMsg}`);
+    logger.error(`Workflow fatal error: ${errorMsg}`);
     yield {
       ...initialState,
       error: errorMsg,

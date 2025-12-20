@@ -2,23 +2,37 @@
 
 ## Issues Found & Fixed
 
-### Issue 1: "t is not a function" Error in Workflow Demo
+### Issue 1: "t is not a function" Error in Workflow Demo (Root Cause: Function Reference & Async Issues)
 **Problem:** Workflow streaming was failing with cryptic error "t is not a function"
 
-**Root Cause:** The `streamWorkflow()` function was attempting to use `graph.streamEvents()` which is not the correct LangGraph API for streaming. This caused a runtime error when the function tried to call a non-existent method.
+**Root Cause:** Multiple issues compounded:
+1. The `streamWorkflow()` function was attempting to use incorrect LangGraph API (`graph.streamEvents()`)
+2. Function references were passed to `executeWorkflowNode()` which had forward reference issues
+3. Synchronous logger calls were being awaited with `await`, causing type mismatches
+4. Complex control flow with helper functions made scope and execution ambiguous
 
-**Solution:** 
-- Refactored `streamWorkflow()` to manually execute each workflow node sequentially
-- Replaced incorrect `graph.streamEvents()` call with direct node execution
-- Added proper state transitions between nodes (Generate → Publish → Analytics)
-- Implemented `executeWorkflowNode()` helper for robust error handling
-- Ensured execution log is properly propagated through all state updates
+**Solution (Iteration 1):** 
+- Refactored `streamWorkflow()` to manually execute each workflow node sequentially ✓
+- Replaced incorrect `graph.streamEvents()` call with direct node execution ✓
+- Added proper state transitions between nodes (Generate → Publish → Analytics) ✓
+- Implemented `executeWorkflowNode()` helper for robust error handling ✓
+
+**Solution (Iteration 2 - Final):**
+- Removed `executeWorkflowNode()` helper to eliminate function reference issues
+- Inlined all workflow node execution directly in `streamWorkflow()`
+- Removed unnecessary `await` on synchronous logger.info/error calls
+- Added explicit try-catch blocks for each workflow step
+- Clear visual markers (STEP 1, STEP 2, STEP 3) for debugging
+- Ensured proper state transitions with yield at each step
+- Graceful workflow termination on step failure
 
 **Files Modified:**
-- `lib/agents/workflow.ts` - Complete refactor of `streamWorkflow()` function
+- `lib/agents/workflow.ts` - Complete refactor with inlined execution (v2)
+- `lib/agents/types.ts` - Enhanced type definitions
 
 **Commits:**
-- `04a45b1` - Fix streamWorkflow function and improve type definitions
+- `04a45b1` - Initial fix attempt with executeWorkflowNode helper
+- `e476541` - Final fix with inlined execution and proper async handling
 
 ---
 
