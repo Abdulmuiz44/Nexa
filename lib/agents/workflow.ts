@@ -6,7 +6,6 @@
 import { StateGraph, START, END } from '@langchain/langgraph';
 import { getContentAgent } from './contentAgent';
 import { executeComposioTool } from '@/lib/tools/composioTools';
-import { MistralClient, ChatMessage } from '@/src/lib/ai/mistral-client';
 import { createLogger } from '@/lib/logger';
 import { AgentState } from './types';
 
