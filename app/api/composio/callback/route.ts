@@ -1,215 +1,124 @@
-import { NextResponse } from 'next/server';
+/**
+ * Composio OAuth Callback Handler
+ * GET /api/composio/callback
+ *
+ * Handles OAuth callback from Composio for all platforms
+ */
+
+import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/src/lib/supabaseServer';
-import { Composio } from '@composio/core';
+import { createLogger } from '@/lib/logger';
 
-// Handle OAuth callback from Composio
-export async function GET(req: Request) {
+const logger = createLogger();
+
+export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
-    const url = new URL(req.url);
-
-    // Extract parameters from query string - these may vary based on auth method
-    const code = url.searchParams.get('code');
-    const state = url.searchParams.get('state');
-    const connectionId = url.searchParams.get('connectionId') || url.searchParams.get('connectedAccountId');
-    const integrationId = url.searchParams.get('integrationId') || url.searchParams.get('appName');
-    const entityId = url.searchParams.get('entityId') || url.searchParams.get('userId');
-
-    console.log('Composio callback received:', {
-      hasCode: !!code,
-      hasState: !!state,
-      connectionId,
-      integrationId,
-      entityId,
-      allParams: Object.fromEntries(url.searchParams.entries())
-    });
-
-    // For auth config based connections, we need to handle the connected account creation
-    if (connectionId && entityId) {
-      // Save connection to database
-      const saved = await saveConnection({
-        connectionId,
-        userId: entityId,
-        toolkit: integrationId || 'twitter', // Default to twitter if not specified
-      });
-
-      if ('error' in saved) {
-        console.error('Failed to save connection:', saved.error);
-        return NextResponse.redirect(
-          new URL('/dashboard/connections?error=save_failed', url.origin)
-        );
-      }
-
-      console.log('Connection saved successfully:', saved.id);
-
-      // Redirect back to connections page with success message
-      return NextResponse.redirect(
-        new URL(`/dashboard/connections?connected=${encodeURIComponent(integrationId || 'twitter')}`, url.origin)
-      );
-    }
-
-    // If no connectionId but we have a code, try to exchange it for a connection
-    if (code && entityId) {
-      try {
-        const apiKey = process.env.COMPOSIO_API_KEY;
-        if (apiKey) {
-          const composio = new Composio({ apiKey });
-
-          // Try to get the connected account using the code/state info
-          // This is a fallback for when the connection isn't immediately available
-          console.log('Attempting to retrieve connection with code...');
-
-          // For now, redirect to success assuming the connection was established
-          return NextResponse.redirect(
-            new URL('/dashboard/connections?connected=twitter', url.origin)
-          );
-        }
-      } catch (error) {
-        console.warn('Could not retrieve connection with code:', error);
-      }
-    }
-
-    // Fallback: redirect with error if we can't determine the connection
-    console.error('Missing required connection parameters in callback');
-    return NextResponse.redirect(
-      new URL('/dashboard/connections?error=missing_params', url.origin)
-    );
-  } catch (error) {
-    console.error('Composio callback GET error:', error);
-    const url = new URL(req.url);
-    return NextResponse.redirect(
-      new URL('/dashboard/connections?error=callback', url.origin)
-    );
-  }
-}
-
-// Alternative: manual callback recording from client
-export async function POST(req: Request) {
-  try {
-    const { sessionId, userId, toolkit, connectionId } = await req.json();
-    
-    console.log('Manual connection recording:', { sessionId, userId, toolkit, connectionId });
-
-    if (!userId || !toolkit) {
-      return NextResponse.json(
-        { error: 'userId and toolkit are required' },
-        { status: 400 }
-      );
-    }
-
-    const connId = connectionId || sessionId;
-    if (!connId) {
-      return NextResponse.json(
-        { error: 'connectionId or sessionId required' },
-        { status: 400 }
-      );
-    }
-
-    // Verify the connection with Composio
-    const apiKey = process.env.COMPOSIO_API_KEY;
-    if (apiKey) {
-      try {
-        const composio = new Composio({ apiKey });
-        const response = await composio.connectedAccounts.get(connId);
-        
-        // Handle different possible response structures
-        let account: any = response?.data || response;
-        if (Array.isArray(account) && account.length > 0) {
-          account = account[0];
-        }
-        
-        // Ensure account is an object
-        if (typeof account !== 'object' || account === null) {
-          console.warn('Invalid account response structure:', { response, account });
-          account = {};
-        }
-        
-        const accountInfo = {
-          id: (account as any)?.id || (account as any)?.accountId || (account as any)?.connectionId || 'unknown',
-          status: (account as any)?.status || (account as any)?.Status || (account as any)?.state || 'unknown',
-          integrationId: (account as any)?.integrationId || (account as any)?.appName || (account as any)?.app || 'unknown',
-          fullAccount: account,
-          fullResponse: response
-        };
-        
-        console.log('Verified connection with Composio:', accountInfo);
-      } catch (verifyError) {
-        console.warn('Could not verify connection with Composio:', verifyError);
-        // Continue anyway - connection might still be valid
-      }
-    }
-
-    const saved = await saveConnection({
-      connectionId: connId,
-      userId,
-      toolkit,
-    });
-
-    if ('error' in saved) {
-      return NextResponse.json({ error: saved.error }, { status: 500 });
-    }
-
-    return NextResponse.json({ 
-      success: true, 
-      connectionId: saved.id,
-      message: 'Connection saved successfully'
-    });
-  } catch (error: unknown) {
-    console.error('Composio callback POST error:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Composio callback failed' },
-      { status: 500 }
-    );
-  }
-}
-
-async function saveConnection({
-  connectionId,
-  userId,
-  toolkit,
-}: {
-  connectionId: string;
-  userId: string;
-  toolkit: string;
-}) {
-  try {
-    // Check if connection already exists
-    const { data: existing } = await supabaseServer
-      .from('composio_connections')
-      .select('id')
-      .eq('user_id', userId)
-      .eq('composio_connection_id', connectionId)
-      .single();
-
-    if (existing) {
-      console.log('Connection already exists:', existing.id);
-      return { id: existing.id };
-    }
-
-    // Insert new connection
-    const { data, error } = await supabaseServer
-      .from('composio_connections')
-      .insert({
-        user_id: userId,
-        composio_connection_id: connectionId,
-        toolkit_slug: toolkit,
-        meta: {
-          status: 'ACTIVE',
-          createdAt: new Date().toISOString(),
-          source: 'oauth_callback',
-        },
-      })
-      .select('id')
-      .single();
+    const searchParams = request.nextUrl.searchParams;
+    const connectionId = searchParams.get('connectionId');
+    const state = searchParams.get('state');
+    const error = searchParams.get('error');
+    const errorDescription = searchParams.get('error_description');
 
     if (error) {
-      console.error('Database error saving connection:', error);
-      return { error: 'Failed to save connection to database' } as const;
+      await logger.error('composio_callback_error', 'OAuth callback error', {
+        error,
+        error_description: errorDescription,
+      });
+
+      // Redirect to error page with encoded error message
+      const errorMsg = encodeURIComponent(`OAuth failed: ${errorDescription || error}`);
+      return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/integrations?error=${errorMsg}`);
     }
 
-    console.log('New connection created:', data.id);
-    return { id: data!.id } as const;
+    if (!connectionId || !state) {
+      return NextResponse.json(
+        { error: 'Missing required parameters' },
+        { status: 400 }
+      );
+    }
+
+    // Verify auth session
+    const { data: authSession } = await supabaseServer
+      .from('auth_sessions')
+      .select('*')
+      .eq('state', state)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (!authSession) {
+      await logger.error('composio_callback_invalid_state', 'Invalid or expired auth session', {
+        state,
+      });
+
+      return NextResponse.redirect(
+        `${process.env.NEXTAUTH_URL}/integrations?error=${encodeURIComponent('Invalid or expired auth session')}`
+      );
+    }
+
+    const userId = authSession.user_id;
+    const platform = authSession.platform;
+
+    // Check if connection already exists for this platform
+    const { data: existingConnection } = await supabaseServer
+      .from('composio_connections')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('toolkit_slug', platform)
+      .single();
+
+    if (existingConnection) {
+      // Update existing connection
+      await supabaseServer
+        .from('composio_connections')
+        .update({
+          composio_connection_id: connectionId,
+          status: 'active',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', existingConnection.id);
+
+      await logger.info('composio_connection_updated', `${platform} connection updated`, {
+        userId,
+        platform,
+      });
+    } else {
+      // Create new connection
+      await supabaseServer.from('composio_connections').insert({
+        user_id: userId,
+        composio_connection_id: connectionId,
+        toolkit_slug: platform,
+        status: 'active',
+        account_username: '', // Will be populated on first use
+        account_id: '', // Will be populated on first use
+      });
+
+      await logger.info('composio_connection_created', `${platform} connection created`, {
+        userId,
+        platform,
+      });
+    }
+
+    // Update auth session status
+    await supabaseServer
+      .from('auth_sessions')
+      .update({ status: 'completed' })
+      .eq('id', authSession.id);
+
+    // Redirect to integrations page with success message
+    return NextResponse.redirect(
+      `${process.env.NEXTAUTH_URL}/integrations?success=${encodeURIComponent(`${platform} connected successfully`)}&platform=${platform}`
+    );
   } catch (error) {
-    console.error('Exception in saveConnection:', error);
-    return { error: 'Failed to save connection' } as const;
+    const errorMsg = error instanceof Error ? error.message : String(error);
+
+    await logger.error('composio_callback_error', 'Callback processing failed', {
+      error: errorMsg,
+    });
+
+    return NextResponse.redirect(
+      `${process.env.NEXTAUTH_URL}/integrations?error=${encodeURIComponent('Connection failed')}`
+    );
   }
 }

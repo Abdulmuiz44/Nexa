@@ -1,148 +1,154 @@
-import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+/**
+ * Composio Connections Endpoint
+ * GET /api/composio/connections
+ * DELETE /api/composio/connections?platform=[platform]
+ *
+ * Manage user's connected social media accounts
+ */
+
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth/next';
 import { supabaseServer } from '@/src/lib/supabaseServer';
-import { Composio } from '@composio/core';
+import { createLogger } from '@/lib/logger';
+import { ComposioIntegrationService } from '@/src/services/composioIntegration';
 
-/**
- * Composio connection metadata
- */
-interface ComposioMeta {
-  status?: string;
-  [key: string]: unknown;
-}
+const logger = createLogger();
 
-/**
- * Database composio_connections record
- */
-interface ComposioConnection {
-  id: string;
-  toolkit_slug: string;
-  composio_connection_id: string;
-  meta?: ComposioMeta;
-  created_at: string;
-}
-
-/**
- * Enriched connection response
- */
-interface EnrichedConnection extends ComposioConnection {
-  status: string;
-  isActive: boolean;
-  lastVerified: string | null;
-}
-
-/**
- * Composio account response
- */
-interface ComposioAccount {
-  id: string;
-  status: string;
-  [key: string]: unknown;
-}
-
-/**
- * Composio list response
- */
-interface ComposioListResponse {
-  items?: ComposioAccount[];
-  [key: string]: unknown;
-}
-
-export async function GET() {
+export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession();
+
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    let connections: ComposioConnection[] = [];
+    const userId = session.user.id;
 
-    // Get connections from database with error handling
+    // Get all active connections for user
+    const { data: connections, error } = await supabaseServer
+      .from('composio_connections')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('status', 'active')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      throw error;
+    }
+
+    const formattedConnections = connections?.map((conn) => ({
+      id: conn.id,
+      platform: conn.toolkit_slug,
+      username: conn.account_username,
+      status: conn.status,
+      connectedAt: conn.created_at,
+    })) || [];
+
+    await logger.info('connections_list', 'Connections retrieved', {
+      userId,
+      count: formattedConnections.length,
+    });
+
+    return NextResponse.json({
+      success: true,
+      connections: formattedConnections,
+      count: formattedConnections.length,
+    });
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+
+    await logger.error('connections_error', 'Failed to retrieve connections', {
+      error: errorMsg,
+    });
+
+    return NextResponse.json(
+      {
+        error: 'Failed to retrieve connections',
+        message: errorMsg,
+      },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request: NextRequest): Promise<NextResponse> {
+  try {
+    const session = await getServerSession();
+
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const userId = session.user.id;
+    const platform = request.nextUrl.searchParams.get('platform');
+
+    if (!platform) {
+      return NextResponse.json(
+        { error: 'Platform parameter is required' },
+        { status: 400 }
+      );
+    }
+
+    if (!['twitter', 'reddit', 'linkedin'].includes(platform)) {
+      return NextResponse.json(
+        { error: 'Invalid platform' },
+        { status: 400 }
+      );
+    }
+
+    // Get connection to revoke
+    const { data: connection } = await supabaseServer
+      .from('composio_connections')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('toolkit_slug', platform)
+      .single();
+
+    if (!connection) {
+      return NextResponse.json(
+        { error: `No ${platform} connection found` },
+        { status: 404 }
+      );
+    }
+
+    // Try to revoke on Composio side
     try {
-      const { data, error } = await supabaseServer
-        .from('composio_connections')
-        .select('id, toolkit_slug, composio_connection_id, meta, created_at')
-        .eq('user_id', session.user.id)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching connections from database:', error);
-        // Return empty connections instead of failing completely
-        connections = [];
-      } else {
-        connections = (data as ComposioConnection[]) || [];
-      }
-    } catch (dbError: unknown) {
-      console.error('Database connection error:', dbError);
-      // Return empty connections if database is unavailable
-      connections = [];
+      const composioService = new ComposioIntegrationService(userId);
+      // Add revoke method if available
+      // await composioService.revokeConnection(connection.composio_connection_id);
+    } catch (revokeError) {
+      console.warn('Could not revoke on Composio side:', revokeError);
+      // Continue with local deletion even if Composio revoke fails
     }
 
-    // Verify connections with Composio if API key is available
-    const apiKey = process.env.COMPOSIO_API_KEY;
-    if (apiKey && connections.length > 0) {
-      try {
-        const composio = new Composio({ apiKey });
+    // Delete connection from database
+    await supabaseServer
+      .from('composio_connections')
+      .delete()
+      .eq('id', connection.id);
 
-        // Get all connected accounts from Composio with timeout
-        const timeoutMs = 10000; // 10 second timeout
-        const composioAccountsPromise = composio.connectedAccounts.list({
-          userIds: [session.user.id],
-        });
+    await logger.info('connection_deleted', `${platform} connection deleted`, {
+      userId,
+      platform,
+    });
 
-        const timeoutPromise = new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('Composio API timeout')), timeoutMs)
-        );
+    return NextResponse.json({
+      success: true,
+      message: `${platform} connection removed`,
+    });
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
 
-        const composioAccounts = (await Promise.race([
-          composioAccountsPromise,
-          timeoutPromise,
-        ])) as ComposioListResponse;
+    await logger.error('connection_delete_error', 'Failed to delete connection', {
+      error: errorMsg,
+    });
 
-        // Enrich our connections with live status from Composio
-        const enrichedConnections: EnrichedConnection[] = connections.map((conn) => {
-          const composioAccount = composioAccounts.items?.find(
-            (acc) => acc.id === conn.composio_connection_id
-          );
-
-          return {
-            ...conn,
-            status: composioAccount?.status || conn.meta?.status || 'UNKNOWN',
-            isActive: composioAccount?.status === 'ACTIVE',
-            lastVerified: new Date().toISOString(),
-          };
-        });
-
-        return NextResponse.json({
-          connections: enrichedConnections,
-          verified: true,
-        });
-      } catch (composioError: unknown) {
-        const message =
-          composioError instanceof Error ? composioError.message : String(composioError);
-        console.warn('Could not verify connections with Composio:', message);
-
-        // Return database connections even if Composio verification fails
-        const fallbackConnections: EnrichedConnection[] = connections.map((conn) => ({
-          ...conn,
-          status: (conn.meta?.status as string) || 'UNKNOWN',
-          isActive: true, // Assume active if we can't verify
-          lastVerified: null,
-        }));
-
-        return NextResponse.json({
-          connections: fallbackConnections,
-          verified: false,
-          warning: 'Could not verify with Composio',
-        });
-      }
-    }
-
-    return NextResponse.json({ connections, verified: false });
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Server error';
-    console.error('Error in connections route:', error);
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: 'Failed to remove connection',
+        message: errorMsg,
+      },
+      { status: 500 }
+    );
   }
 }

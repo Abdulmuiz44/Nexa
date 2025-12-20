@@ -1,112 +1,373 @@
 import { NexaBase } from './nexaBase';
-import { composio } from '@/lib/composio';
+import { ComposioIntegrationService } from '@/src/services/composioIntegration';
 import { supabaseServer } from '@/src/lib/supabaseServer';
+import { createLogger } from '@/lib/logger';
+import * as TwitterToolkit from '@/lib/composio/twitter';
+import * as RedditToolkit from '@/lib/composio/reddit';
+import * as LinkedInToolkit from '@/lib/composio/linkedin';
 
+const logger = createLogger();
+
+export type SocialMediaPlatform = 'twitter' | 'reddit' | 'linkedin';
+
+export interface CreatePostParams {
+  platform: SocialMediaPlatform;
+  content: string;
+  mediaUrls?: string[];
+  connectionId?: string;
+}
+
+export interface SchedulePostParams {
+  platform: SocialMediaPlatform;
+  content: string;
+  scheduledAt: string;
+  mediaUrls?: string[];
+  connectionId?: string;
+}
+
+export interface PerformanceParams {
+  postId?: string;
+  period?: string;
+  platform?: SocialMediaPlatform;
+}
+
+/**
+ * Growth Agent: Executes autonomous posting actions using Composio
+ */
 export class GrowthAgent extends NexaBase {
+  private composioService: ComposioIntegrationService;
+
+  constructor(userId: string) {
+    super(userId);
+    this.composioService = new ComposioIntegrationService(userId);
+  }
+
   async executeAction(action: string, params: any): Promise<any> {
     try {
       switch (action) {
         case 'create_post':
-          return await this.createPost(params);
+          return await this.createPost(params as CreatePostParams);
         case 'schedule_post':
-          return await this.schedulePost(params);
+          return await this.schedulePost(params as SchedulePostParams);
         case 'analyze_performance':
-          return await this.analyzePerformance(params);
+          return await this.analyzePerformance(params as PerformanceParams);
+        case 'engage_with_post':
+          return await this.engageWithPost(params);
+        case 'analyze_user_patterns':
+          return await this.analyzeUserPatterns(params);
         default:
           throw new Error(`Unknown action: ${action}`);
       }
     } catch (error) {
-      await this.logError(action, error instanceof Error ? error.message : 'Unknown error', params);
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      await this.logError(action, errorMsg, params);
       throw error;
     }
   }
 
-  private async createPost(params: {
-    platform: 'twitter' | 'reddit';
-    content: string;
-    connectionId?: string;
-  }): Promise<any> {
-    const { platform, content, connectionId } = params;
+  /**
+   * Create and post content to social media via Composio
+   */
+  private async createPost(params: CreatePostParams): Promise<any> {
+    const { platform, content, mediaUrls } = params;
 
-    await this.log('create_post', `Creating post on ${platform}`, { content: content.substring(0, 50) + '...' });
-
-    // TODO: Use Composio to actually post content
-    // For now, simulate posting
-    const result = {
-      success: true,
+    await this.log('create_post', `Creating post on ${platform}`, {
       platform,
-      content,
-      postedAt: new Date().toISOString(),
-      postId: `simulated-${Date.now()}`
-    };
+      contentLength: content.length,
+      hasMedia: !!mediaUrls?.length,
+    });
 
-    // Save to database
-    await supabaseServer
-      .from('posts')
-      .insert({
-        user_id: this.userId,
+    // Check if user has active connection
+    const hasConnection = await this.composioService.hasActiveConnection(platform);
+    if (!hasConnection) {
+      throw new Error(`No active ${platform} connection for user ${this.userId}`);
+    }
+
+    let result;
+
+    try {
+      switch (platform) {
+        case 'twitter':
+          result = await TwitterToolkit.postTweet(this.userId, content, {
+            media_urls: mediaUrls,
+          });
+          break;
+
+        case 'reddit':
+          // Extract subreddit from metadata or use default
+          const subreddit = 'test'; // TODO: Make configurable
+          result = await RedditToolkit.postTextToReddit(
+            this.userId,
+            subreddit,
+            'Post Title',
+            content
+          );
+          break;
+
+        case 'linkedin':
+          result = await LinkedInToolkit.postToLinkedIn(this.userId, content, {
+            media_urls: mediaUrls,
+          });
+          break;
+
+        default:
+          throw new Error(`Unsupported platform: ${platform}`);
+      }
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to post');
+      }
+
+      // Save post to database
+      const { data: savedPost } = await supabaseServer
+        .from('posts')
+        .insert({
+          user_id: this.userId,
+          platform,
+          content,
+          status: 'published',
+          published_at: new Date().toISOString(),
+          platform_post_id: result.postId,
+          url: result.url,
+          metadata: {
+            created_by: 'growth_agent',
+            posted_at: new Date().toISOString(),
+          },
+        })
+        .select()
+        .single();
+
+      await this.log('create_post', `Successfully posted to ${platform}`, {
         platform,
-        content,
-        status: 'published',
-        published_at: new Date(),
-        platform_post_id: result.postId,
-        metadata: { simulated: true }
+        postId: result.postId,
+        url: result.url,
       });
 
-    await this.log('create_post', `Successfully posted to ${platform}`, result);
-
-    return result;
+      return {
+        success: true,
+        platform,
+        postId: result.postId,
+        url: result.url,
+        savedPostId: savedPost?.id,
+      };
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      await this.logError('create_post', errorMsg, params);
+      throw error;
+    }
   }
 
-  private async schedulePost(params: {
-    platform: 'twitter' | 'reddit';
-    content: string;
-    scheduledAt: string;
-    connectionId?: string;
-  }): Promise<any> {
-    const { platform, content, scheduledAt } = params;
+  /**
+   * Schedule a post for later publication
+   */
+  private async schedulePost(params: SchedulePostParams): Promise<any> {
+    const { platform, content, scheduledAt, mediaUrls } = params;
 
     await this.log('schedule_post', `Scheduling post on ${platform}`, {
+      platform,
       scheduledAt,
-      content: content.substring(0, 50) + '...'
+      contentLength: content.length,
     });
 
-    // Save scheduled post to database
-    const result = await supabaseServer
-      .from('posts')
-      .insert({
-        user_id: this.userId,
+    try {
+      // Save scheduled post to database
+      const { data: savedPost } = await supabaseServer
+        .from('posts')
+        .insert({
+          user_id: this.userId,
+          platform,
+          content,
+          status: 'scheduled',
+          scheduled_at: new Date(scheduledAt).toISOString(),
+          metadata: {
+            created_by: 'growth_agent',
+            scheduled_at: new Date(scheduledAt).toISOString(),
+            media_urls: mediaUrls || [],
+          },
+        })
+        .select()
+        .single();
+
+      await this.log('schedule_post', `Successfully scheduled post for ${platform}`, {
         platform,
-        content,
-        status: 'scheduled',
-        scheduled_at: new Date(scheduledAt),
-        metadata: { scheduled: true }
-      })
-      .select()
-      .single();
+        postId: savedPost?.id,
+        scheduledAt,
+      });
 
-    await this.log('schedule_post', `Successfully scheduled post for ${platform}`, {
-      postId: result.data?.id,
-      scheduledAt
-    });
-
-    return result.data;
+      return {
+        success: true,
+        platform,
+        postId: savedPost?.id,
+        scheduledAt,
+      };
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      await this.logError('schedule_post', errorMsg, params);
+      throw error;
+    }
   }
 
-  private async analyzePerformance(params: { postId?: string; period?: string }): Promise<any> {
-    await this.log('analyze_performance', 'Analyzing performance metrics', params);
+  /**
+   * Analyze post performance and engagement
+   */
+  private async analyzePerformance(params: PerformanceParams): Promise<any> {
+    const { postId, period = '24h', platform } = params;
 
-    // TODO: Implement actual analytics
-    const analysis = {
-      engagement: 85,
-      reach: 1200,
-      clicks: 45,
-      impressions: 2400,
-      sentiment: 'positive'
-    };
+    await this.log('analyze_performance', 'Analyzing post performance', {
+      postId,
+      period,
+      platform,
+    });
 
-    await this.log('analyze_performance', 'Performance analysis completed', analysis);
+    try {
+      if (!postId || !platform) {
+        throw new Error('postId and platform are required');
+      }
 
-    return analysis;
+      let analytics;
+
+      switch (platform) {
+        case 'twitter':
+          const twitterResult = await TwitterToolkit.getTweetAnalytics(this.userId, postId);
+          analytics = twitterResult.success ? twitterResult.analytics : null;
+          break;
+
+        case 'reddit':
+          const redditResult = await RedditToolkit.getPostAnalytics(this.userId, postId);
+          analytics = redditResult.success ? redditResult.analytics : null;
+          break;
+
+        case 'linkedin':
+          const linkedinResult = await LinkedInToolkit.getPostAnalytics(this.userId, postId);
+          analytics = linkedinResult.success ? linkedinResult.analytics : null;
+          break;
+
+        default:
+          throw new Error(`Unsupported platform: ${platform}`);
+      }
+
+      if (!analytics) {
+        throw new Error(`Failed to fetch analytics for ${platform}`);
+      }
+
+      await this.log('analyze_performance', 'Performance analysis completed', {
+        postId,
+        platform,
+        analytics,
+      });
+
+      return {
+        success: true,
+        postId,
+        platform,
+        analytics,
+        period,
+      };
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      await this.logError('analyze_performance', errorMsg, params);
+      throw error;
+    }
+  }
+
+  /**
+   * Engage with posts (like, retweet, reply)
+   */
+  private async engageWithPost(params: {
+    platform: SocialMediaPlatform;
+    postId: string;
+    engagementType: 'like' | 'retweet' | 'reply' | 'comment';
+    content?: string;
+  }): Promise<any> {
+    const { platform, postId, engagementType, content } = params;
+
+    await this.log('engage_with_post', `Engaging with post: ${engagementType}`, {
+      platform,
+      postId,
+      engagementType,
+    });
+
+    try {
+      let result;
+
+      switch (platform) {
+        case 'twitter':
+          if (engagementType === 'like') {
+            result = await TwitterToolkit.likeTweet(this.userId, postId);
+          } else if (engagementType === 'retweet') {
+            result = await TwitterToolkit.retweet(this.userId, postId);
+          } else if (engagementType === 'reply' && content) {
+            result = await TwitterToolkit.replyToTweet(this.userId, postId, content);
+          }
+          break;
+
+        case 'reddit':
+          if (engagementType === 'comment' && content) {
+            result = await RedditToolkit.postCommentToReddit(this.userId, postId, content);
+          }
+          break;
+
+        case 'linkedin':
+          if (engagementType === 'like') {
+            result = await LinkedInToolkit.likeLinkedInPost(this.userId, postId);
+          } else if (engagementType === 'comment' && content) {
+            result = await LinkedInToolkit.commentOnLinkedInPost(this.userId, postId, content);
+          }
+          break;
+      }
+
+      if (!result) {
+        throw new Error('Invalid engagement type for platform');
+      }
+
+      await this.log('engage_with_post', `Successfully engaged with post`, {
+        platform,
+        postId,
+        engagementType,
+      });
+
+      return {
+        success: result.success,
+        platform,
+        postId,
+        engagementType,
+      };
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      await this.logError('engage_with_post', errorMsg, params);
+      throw error;
+    }
+  }
+
+  /**
+   * Analyze user's posting patterns for personalized content generation
+   */
+  private async analyzeUserPatterns(params: { platform: SocialMediaPlatform }): Promise<any> {
+    const { platform } = params;
+
+    await this.log('analyze_patterns', `Analyzing user patterns on ${platform}`, { platform });
+
+    try {
+      if (platform !== 'twitter') {
+        throw new Error('Pattern analysis currently only supports Twitter');
+      }
+
+      const patterns = await this.composioService.analyzeUserTweetPatterns();
+
+      await this.log('analyze_patterns', 'User patterns analyzed', {
+        platform,
+        patterns,
+      });
+
+      return {
+        success: true,
+        platform,
+        patterns,
+      };
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      await this.logError('analyze_patterns', errorMsg, params);
+      throw error;
+    }
   }
 }
