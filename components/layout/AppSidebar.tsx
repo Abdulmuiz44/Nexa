@@ -39,6 +39,7 @@ const navItems = [
   { title: "History", href: "/chat/history", icon: History },
   { title: "Campaigns", href: "/dashboard/campaigns", icon: MessageSquare },
   { title: "Approvals", href: "/dashboard/approvals", icon: CheckCircle },
+  { title: "Agents", href: "/dashboard/agents", icon: FlaskConical },
   { title: "Repurpose", href: "/dashboard/repurpose", icon: Recycle },
   { title: "Engage", href: "/dashboard/engage", icon: Users },
   { title: "Experiments", href: "/dashboard/experiments", icon: FlaskConical },

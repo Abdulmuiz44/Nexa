@@ -36,6 +36,8 @@
     "@auth/core": "latest",
     "@composio/core": "^0.2.4",
     "@jest/globals": "latest",
+    "@langchain/core": "^0.3.0",
+    "@langchain/langgraph": "^0.1.0",
     "@mistralai/mistralai": "^1.10.0",
     "@modelcontextprotocol/sdk": "^1.20.1",
     "@neondatabase/serverless": "latest",
