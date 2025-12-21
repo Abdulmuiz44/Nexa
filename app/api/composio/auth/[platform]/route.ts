@@ -82,18 +82,38 @@ export async function POST(request: NextRequest, { params }: AuthParams): Promis
 
     let authResult;
 
-    switch (platform) {
-      case 'twitter':
-        authResult = await composioService.initiateTwitterConnection();
-        break;
-      case 'reddit':
-        authResult = await composioService.initiateRedditConnection();
-        break;
-      case 'linkedin':
-        authResult = await composioService.initiateLinkedInConnection();
-        break;
-      default:
-        throw new Error(`Unsupported platform: ${platform}`);
+    try {
+      switch (platform) {
+        case 'twitter':
+          authResult = await composioService.initiateTwitterConnection();
+          break;
+        case 'reddit':
+        case 'linkedin':
+          return NextResponse.json(
+            {
+              error: `${platform} integration not yet available`,
+              message: `Please configure ${platform} OAuth in Composio dashboard first`,
+            },
+            { status: 501 }
+          );
+        default:
+          throw new Error(`Unsupported platform: ${platform}`);
+      }
+    } catch (serviceError: any) {
+      // Check if it's our deprecation error
+      if (
+        serviceError.message?.includes('integration coming soon') ||
+        serviceError.message?.includes('COMPOSIO')
+      ) {
+        return NextResponse.json(
+          {
+            error: `${platform} integration not yet available`,
+            message: serviceError.message,
+          },
+          { status: 501 }
+        );
+      }
+      throw serviceError;
     }
 
     // Generate unique state for CSRF protection

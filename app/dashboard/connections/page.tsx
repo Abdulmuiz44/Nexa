@@ -185,7 +185,8 @@ export default function ConnectionsPage() {
         }
     };
 
-    const platforms = ['twitter', 'reddit', 'linkedin'];
+  // Currently only Twitter is supported
+  const platforms = ['twitter'];
 
     const getPlatformIcon = (platform: string) => {
         switch (platform) {
