@@ -709,4 +709,85 @@ Generate a tweet that matches this user's authentic style. Return only the tweet
       throw error;
     }
   }
+
+  /**
+   * Get verified account info from Composio (for display after OAuth)
+   */
+  async getVerifiedAccountInfo(
+    platform: 'twitter' | 'reddit',
+    connectionId?: string
+  ): Promise<{ username: string; accountId: string; verified?: boolean; followerCount?: number }> {
+    if (!this.composio) {
+      throw new Error('Composio not initialized');
+    }
+
+    try {
+      const connection = connectionId
+        ? { composio_connection_id: connectionId }
+        : await this.getConnection(platform);
+
+      if (!connection?.composio_connection_id) {
+        throw new Error('No valid connection ID found');
+      }
+
+      // Get account details from Composio
+      try {
+        const account = await this.composio.connectedAccounts.get(
+          connection.composio_connection_id
+        );
+
+        const accountData = account?.data || account;
+
+        return {
+          username: accountData?.accountName || accountData?.username || '',
+          accountId: accountData?.accountId || accountData?.id || '',
+          verified: accountData?.verified || false,
+          followerCount: accountData?.followerCount || accountData?.followers || 0,
+        };
+      } catch (apiError) {
+        // Fallback: try to get info from a test action
+        console.warn('Could not fetch account from Composio, using fallback', apiError);
+
+        if (platform === 'twitter') {
+          const timeline = await this.getUserTimeline(1);
+          if (timeline?.length > 0) {
+            const tweet = timeline[0];
+            return {
+              username: tweet?.author?.username || tweet?.user?.username || '',
+              accountId: tweet?.author?.id || tweet?.user?.id || '',
+              verified: tweet?.author?.verified || false,
+              followerCount: tweet?.author?.publicMetrics?.followers || 0,
+            };
+          }
+        }
+
+        throw new Error(`Could not verify ${platform} account`);
+      }
+    } catch (error) {
+      console.error(`Error getting verified account info for ${platform}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Revoke connection on Composio side (best-effort)
+   */
+  async revokeComposioConnection(composioConnectionId: string): Promise<boolean> {
+    if (!this.composio) {
+      console.warn('Composio not initialized, skipping revocation');
+      return false;
+    }
+
+    try {
+      // Attempt to revoke the connection on Composio side
+      // Note: Implementation depends on Composio SDK capabilities
+      await this.composio.connectedAccounts.delete(composioConnectionId);
+      console.log('Successfully revoked connection on Composio');
+      return true;
+    } catch (error) {
+      console.warn('Could not revoke on Composio side (non-critical):', error);
+      // Return false but don't throw—local deletion is still valid
+      return false;
+    }
+  }
 }

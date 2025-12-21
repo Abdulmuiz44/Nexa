@@ -2,22 +2,32 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { redirect } from 'next/navigation';
 
 interface Connection {
   id: string;
   platform: string;
   username: string;
+  accountId: string;
   status: string;
   connectedAt: string;
+  verified?: boolean;
+  followerCount?: number;
+  lastVerifiedAt?: string;
+  isExpired?: boolean;
 }
 
 export default function ConnectionsPage() {
   const { data: session } = useSession();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [connections, setConnections] = useState<Connection[]>([]);
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [disconnecting, setDisconnecting] = useState<string | null>(null);
 
   if (!session) {
     redirect('/login');
@@ -25,17 +35,45 @@ export default function ConnectionsPage() {
 
   useEffect(() => {
     fetchConnections();
-  }, []);
+
+    // Handle query params from OAuth callback
+    const errorMsg = searchParams.get('error');
+    const successMsg = searchParams.get('success');
+
+    if (errorMsg) {
+      setError(decodeURIComponent(errorMsg));
+      // Clear from URL
+      router.replace('/dashboard/connections');
+    }
+
+    if (successMsg) {
+      setSuccess(decodeURIComponent(successMsg));
+      // Clear from URL
+      router.replace('/dashboard/connections');
+      // Auto-clear success after 5 seconds
+      const timer = setTimeout(() => setSuccess(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [searchParams, router]);
 
   const fetchConnections = async () => {
     try {
       setError(null);
       const res = await fetch('/api/composio/connections');
+      
+      if (!res.ok) {
+        throw new Error(`API error: ${res.status}`);
+      }
+
       const data = await res.json();
       setConnections(data.connections || []);
+      
+      if (data.hasExpiredConnections) {
+        setError('⚠️ Some connections may have expired. Please reconnect them.');
+      }
     } catch (err) {
       console.error('Failed to fetch connections:', err);
-      setError('Failed to load connections');
+      setError('Failed to load connections. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -44,46 +82,78 @@ export default function ConnectionsPage() {
   const connectPlatform = async (platform: 'twitter' | 'reddit' | 'linkedin') => {
     setConnecting(platform);
     setError(null);
+    setSuccess(null);
+    
     try {
       const res = await fetch(`/api/composio/auth/${platform}`, {
         method: 'POST',
       });
+
+      if (!res.ok) {
+        const data = await res.json();
+        
+        if (res.status === 409) {
+          setError(`${platform} is already connected. Disconnect it first to connect a different account.`);
+        } else if (res.status === 501) {
+          setError(data.message || `${platform} integration is not yet available`);
+        } else {
+          setError(data.details || data.message || `Failed to initiate ${platform} connection`);
+        }
+        return;
+      }
+
       const data = await res.json();
 
       if (data.authUrl) {
-        // Redirect to OAuth
+        // Redirect to OAuth - this will navigate away and return via callback
         window.location.href = data.authUrl;
       } else {
-        setError(`Failed to initiate ${platform} connection`);
+        setError(`Failed to get authorization URL for ${platform}`);
       }
     } catch (err) {
       console.error('Connection error:', err);
-      setError(`Failed to connect ${platform}`);
+      setError(`Network error: Failed to connect ${platform}. Please check your connection and try again.`);
     } finally {
       setConnecting(null);
     }
   };
 
   const disconnectPlatform = async (platform: string) => {
-    if (!confirm(`Are you sure you want to disconnect ${platform}?`)) return;
+    if (!confirm(`Are you sure you want to disconnect ${platform}? Scheduled posts on this platform will not be posted.`)) {
+      return;
+    }
+
+    setDisconnecting(platform);
+    setError(null);
+    setSuccess(null);
 
     try {
-      setError(null);
       const res = await fetch(
         `/api/composio/connections?platform=${platform}`,
         { method: 'DELETE' }
       );
+
+      if (!res.ok) {
+        const data = await res.json();
+        setError(data.message || `Failed to disconnect ${platform}`);
+        return;
+      }
+
       const data = await res.json();
 
       if (data.success) {
+        setSuccess(`${platform} disconnected successfully`);
         await fetchConnections();
-        alert(`Successfully disconnected from ${platform}`);
+        // Auto-clear success message
+        setTimeout(() => setSuccess(null), 3000);
       } else {
-        setError(data.error || 'Failed to disconnect');
+        setError(data.error || `Failed to disconnect ${platform}`);
       }
     } catch (err) {
       console.error('Disconnect error:', err);
-      setError('Failed to disconnect account');
+      setError(`Network error: Failed to disconnect ${platform}`);
+    } finally {
+      setDisconnecting(null);
     }
   };
 
@@ -100,10 +170,23 @@ export default function ConnectionsPage() {
           </p>
         </div>
 
+        {/* Success Message */}
+        {success && (
+          <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+            <p className="text-green-700">✓ {success}</p>
+          </div>
+        )}
+
         {/* Error Message */}
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
             <p className="text-red-700">{error}</p>
+            <button
+              onClick={() => setError(null)}
+              className="mt-2 text-sm text-red-600 hover:text-red-800 underline"
+            >
+              Dismiss
+            </button>
           </div>
         )}
 
@@ -134,14 +217,31 @@ export default function ConnectionsPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-50 text-green-700 border border-green-200">
-                      ✓ Active
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-50 text-green-700 border border-green-200">
+                        ✓ Active
+                      </span>
+                      {conn.verified && (
+                        <span className="text-blue-500 text-sm" title="Account is verified">
+                          ✓
+                        </span>
+                      )}
+                      {conn.isExpired && (
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-50 text-yellow-700 border border-yellow-200">
+                          ⚠️ Expiring
+                        </span>
+                      )}
+                    </div>
                     <button
                       onClick={() => disconnectPlatform(conn.platform)}
-                      className="px-4 py-2 bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 rounded-lg font-medium transition"
+                      disabled={disconnecting === conn.platform}
+                      className={`px-4 py-2 border rounded-lg font-medium transition ${
+                        disconnecting === conn.platform
+                          ? 'bg-red-100 text-red-600 border-red-300 cursor-wait'
+                          : 'bg-red-50 text-red-600 hover:bg-red-100 border-red-200'
+                      }`}
                     >
-                      Disconnect
+                      {disconnecting === conn.platform ? 'Disconnecting...' : 'Disconnect'}
                     </button>
                   </div>
                 </div>

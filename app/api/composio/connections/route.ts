@@ -36,28 +36,43 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       throw error;
     }
 
-    const formattedConnections = connections?.map((conn) => ({
-      id: conn.id,
-      platform: conn.toolkit_slug,
-      username: conn.account_username,
-      status: conn.status,
-      connectedAt: conn.created_at,
-    })) || [];
+    // Format connections with additional metadata
+    const formattedConnections = (connections || []).map((conn) => {
+      const meta = conn.meta || {};
 
-    await logger.info('connections_list', 'Connections retrieved', {
+      return {
+        id: conn.id,
+        platform: conn.toolkit_slug,
+        username: conn.account_username || 'Unknown',
+        accountId: conn.account_id,
+        status: conn.status,
+        connectedAt: conn.created_at,
+        verified: meta.verified || false,
+        followerCount: meta.follower_count || 0,
+        lastVerifiedAt: meta.last_verified_at,
+        isExpired: conn.updated_at
+          ? new Date(conn.updated_at).getTime() + 90 * 24 * 60 * 60 * 1000 < Date.now()
+          : false, // 90 day expiry warning
+      };
+    });
+
+    await logger.info('connections_retrieved', 'Connections list fetched', {
       userId,
       count: formattedConnections.length,
+      platforms: formattedConnections.map((c) => c.platform),
     });
 
     return NextResponse.json({
       success: true,
       connections: formattedConnections,
       count: formattedConnections.length,
+      hasExpiredConnections: formattedConnections.some((c) => c.isExpired),
     });
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
 
-    await logger.error('connections_error', 'Failed to retrieve connections', {
+    await logger.error('connections_fetch_error', 'Failed to retrieve connections', {
+      userId: (await getServerSession())?.user?.id,
       error: errorMsg,
     });
 
@@ -96,56 +111,115 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
       );
     }
 
+    await logger.info('connection_revoke_start', `Attempting to revoke ${platform} connection`, {
+      userId,
+      platform,
+    });
+
     // Get connection to revoke
-    const { data: connection } = await supabaseServer
+    const { data: connection, error: fetchError } = await supabaseServer
       .from('composio_connections')
       .select('*')
       .eq('user_id', userId)
       .eq('toolkit_slug', platform)
       .single();
 
-    if (!connection) {
+    if (fetchError || !connection) {
+      await logger.warn('connection_not_found', `${platform} connection not found for user`, {
+        userId,
+        platform,
+        error: fetchError?.message,
+      });
+
       return NextResponse.json(
         { error: `No ${platform} connection found` },
         { status: 404 }
       );
     }
 
-    // Try to revoke on Composio side
+    // Try to revoke on Composio side (best-effort, non-blocking)
+    let composioRevoked = false;
     try {
       const composioService = new ComposioIntegrationService(userId);
-      // Add revoke method if available
-      // await composioService.revokeConnection(connection.composio_connection_id);
+      composioRevoked = await composioService.revokeComposioConnection(
+        connection.composio_connection_id
+      );
+
+      if (composioRevoked) {
+        await logger.info('composio_revoked', `Successfully revoked ${platform} on Composio`, {
+          userId,
+          platform,
+          connectionId: connection.composio_connection_id,
+        });
+      }
     } catch (revokeError) {
-      console.warn('Could not revoke on Composio side:', revokeError);
-      // Continue with local deletion even if Composio revoke fails
+      // Non-fatal error: local deletion still succeeds
+      await logger.warn('composio_revoke_failed', `Could not revoke on Composio side`, {
+        userId,
+        platform,
+        error: revokeError instanceof Error ? revokeError.message : String(revokeError),
+      });
     }
 
     // Delete connection from database
-    await supabaseServer
+    const { error: deleteError } = await supabaseServer
       .from('composio_connections')
       .delete()
       .eq('id', connection.id);
 
-    await logger.info('connection_deleted', `${platform} connection deleted`, {
+    if (deleteError) {
+      throw new Error(`Database delete failed: ${deleteError.message}`);
+    }
+
+    // Log audit trail
+    try {
+      await supabaseServer.from('audit_logs').insert({
+        user_id: userId,
+        action: 'connection_revoked',
+        resource: 'composio_connection',
+        resource_id: connection.id,
+        details: {
+          platform,
+          composio_connection_id: connection.composio_connection_id,
+          account_username: connection.account_username,
+          composio_revoke_successful: composioRevoked,
+        },
+        timestamp: new Date().toISOString(),
+      });
+    } catch (auditError) {
+      // Non-critical: don't block if audit logging fails
+      console.warn('Failed to log audit trail:', auditError);
+    }
+
+    await logger.info('connection_revoked_complete', `${platform} connection revoked successfully`, {
       userId,
       platform,
+      connectionId: connection.id,
+      composioRevoked,
     });
 
     return NextResponse.json({
       success: true,
-      message: `${platform} connection removed`,
+      message: `${platform} account disconnected successfully`,
+      platform,
+      data: {
+        revokedAt: new Date().toISOString(),
+        composioRevoked,
+        username: connection.account_username,
+      },
     });
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
 
-    await logger.error('connection_delete_error', 'Failed to delete connection', {
+    await logger.error('connection_revoke_error', 'Failed to revoke connection', {
+      userId: (await getServerSession())?.user?.id,
+      platform: request.nextUrl.searchParams.get('platform'),
       error: errorMsg,
     });
 
     return NextResponse.json(
       {
-        error: 'Failed to remove connection',
+        error: 'Failed to disconnect account',
         message: errorMsg,
       },
       { status: 500 }
