@@ -69,15 +69,26 @@ export class ComposioIntegrationService {
         }
 
         const callbackUrl = redirectUri || `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/composio/callback`;
+        const authConfigId = process.env.COMPOSIO_TWITTER_AUTH_CONFIG_ID || 'ac_v2MiHIOHVtDM';
+        
         console.log('Initiating Twitter connection for entity:', this.userId);
+        console.log('Using authConfigId:', authConfigId);
 
         try {
-            const session = await this.composio.connectedAccounts.initiate({
+            const initiatePayload: any = {
                 appName: 'twitter',
                 entityId: this.userId,
-                authConfigId: 'ac_v2MiHIOHVtDM',
                 redirectUrl: callbackUrl,
-            });
+            };
+            
+            // Only add authConfigId if it's explicitly set and not undefined
+            if (authConfigId && authConfigId !== 'undefined') {
+                initiatePayload.authConfigId = authConfigId;
+            }
+            
+            console.log('Composio initiate payload:', JSON.stringify(initiatePayload));
+            
+            const session = await this.composio.connectedAccounts.initiate(initiatePayload);
 
             console.log('Composio session created:', session);
 
@@ -92,11 +103,12 @@ export class ComposioIntegrationService {
         } catch (error: any) {
             const errorMsg = error?.message || String(error);
             console.error('Error initiating Twitter connection:', errorMsg);
+            console.error('Full error:', error);
 
             // Check if it's the authConfigId error
-            if (errorMsg.includes('authConfig') || errorMsg.includes('connected account list')) {
+            if (errorMsg.includes('authConfig') || errorMsg.includes('connected account list') || errorMsg.includes('undefined')) {
                 throw new Error(
-                    `Composio Twitter auth config issue. Verify COMPOSIO_TWITTER_AUTH_CONFIG_ID is set correctly. Error: ${errorMsg}`
+                    `Composio Twitter auth config issue. Verify COMPOSIO_TWITTER_AUTH_CONFIG_ID is set to 'ac_v2MiHIOHVtDM' in Vercel environment. Error: ${errorMsg}`
                 );
             }
 
