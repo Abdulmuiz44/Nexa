@@ -10,6 +10,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/lib/auth';
 import { ComposioIntegrationService } from '@/src/services/composioIntegration';
 import { supabaseServer } from '@/src/lib/supabaseServer';
 import { createLogger } from '@/lib/logger';
@@ -33,7 +34,7 @@ export async function POST(request: NextRequest, { params }: AuthParams): Promis
   }
 
   try {
-    const session = await getServerSession();
+    const session = await getServerSession(authOptions);
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

@@ -8,6 +8,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/lib/auth';
 import { supabaseServer } from '@/src/lib/supabaseServer';
 import { createLogger } from '@/lib/logger';
 import { ComposioIntegrationService } from '@/src/services/composioIntegration';
@@ -16,7 +17,7 @@ const logger = createLogger();
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
-    const session = await getServerSession();
+    const session = await getServerSession(authOptions);
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -88,7 +89,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
 export async function DELETE(request: NextRequest): Promise<NextResponse> {
   try {
-    const session = await getServerSession();
+    const session = await getServerSession(authOptions);
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
