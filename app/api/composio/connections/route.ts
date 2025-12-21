@@ -34,7 +34,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       .order('created_at', { ascending: false });
 
     if (error) {
-      throw error;
+      throw new Error(`Supabase query failed: ${error.message || JSON.stringify(error)}`);
     }
 
     // Format connections with additional metadata
