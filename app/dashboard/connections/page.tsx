@@ -61,30 +61,48 @@ export default function ConnectionsPage() {
     }, [searchParams, router]);
 
     const fetchConnections = async () => {
-        try {
-            setError(null);
-            const res = await fetch('/api/composio/connections');
-
-            if (!res.ok) {
-                throw new Error(`API error: ${res.status}`);
-            }
-
-            const data = await res.json();
-            // Filter out any mock/test data
-            const realConnections = (data.connections || []).filter(
-                (conn: Connection) => conn.accountId && conn.username && conn.username !== 'mock' && conn.username !== 'test'
-            );
-            setConnections(realConnections);
-
-            if (data.hasExpiredConnections) {
-                setError('⚠️ Some connections may have expired. Please reconnect them.');
-            }
-        } catch (err) {
-            console.error('Failed to fetch connections:', err);
-            setError('Failed to load connections. Please try again.');
-        } finally {
-            setLoading(false);
+      try {
+        setError(null);
+        const res = await fetch('/api/composio/connections');
+        
+        if (!res.ok) {
+          throw new Error(`API error: ${res.status}`);
         }
+
+        const data = await res.json();
+        // Filter out any mock/test data - validate connections rigorously
+        const realConnections = (data.connections || []).filter((conn: Connection) => {
+          // Must have required fields
+          if (!conn.accountId || !conn.username || !conn.id) {
+            return false;
+          }
+          
+          // Filter out mock/test/demo accounts
+          const testPatterns = ['mock', 'test', 'demo', 'mock_', 'test_', 'demo_'];
+          const lowerUsername = conn.username.toLowerCase();
+          if (testPatterns.some(pattern => lowerUsername.includes(pattern))) {
+            return false;
+          }
+          
+          // Filter out empty or invalid IDs
+          if (conn.id === '' || conn.accountId === '' || conn.username === '') {
+            return false;
+          }
+          
+          return true;
+        });
+        
+        setConnections(realConnections);
+        
+        if (data.hasExpiredConnections) {
+          setError('⚠️ Some connections may have expired. Please reconnect them.');
+        }
+      } catch (err) {
+        console.error('Failed to fetch connections:', err);
+        setError('Failed to load connections. Please try again.');
+      } finally {
+        setLoading(false);
+      }
     };
 
     const connectPlatform = async (platform: 'twitter' | 'reddit' | 'linkedin') => {
