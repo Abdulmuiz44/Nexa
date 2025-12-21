@@ -40,19 +40,25 @@ interface UserTweetPattern {
 }
 
 export class ComposioIntegrationService {
-    private composio: Composio | undefined;
-    private userId: string;
+  private composio: Composio | undefined;
+  private userId: string;
+  private apiKey: string | undefined;
 
-    constructor(userId: string) {
-        this.userId = userId;
-        const apiKey = process.env.COMPOSIO_API_KEY;
+  constructor(userId: string) {
+    this.userId = userId;
+    this.apiKey = process.env.COMPOSIO_API_KEY;
 
-        if (apiKey) {
-            this.composio = new Composio({ apiKey });
-        } else {
-            console.warn('COMPOSIO_API_KEY not set - integration will be limited');
-        }
+    if (this.apiKey) {
+      try {
+        this.composio = new Composio({ apiKey: this.apiKey });
+      } catch (initError) {
+        console.warn('Failed to initialize Composio SDK:', initError);
+        // Continue without Composio - fallback methods will handle it
+      }
+    } else {
+      console.warn('COMPOSIO_API_KEY not set - integration will be limited');
     }
+  }
 
     /**
      * Initiate OAuth connection to X (Twitter) using Composio Auth Config
@@ -62,11 +68,10 @@ export class ComposioIntegrationService {
             throw new Error('Composio not initialized - COMPOSIO_API_KEY missing');
         }
 
+        const callbackUrl = redirectUri || `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/composio/callback`;
+        console.log('Initiating Twitter connection for entity:', this.userId);
+
         try {
-            const callbackUrl = redirectUri || `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/composio/callback`;
-
-            console.log('Initiating Twitter connection for entity:', this.userId);
-
             const session = await this.composio.connectedAccounts.initiate({
                 appName: 'twitter',
                 entityId: this.userId,
@@ -76,12 +81,25 @@ export class ComposioIntegrationService {
 
             console.log('Composio session created:', session);
 
+            if (!session?.redirectUrl && !session?.url) {
+                throw new Error('No auth URL returned from Composio');
+            }
+
             return {
                 authUrl: session.redirectUrl || session.url || '',
                 connectionId: session.connectionId || session.id || '',
             };
         } catch (error: any) {
-            console.error('Error initiating Twitter connection:', error);
+            const errorMsg = error?.message || String(error);
+            console.error('Error initiating Twitter connection:', errorMsg);
+
+            // Check if it's the authConfigId error
+            if (errorMsg.includes('authConfig') || errorMsg.includes('connected account list')) {
+                throw new Error(
+                    `Composio Twitter auth config issue. Verify COMPOSIO_TWITTER_AUTH_CONFIG_ID is set correctly. Error: ${errorMsg}`
+                );
+            }
+
             throw error;
         }
     }
