@@ -81,9 +81,11 @@ export class ComposioIntegrationService {
                 redirectUrl: callbackUrl,
             };
             
-            // Only add authConfigId if it's explicitly set and not undefined
+            // Composio expects authConfigIds as an array, not a single string
             if (authConfigId && authConfigId !== 'undefined') {
-                initiatePayload.authConfigId = authConfigId;
+                initiatePayload.authConfigIds = [authConfigId];
+            } else {
+                throw new Error('COMPOSIO_TWITTER_AUTH_CONFIG_ID environment variable not set. Set it to ac_v2MiHIOHVtDM');
             }
             
             console.log('Composio initiate payload:', JSON.stringify(initiatePayload));
