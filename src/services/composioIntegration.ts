@@ -75,7 +75,7 @@ export class ComposioIntegrationService {
             const session = await this.composio.connectedAccounts.initiate({
                 appName: 'twitter',
                 entityId: this.userId,
-                authConfigId: 'ac_vUASEFFIWuaE',
+                authConfigId: 'ac_v2MiHIOHVtDM',
                 redirectUrl: callbackUrl,
             });
 
