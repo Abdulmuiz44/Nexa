@@ -106,10 +106,7 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
     }
 
     if (!['twitter', 'reddit', 'linkedin'].includes(platform)) {
-      return NextResponse.json(
-        { error: 'Invalid platform' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Invalid platform' }, { status: 400 });
     }
 
     await logger.info('connection_revoke_start', `Attempting to revoke ${platform} connection`, {

@@ -90,11 +90,8 @@ export async function POST(request: NextRequest, { params }: AuthParams): Promis
         authResult = await composioService.initiateRedditConnection();
         break;
       case 'linkedin':
-        // LinkedIn not implemented yet
-        return NextResponse.json(
-          { error: 'LinkedIn integration coming soon' },
-          { status: 501 }
-        );
+        authResult = await composioService.initiateLinkedInConnection();
+        break;
       default:
         throw new Error(`Unsupported platform: ${platform}`);
     }

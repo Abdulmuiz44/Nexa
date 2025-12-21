@@ -104,6 +104,7 @@ export class ComposioIntegrationService {
       const session = await this.composio.connectedAccounts.initiate({
         appName: 'reddit',
         entityId: this.userId,
+        authConfigId: process.env.COMPOSIO_REDDIT_AUTH_CONFIG_ID || 'reddit-auth',
         redirectUrl: callbackUrl,
       });
 
@@ -113,6 +114,36 @@ export class ComposioIntegrationService {
       };
     } catch (error: any) {
       console.error('Error initiating Reddit connection:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Initiate OAuth connection to LinkedIn
+   */
+  async initiateLinkedInConnection(redirectUri?: string): Promise<{ authUrl: string; connectionId: string }> {
+    if (!this.composio) {
+      throw new Error('Composio not initialized - COMPOSIO_API_KEY missing');
+    }
+
+    try {
+      const callbackUrl = redirectUri || `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/composio/callback`;
+
+      console.log('Initiating LinkedIn connection for entity:', this.userId);
+
+      const session = await this.composio.connectedAccounts.initiate({
+        appName: 'linkedin',
+        entityId: this.userId,
+        authConfigId: process.env.COMPOSIO_LINKEDIN_AUTH_CONFIG_ID || 'linkedin-auth',
+        redirectUrl: callbackUrl,
+      });
+
+      return {
+        authUrl: session.redirectUrl || session.url || '',
+        connectionId: session.connectionId || session.id || '',
+      };
+    } catch (error: any) {
+      console.error('Error initiating LinkedIn connection:', error);
       throw error;
     }
   }

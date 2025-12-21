@@ -105,7 +105,9 @@ export default function ConnectionsPage() {
       }
     };
 
-    const connectPlatform = async (platform: 'twitter' | 'reddit' | 'linkedin') => {
+    const connectPlatform = async (
+    platform: 'twitter' | 'reddit' | 'linkedin'
+  ) => {
         setConnecting(platform);
         setError(null);
         setSuccess(null);
