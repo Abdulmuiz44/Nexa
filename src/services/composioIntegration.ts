@@ -70,7 +70,7 @@ export class ComposioIntegrationService {
         try {
             // Use the direct OAuth connection method per Composio docs
             const response = (await (this.composio.connectedAccounts.initiate as any)(
-                'twitter',
+                'TWITTER',
                 this.userId,
                 {
                     callbackUrl,
