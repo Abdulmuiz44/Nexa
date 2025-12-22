@@ -40,25 +40,19 @@ interface UserTweetPattern {
 }
 
 export class ComposioIntegrationService {
-  private composio: Composio | undefined;
-  private userId: string;
-  private apiKey: string | undefined;
+    private composio: Composio | undefined;
+    private userId: string;
 
-  constructor(userId: string) {
-    this.userId = userId;
-    this.apiKey = process.env.COMPOSIO_API_KEY;
+    constructor(userId: string) {
+        this.userId = userId;
+        const apiKey = process.env.COMPOSIO_API_KEY;
 
-    if (this.apiKey) {
-      try {
-        this.composio = new Composio({ apiKey: this.apiKey });
-      } catch (initError) {
-        console.warn('Failed to initialize Composio SDK:', initError);
-        // Continue without Composio - fallback methods will handle it
-      }
-    } else {
-      console.warn('COMPOSIO_API_KEY not set - integration will be limited');
+        if (apiKey) {
+            this.composio = new Composio({ apiKey });
+        } else {
+            console.warn('COMPOSIO_API_KEY not set - integration will be limited');
+        }
     }
-  }
 
     /**
      * Initiate OAuth connection to X (Twitter) using Composio Auth Config
@@ -68,52 +62,26 @@ export class ComposioIntegrationService {
             throw new Error('Composio not initialized - COMPOSIO_API_KEY missing');
         }
 
-        const callbackUrl = redirectUri || `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/composio/callback`;
-        const authConfigId = process.env.COMPOSIO_TWITTER_AUTH_CONFIG_ID || 'ac_v2MiHIOHVtDM';
-        
-        console.log('Initiating Twitter connection for entity:', this.userId);
-        console.log('Using authConfigId:', authConfigId);
-
         try {
-            const initiatePayload: any = {
+            const callbackUrl = redirectUri || `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/composio/callback`;
+
+            console.log('Initiating Twitter connection for entity:', this.userId);
+
+            const session = await this.composio.connectedAccounts.initiate({
                 appName: 'twitter',
                 entityId: this.userId,
+                authConfigId: 'ac_vUASEFFIWuaE',
                 redirectUrl: callbackUrl,
-            };
-            
-            // Composio expects authConfigIds as an array, not a single string
-            if (authConfigId && authConfigId !== 'undefined') {
-                initiatePayload.authConfigIds = [authConfigId];
-            } else {
-                throw new Error('COMPOSIO_TWITTER_AUTH_CONFIG_ID environment variable not set. Set it to ac_v2MiHIOHVtDM');
-            }
-            
-            console.log('Composio initiate payload:', JSON.stringify(initiatePayload));
-            
-            const session = await this.composio.connectedAccounts.initiate(initiatePayload);
+            });
 
             console.log('Composio session created:', session);
-
-            if (!session?.redirectUrl && !session?.url) {
-                throw new Error('No auth URL returned from Composio');
-            }
 
             return {
                 authUrl: session.redirectUrl || session.url || '',
                 connectionId: session.connectionId || session.id || '',
             };
         } catch (error: any) {
-            const errorMsg = error?.message || String(error);
-            console.error('Error initiating Twitter connection:', errorMsg);
-            console.error('Full error:', error);
-
-            // Check if it's the authConfigId error
-            if (errorMsg.includes('authConfig') || errorMsg.includes('connected account list') || errorMsg.includes('undefined')) {
-                throw new Error(
-                    `Composio Twitter auth config issue. Verify COMPOSIO_TWITTER_AUTH_CONFIG_ID is set to 'ac_v2MiHIOHVtDM' in Vercel environment. Error: ${errorMsg}`
-                );
-            }
-
+            console.error('Error initiating Twitter connection:', error);
             throw error;
         }
     }
@@ -162,21 +130,21 @@ export class ComposioIntegrationService {
     }
 
     /**
-     * Get connected account info from database
+     * Verify and get connected account from Composio
      */
     async getConnectedAccount(platform: 'twitter' | 'reddit'): Promise<any> {
+        if (!this.composio) {
+            throw new Error('Composio not initialized');
+        }
+
         try {
             const connection = await this.getConnection(platform ?? 'twitter');
-            
-            // Return connection info without calling Composio
-            return {
-                id: connection.id,
-                connectionId: connection.composio_connection_id,
-                appName: connection.toolkit_slug,
-                status: 'ACTIVE',
-                account_username: connection.account_username,
-                account_id: connection.account_id,
-            };
+
+            // Get the connected account details from Composio
+            const response = await this.composio.connectedAccounts.get(connection.composio_connection_id);
+            const account = response?.data || response;
+
+            return account;
         } catch (error) {
             console.error(`Error getting connected ${platform} account:`, error);
             throw error;
@@ -742,16 +710,44 @@ Generate a tweet that matches this user's authentic style. Return only the tweet
     }
 
     /**
-     * Get verified account info (uses fallback approach to avoid Composio API issues)
+     * Get verified account info from Composio (for display after OAuth)
      */
     async getVerifiedAccountInfo(
         platform: 'twitter' | 'reddit',
         connectionId?: string
     ): Promise<{ username: string; accountId: string; verified?: boolean; followerCount?: number }> {
+        if (!this.composio) {
+            throw new Error('Composio not initialized');
+        }
+
         try {
-            // Try to get info from user's own timeline (avoids Composio .get() call)
-            if (platform === 'twitter' && this.composio) {
-                try {
+            const connection = connectionId
+                ? { composio_connection_id: connectionId }
+                : await this.getConnection(platform);
+
+            if (!connection?.composio_connection_id) {
+                throw new Error('No valid connection ID found');
+            }
+
+            // Get account details from Composio
+            try {
+                const account = await this.composio.connectedAccounts.get(
+                    connection.composio_connection_id
+                );
+
+                const accountData = account?.data || account;
+
+                return {
+                    username: accountData?.accountName || accountData?.username || '',
+                    accountId: accountData?.accountId || accountData?.id || '',
+                    verified: accountData?.verified || false,
+                    followerCount: accountData?.followerCount || accountData?.followers || 0,
+                };
+            } catch (apiError) {
+                // Fallback: try to get info from a test action
+                console.warn('Could not fetch account from Composio, using fallback', apiError);
+
+                if (platform === 'twitter') {
                     const timeline = await this.getUserTimeline(1);
                     if (timeline?.length > 0) {
                         const tweet = timeline[0];
@@ -762,28 +758,13 @@ Generate a tweet that matches this user's authentic style. Return only the tweet
                             followerCount: tweet?.author?.publicMetrics?.followers || 0,
                         };
                     }
-                } catch (timelineError) {
-                    console.warn('Could not fetch timeline for account verification', timelineError);
                 }
-            }
 
-            // Fallback: return minimal but valid account info
-            // The connection is already verified to be valid since OAuth succeeded
-            return {
-                username: '',
-                accountId: connectionId || '',
-                verified: false,
-                followerCount: 0,
-            };
+                throw new Error(`Could not verify ${platform} account`);
+            }
         } catch (error) {
             console.error(`Error getting verified account info for ${platform}:`, error);
-            // Return safe fallback instead of throwing
-            return {
-                username: '',
-                accountId: connectionId || '',
-                verified: false,
-                followerCount: 0,
-            };
+            throw error;
         }
     }
 
