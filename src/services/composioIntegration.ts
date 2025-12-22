@@ -63,7 +63,7 @@ export class ComposioIntegrationService {
             throw new Error('Composio not initialized - COMPOSIO_API_KEY missing');
         }
 
-        const callbackUrl = redirectUri || `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/composio/callback`;
+        const callbackUrl = redirectUri || 'https://backend.composio.dev/api/v3/toolkits/auth/callback';
 
         console.log('Initiating Twitter connection for user:', this.userId);
 
