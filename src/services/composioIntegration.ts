@@ -69,12 +69,14 @@ export class ComposioIntegrationService {
 
         try {
             // Use the direct OAuth connection method per Composio docs
+            const authConfigId = process.env.COMPOSIO_TWITTER_AUTH_CONFIG_ID || 'ac_v2MiHIOHVtDM';
+            
             const response = (await (this.composio.connectedAccounts.initiate as any)(
                 'TWITTER',
                 this.userId,
                 {
                     callbackUrl,
-                    authConfigId: 'ac_v2MiHIOHVtDM', // Correct auth config ID from Composio dashboard
+                    authConfigId,
                 }
             )) as any;
 
