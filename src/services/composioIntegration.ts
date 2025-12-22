@@ -64,27 +64,27 @@ export class ComposioIntegrationService {
         }
 
         const callbackUrl = redirectUri || `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/composio/callback`;
-        
+
         console.log('Initiating Twitter connection for user:', this.userId);
 
         try {
             // Use the direct OAuth connection method per Composio docs
-            const response = await this.composio.connectedAccounts.initiate({
-                appName: 'twitter',
-                entityId: this.userId,
-                redirectUrl: callbackUrl,
-                authConfigId: 'ac_v2MiHIOHVtDM', // Correct auth config ID from Composio dashboard
-            });
+            const response = (await (this.composio.connectedAccounts.initiate as any)(
+                'twitter',
+                this.userId,
+                {
+                    callbackUrl,
+                    authConfigId: 'ac_v2MiHIOHVtDM', // Correct auth config ID from Composio dashboard
+                }
+            )) as any;
 
             console.log('Composio session response:', {
                 hasRedirectUrl: !!response?.redirectUrl,
-                hasUrl: !!response?.url,
-                hasConnectionId: !!response?.connectionId,
                 hasId: !!response?.id,
             });
 
-            const authUrl = response?.redirectUrl || response?.url;
-            const connectionId = response?.connectionId || response?.id;
+            const authUrl = response?.redirectUrl;
+            const connectionId = response?.id;
 
             if (!authUrl) {
                 throw new Error('No auth URL returned from Composio. Check that authConfigId is correct.');
@@ -765,25 +765,29 @@ Generate a tweet that matches this user's authentic style. Return only the tweet
                 const accountData = account?.data || account;
 
                 return {
-                    username: accountData?.accountName || accountData?.username || '',
-                    accountId: accountData?.accountId || accountData?.id || '',
-                    verified: accountData?.verified || false,
-                    followerCount: accountData?.followerCount || accountData?.followers || 0,
+                    username: (accountData as any)?.username || (accountData as any)?.name || '',
+                    accountId: (accountData as any)?.id || connection.composio_connection_id || '',
+                    verified: (accountData as any)?.verified || false,
+                    followerCount: (accountData as any)?.followers || 0,
                 };
             } catch (apiError) {
                 // Fallback: try to get info from a test action
-                console.warn('Could not fetch account from Composio, using fallback', apiError);
+                console.warn(`Could not fetch account from Composio, using fallback for ${platform}`, apiError);
 
                 if (platform === 'twitter') {
-                    const timeline = await this.getUserTimeline(1);
-                    if (timeline?.length > 0) {
-                        const tweet = timeline[0];
-                        return {
-                            username: tweet?.author?.username || tweet?.user?.username || '',
-                            accountId: tweet?.author?.id || tweet?.user?.id || '',
-                            verified: tweet?.author?.verified || false,
-                            followerCount: tweet?.author?.publicMetrics?.followers || 0,
-                        };
+                    try {
+                        const timeline = await this.getUserTimeline(1);
+                        if (timeline?.length > 0) {
+                            const tweet = timeline[0] as any;
+                            return {
+                                username: tweet?.author?.username || tweet?.user?.username || 'unknown',
+                                accountId: tweet?.author?.id || tweet?.user?.id || connection.composio_connection_id || '',
+                                verified: tweet?.author?.verified || false,
+                                followerCount: tweet?.author?.publicMetrics?.followers || 0,
+                            };
+                        }
+                    } catch (fallbackError) {
+                        console.warn('Fallback method also failed', fallbackError);
                     }
                 }
 
