@@ -133,7 +133,7 @@ export const composioHelpers = {
   getRedditAnalytics: async (postId: string, userId: string) => {
     try {
       // Placeholder for Reddit analytics
-      console.log(`Getting Reddit analytics for post ${postId} user ${userId}`);
+      // Placeholder for Reddit analytics
       return { score: 0, comments: 0, upvotes: 0, downvotes: 0 };
     } catch (error) {
       console.error('Error getting Reddit analytics:', error);

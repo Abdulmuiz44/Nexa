@@ -14,7 +14,7 @@ export interface ReportData {
     engagementRate: number;
   }>;
   contentPerformance: Record<string, {
-    percentage: number;
+    count: number;
     engagement: number;
   }>;
   trends: {
@@ -29,13 +29,26 @@ export async function generatePerformanceSummary(userId: string, days: number = 
   const startDate = new Date();
   startDate.setDate(endDate.getDate() - days);
 
-  // Fetch posts data
+  // Previous period for trends
+  const prevEndDate = new Date(startDate);
+  const prevStartDate = new Date(startDate);
+  prevStartDate.setDate(prevEndDate.getDate() - days);
+
+  // Fetch current period posts
   const { data: posts } = await supabaseServer
     .from('posts')
     .select('*')
     .eq('user_id', userId)
     .gte('created_at', startDate.toISOString())
     .lte('created_at', endDate.toISOString());
+
+  // Fetch previous period posts for trends
+  const { data: prevPosts } = await supabaseServer
+    .from('posts')
+    .select('*')
+    .eq('user_id', userId)
+    .gte('created_at', prevStartDate.toISOString())
+    .lte('created_at', prevEndDate.toISOString());
 
   if (!posts) {
     return getEmptyReport(days, startDate, endDate);
@@ -54,8 +67,8 @@ export async function generatePerformanceSummary(userId: string, days: number = 
   // Content performance
   const contentPerformance = calculateContentPerformance(posts);
 
-  // Trends (simplified - would need historical data)
-  const trends = calculateTrends(posts);
+  // Trends
+  const trends = calculateTrends(posts, prevPosts || []);
 
   return {
     period: `${days} days`,
@@ -113,26 +126,42 @@ function calculatePlatformBreakdown(posts: any[]) {
 }
 
 function calculateContentPerformance(posts: any[]) {
-  // This would require content categorization logic
-  // For now, return placeholder data
-  return {
-    educational: { percentage: 42, engagement: 5400 },
-    productUpdates: { percentage: 28, engagement: 3600 },
-    industryNews: { percentage: 30, engagement: 3847 }
-  };
+  // Infer content type from metadata or hashtags, fallback to 'general'
+  const performance: Record<string, { count: number; engagement: number }> = {};
+
+  posts.forEach(post => {
+    // Try to determine type from metadata, or default to general
+    const type = post.metadata?.type || 'general';
+
+    if (!performance[type]) {
+      performance[type] = { count: 0, engagement: 0 };
+    }
+    performance[type].count++;
+    performance[type].engagement += post.metadata?.engagement || 0;
+  });
+
+  return performance;
 }
 
-function calculateTrends(posts: any[]): { engagement: 'up' | 'down' | 'stable'; reach: 'up' | 'down' | 'stable'; followers: 'up' | 'down' | 'stable' } {
-  // Simplified trend calculation
-  // In a real implementation, this would compare with previous periods
-  const hasRecentPosts = posts.some(post =>
-    new Date(post.created_at) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-  );
+function calculateTrends(currentPosts: any[], prevPosts: any[]): { engagement: 'up' | 'down' | 'stable'; reach: 'up' | 'down' | 'stable'; followers: 'up' | 'down' | 'stable' } {
+  const currentEngagement = currentPosts.reduce((sum, p) => sum + (p.metadata?.engagement || 0), 0);
+  const prevEngagement = prevPosts.reduce((sum, p) => sum + (p.metadata?.engagement || 0), 0);
+
+  const currentReach = currentPosts.reduce((sum, p) => sum + (p.metadata?.reach || 0), 0);
+  const prevReach = prevPosts.reduce((sum, p) => sum + (p.metadata?.reach || 0), 0);
+
+  const getTrend = (current: number, prev: number) => {
+    if (prev === 0) return current > 0 ? 'up' : 'stable';
+    const diff = (current - prev) / prev;
+    if (diff > 0.05) return 'up';
+    if (diff < -0.05) return 'down';
+    return 'stable';
+  };
 
   return {
-    engagement: (hasRecentPosts ? 'up' : 'stable') as 'up' | 'down' | 'stable',
-    reach: (hasRecentPosts ? 'up' : 'stable') as 'up' | 'down' | 'stable',
-    followers: (hasRecentPosts ? 'up' : 'stable') as 'up' | 'down' | 'stable'
+    engagement: getTrend(currentEngagement, prevEngagement),
+    reach: getTrend(currentReach, prevReach),
+    followers: 'stable' // Followers data is usually snapshot-based, not transactional, so hard to track trend from posts alone without separate history table
   };
 }
 
@@ -143,17 +172,47 @@ function getTopPlatform(posts: any[]): string {
   }, {} as Record<string, number>);
 
   const topPlatform = Object.entries(platformCounts)
-    .sort(([,a], [,b]) => (b as number) - (a as number))[0];
+    .sort(([, a], [, b]) => (b as number) - (a as number))[0];
 
   return topPlatform ? topPlatform[0] : 'none';
 }
 
 export async function exportReport(userId: string, reportData: ReportData, format: 'pdf' | 'csv' | 'json' = 'json') {
-  // TODO: Implement report export functionality
-  // For now, just return the data
+  if (format === 'json') {
+    return {
+      format,
+      data: JSON.stringify(reportData, null, 2),
+      filename: `report-${new Date().toISOString().split('T')[0]}.json`
+    };
+  }
+
+  if (format === 'csv') {
+    // Flatten data for CSV
+    const rows = [
+      ['Metric', 'Value'],
+      ['Total Posts', reportData.totalPosts],
+      ['Total Engagement', reportData.totalEngagement],
+      ['Avg Engagement Rate', reportData.averageEngagementRate],
+      ['Top Platform', reportData.topPlatform],
+      [],
+      ['Platform', 'Posts', 'Engagement', 'Rate'],
+      ...Object.entries(reportData.platformBreakdown).map(([platform, data]) => [
+        platform, data.posts, data.engagement, data.engagementRate
+      ])
+    ];
+
+    const csvContent = rows.map(e => e.join(',')).join('\n');
+    return {
+      format,
+      data: csvContent,
+      filename: `report-${new Date().toISOString().split('T')[0]}.csv`
+    };
+  }
+
+  // Fallback for PDF (not implemented) or other formats
   return {
     format,
     data: reportData,
-    exportedAt: new Date().toISOString()
+    error: 'Format not fully supported'
   };
 }

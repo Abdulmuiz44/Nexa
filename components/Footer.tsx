@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import NewsletterForm from "@/components/NewsletterForm";
+
 
 const Footer = () => {
   const productLinks = [
@@ -144,23 +144,7 @@ const Footer = () => {
           </div>
         </div>
 
-        {/* Newsletter Section */}
-        <div className="mt-12 border-t border-border pt-8">
-          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-            <div className="lg:col-span-2">
-              <h3 className="mb-2 text-lg font-semibold">Stay updated</h3>
-              <p className="mb-4 text-sm text-muted-foreground">
-                Get weekly insights on AI-powered social media growth delivered to your inbox.
-              </p>
-              <NewsletterForm className="max-w-md" />
-            </div>
-            <div className="flex items-end">
-              <p className="text-sm text-muted-foreground">
-                © {new Date().getFullYear()} Nexa. All rights reserved.
-              </p>
-            </div>
-          </div>
-        </div>
+        {/* Newsletter Section Removed */}
       </div>
     </footer>
   );

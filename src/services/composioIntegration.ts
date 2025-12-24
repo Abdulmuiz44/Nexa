@@ -70,7 +70,7 @@ export class ComposioIntegrationService {
         try {
             // Use the direct OAuth connection method per Composio docs
             const authConfigId = process.env.COMPOSIO_TWITTER_AUTH_CONFIG_ID || 'ac_v2MiHIOHVtDM';
-            
+
             const response = (await (this.composio.connectedAccounts.initiate as any)(
                 'TWITTER',
                 this.userId,
@@ -136,7 +136,7 @@ export class ComposioIntegrationService {
     /**
      * Get active connection for a platform
      */
-    async getConnection(platform: 'twitter' | 'reddit'): Promise<any> {
+    async getConnection(platform: 'twitter' | 'reddit' | 'linkedin'): Promise<any> {
         try {
             const { data: connection } = await supabaseServer
                 .from('composio_connections')
@@ -161,7 +161,7 @@ export class ComposioIntegrationService {
     /**
      * Verify and get connected account from Composio
      */
-    async getConnectedAccount(platform: 'twitter' | 'reddit'): Promise<any> {
+    async getConnectedAccount(platform: 'twitter' | 'reddit' | 'linkedin'): Promise<any> {
         if (!this.composio) {
             throw new Error('Composio not initialized');
         }
@@ -218,7 +218,7 @@ export class ComposioIntegrationService {
     /**
      * Check if user has an active connection for a specific platform
      */
-    async hasActiveConnection(platform: 'twitter' | 'reddit'): Promise<boolean> {
+    async hasActiveConnection(platform: 'twitter' | 'reddit' | 'linkedin'): Promise<boolean> {
         try {
             // First check our database
             const dbConnection = await this.getConnection(platform);

@@ -1,12 +1,9 @@
 import { NexaBase } from './nexaBase';
 import { ComposioIntegrationService } from '@/src/services/composioIntegration';
 import { supabaseServer } from '@/src/lib/supabaseServer';
-import { createLogger } from '@/lib/logger';
 import * as TwitterToolkit from '@/lib/composio/twitter';
 import * as RedditToolkit from '@/lib/composio/reddit';
 import * as LinkedInToolkit from '@/lib/composio/linkedin';
-
-const logger = createLogger();
 
 export type SocialMediaPlatform = 'twitter' | 'reddit' | 'linkedin';
 
@@ -15,6 +12,7 @@ export interface CreatePostParams {
   content: string;
   mediaUrls?: string[];
   connectionId?: string;
+  subreddit?: string;
 }
 
 export interface SchedulePostParams {
@@ -23,6 +21,7 @@ export interface SchedulePostParams {
   scheduledAt: string;
   mediaUrls?: string[];
   connectionId?: string;
+  subreddit?: string;
 }
 
 export interface PerformanceParams {
@@ -42,6 +41,7 @@ export class GrowthAgent extends NexaBase {
     this.composioService = new ComposioIntegrationService(userId);
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async executeAction(action: string, params: any): Promise<any> {
     try {
       switch (action) {
@@ -68,8 +68,9 @@ export class GrowthAgent extends NexaBase {
   /**
    * Create and post content to social media via Composio
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private async createPost(params: CreatePostParams): Promise<any> {
-    const { platform, content, mediaUrls } = params;
+    const { platform, content, mediaUrls, subreddit } = params;
 
     await this.log('create_post', `Creating post on ${platform}`, {
       platform,
@@ -94,12 +95,12 @@ export class GrowthAgent extends NexaBase {
           break;
 
         case 'reddit':
-          // Extract subreddit from metadata or use default
-          const subreddit = 'test'; // TODO: Make configurable
+          // Use provided subreddit or default to a safe generic one if env not set
+          const targetSubreddit = subreddit || process.env.DEFAULT_SUBREDDIT || 'u_' + this.userId;
           result = await RedditToolkit.postTextToReddit(
             this.userId,
-            subreddit,
-            'Post Title',
+            targetSubreddit,
+            content.substring(0, 50) + '...', // Use first 50 chars as title if not provided
             content
           );
           break;
@@ -118,6 +119,9 @@ export class GrowthAgent extends NexaBase {
         throw new Error(result.error || 'Failed to post');
       }
 
+      // Extract the correct ID based on platform (Twitter returns tweetId, others return postId)
+      const externalPostId = (result as any).postId || (result as any).tweetId;
+
       // Save post to database
       const { data: savedPost } = await supabaseServer
         .from('posts')
@@ -127,11 +131,12 @@ export class GrowthAgent extends NexaBase {
           content,
           status: 'published',
           published_at: new Date().toISOString(),
-          platform_post_id: result.postId,
+          platform_post_id: externalPostId,
           url: result.url,
           metadata: {
             created_by: 'growth_agent',
             posted_at: new Date().toISOString(),
+            subreddit: platform === 'reddit' ? subreddit : undefined,
           },
         })
         .select()
@@ -139,14 +144,14 @@ export class GrowthAgent extends NexaBase {
 
       await this.log('create_post', `Successfully posted to ${platform}`, {
         platform,
-        postId: result.postId,
+        postId: externalPostId,
         url: result.url,
       });
 
       return {
         success: true,
         platform,
-        postId: result.postId,
+        postId: externalPostId,
         url: result.url,
         savedPostId: savedPost?.id,
       };
@@ -160,8 +165,9 @@ export class GrowthAgent extends NexaBase {
   /**
    * Schedule a post for later publication
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private async schedulePost(params: SchedulePostParams): Promise<any> {
-    const { platform, content, scheduledAt, mediaUrls } = params;
+    const { platform, content, scheduledAt, mediaUrls, subreddit } = params;
 
     await this.log('schedule_post', `Scheduling post on ${platform}`, {
       platform,
@@ -183,6 +189,7 @@ export class GrowthAgent extends NexaBase {
             created_by: 'growth_agent',
             scheduled_at: new Date(scheduledAt).toISOString(),
             media_urls: mediaUrls || [],
+            subreddit: platform === 'reddit' ? subreddit : undefined,
           },
         })
         .select()
@@ -210,6 +217,7 @@ export class GrowthAgent extends NexaBase {
   /**
    * Analyze post performance and engagement
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private async analyzePerformance(params: PerformanceParams): Promise<any> {
     const { postId, period = '24h', platform } = params;
 
@@ -278,6 +286,7 @@ export class GrowthAgent extends NexaBase {
     postId: string;
     engagementType: 'like' | 'retweet' | 'reply' | 'comment';
     content?: string;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   }): Promise<any> {
     const { platform, postId, engagementType, content } = params;
 
@@ -342,6 +351,7 @@ export class GrowthAgent extends NexaBase {
   /**
    * Analyze user's posting patterns for personalized content generation
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private async analyzeUserPatterns(params: { platform: SocialMediaPlatform }): Promise<any> {
     const { platform } = params;
 

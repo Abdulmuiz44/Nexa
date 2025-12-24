@@ -34,19 +34,11 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    console.log('Onboarding API called');
-    const session = await getServerSession(authOptions);
-    console.log('Session:', JSON.stringify(session, null, 2));
-    console.log('Session user:', session?.user);
-    console.log('Session user ID:', session?.user?.id);
-
     if (!session?.user?.id) {
-      console.log('No session or user ID found');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const requestData = await req.json();
-    console.log('Request data:', requestData);
     const { businessName, businessType, websiteUrl, promotionGoals, postingFrequency, brandTone, sampleCaption } = requestData;
 
     const onboardingData = {
@@ -58,9 +50,6 @@ export async function POST(req: Request) {
       brand_tone: brandTone,
       sample_caption: sampleCaption,
     };
-
-    console.log('Updating user with ID:', session.user.id);
-    console.log('Onboarding data:', onboardingData);
 
     const { error } = await supabaseServer
       .from('users')
@@ -76,7 +65,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    console.log('Onboarding completed successfully');
     return NextResponse.json({ success: true, message: 'Onboarding completed successfully!' });
 
   } catch (error: unknown) {
