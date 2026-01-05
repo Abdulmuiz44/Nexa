@@ -63,7 +63,8 @@ export default function ContentHubPage() {
     };
 
     return (
-        <div className="container mx-auto max-w-7xl animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="min-h-screen bg-white dark:bg-black text-black dark:text-white transition-colors duration-300">
+            <div className="container mx-auto max-w-7xl animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="mb-8 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
                 <div>
                     <h1 className="flex items-center gap-2 text-3xl font-bold tracking-tight">
@@ -123,6 +124,7 @@ export default function ContentHubPage() {
                     />
                 </DialogContent>
             </Dialog>
+            </div>
         </div>
     );
 }

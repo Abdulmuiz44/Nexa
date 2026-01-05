@@ -315,23 +315,25 @@ router.push(`/dashboard/campaigns/${campaignId}/edit`);
 };
 
 const handleDeleteCampaign = async (campaignId: string) => {
-if (!confirm('Are you sure you want to delete this campaign?')) return;
+  if (!confirm('Are you sure you want to delete this campaign? This action cannot be undone.')) return;
 
   try {
-      const response = await fetch(`/api/campaigns/${campaignId}`, {
-        method: 'DELETE',
-      });
+    const response = await fetch(`/api/campaigns/${campaignId}`, {
+      method: 'DELETE',
+    });
 
-      if (response.ok) {
-        setCampaigns(campaigns.filter(c => c.id !== campaignId));
-      } else {
-        alert('Failed to delete campaign');
-      }
-    } catch (error) {
-      console.error('Error deleting campaign:', error);
-      alert('Failed to delete campaign');
+    if (response.ok) {
+      setCampaigns(campaigns.filter(c => c.id !== campaignId));
+      alert('Campaign deleted successfully');
+    } else {
+      const error = await response.json();
+      alert(error.message || 'Failed to delete campaign');
     }
-  };
+  } catch (error) {
+    console.error('Error deleting campaign:', error);
+    alert('Failed to delete campaign. Please try again.');
+  }
+};
 
   if (loading) {
     return (
@@ -346,7 +348,7 @@ if (!confirm('Are you sure you want to delete this campaign?')) return;
   }
 
   return (
-    <div className="flex-1 p-6">
+    <div className="flex-1 p-6 min-h-screen bg-white dark:bg-black text-black dark:text-white transition-colors duration-300">
       <div className="max-w-6xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <div>

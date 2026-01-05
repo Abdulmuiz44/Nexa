@@ -63,8 +63,8 @@ function ResetPasswordForm() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <Card className="w-full max-w-md bg-card/50 backdrop-blur-sm">
+    <div className="min-h-screen flex items-center justify-center bg-white dark:bg-black text-black dark:text-white transition-colors duration-300">
+      <Card className="w-full max-w-md bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 backdrop-blur-sm">
         <CardHeader>
           <CardTitle>Reset Your Password</CardTitle>
           <CardDescription>Enter your new password below.</CardDescription>

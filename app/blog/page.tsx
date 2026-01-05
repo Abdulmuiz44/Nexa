@@ -1,3 +1,5 @@
+'use client';
+
 import PageHeader from '@/components/PageHeader';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -5,6 +7,7 @@ import { TrendingUp, Clock, User, ArrowRight } from 'lucide-react';
 import Footer from '@/components/Footer';
 import Navbar from '@/components/Navbar';
 import Link from 'next/link';
+import { useState } from 'react';
 
 // Placeholder blog posts
 const blogPosts = [
@@ -67,10 +70,27 @@ const blogPosts = [
 const categories = ["All", "Strategy", "AI & Technology", "Platforms", "Case Studies", "Analytics", "Content Creation"];
 
 export default function BlogPage() {
+    const [selectedCategory, setSelectedCategory] = useState("All");
+    const [displayedPosts, setDisplayedPosts] = useState(blogPosts);
+    
+    const handleCategorySelect = (category: string) => {
+        setSelectedCategory(category);
+        if (category === "All") {
+            setDisplayedPosts(blogPosts);
+        } else {
+            setDisplayedPosts(blogPosts.filter(post => post.category === category));
+        }
+    };
+
+    const handleLoadMore = () => {
+        // In a real app, this would fetch more posts from an API
+        alert('Loading more articles...');
+    };
+
     return (
-        <>
+        <div className="min-h-screen bg-white dark:bg-black text-black dark:text-white transition-colors duration-300">
             <Navbar />
-            <main className="min-h-screen bg-background pt-24">
+            <main className="min-h-screen bg-white dark:bg-black pt-24">
                 <PageHeader
                     badge="📝 Blog"
                     title="Insights on AI-Powered Growth"
@@ -83,8 +103,9 @@ export default function BlogPage() {
                         {categories.map((category) => (
                             <Button
                                 key={category}
-                                variant={category === "All" ? "hero" : "outline"}
+                                variant={selectedCategory === category ? "hero" : "outline"}
                                 size="sm"
+                                onClick={() => handleCategorySelect(category)}
                             >
                                 {category}
                             </Button>
@@ -93,7 +114,7 @@ export default function BlogPage() {
 
                     {/* Blog Grid */}
                     <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-                        {blogPosts.map((post, idx) => (
+                        {displayedPosts.map((post, idx) => (
                             <Card
                                 key={idx}
                                 className="group overflow-hidden rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-neon"
@@ -135,7 +156,7 @@ export default function BlogPage() {
 
                     {/* Load More */}
                     <div className="mt-12 text-center">
-                        <Button variant="outline" size="lg">
+                        <Button variant="outline" size="lg" onClick={handleLoadMore}>
                             Load More Articles
                         </Button>
                     </div>
@@ -154,6 +175,6 @@ export default function BlogPage() {
 
                 <Footer />
             </main>
-        </>
+        </div>
     );
 }

@@ -57,7 +57,7 @@ export default function DashboardPage() {
   const fmt = (n: number) => new Intl.NumberFormat().format(Math.round(n));
 
   return (
-    <div className="flex-1 p-6">
+    <div className="flex-1 p-6 min-h-screen bg-white dark:bg-black text-black dark:text-white transition-colors duration-300">
       <div className="max-w-6xl mx-auto">
         <div className="mb-6 flex items-center justify-between">
           <div>

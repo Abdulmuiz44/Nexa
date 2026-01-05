@@ -53,9 +53,9 @@ const caseStudies = [
 
 export default function CaseStudiesPage() {
     return (
-        <>
+        <div className="min-h-screen bg-white dark:bg-black text-black dark:text-white transition-colors duration-300">
             <Navbar />
-            <main className="min-h-screen bg-background pt-24">
+            <main className="min-h-screen bg-white dark:bg-black pt-24">
                 <PageHeader
                     badge="💼 Success Stories"
                     title="Real Results from Real Companies"
@@ -144,6 +144,6 @@ export default function CaseStudiesPage() {
 
                 <Footer />
             </main>
-        </>
+        </div>
     );
 }

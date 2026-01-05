@@ -69,32 +69,37 @@ const Pricing = () => {
 const [loading, setLoading] = useState(false);
 
 const handlePlanSelect = async (planId: string) => {
-setLoading(true);
-try {
-const plan = pricingPlans.find(p => p.planId === planId);
-if (!plan) return;
+    setLoading(true);
+    try {
+        const plan = pricingPlans.find(p => p.planId === planId);
+        if (!plan) return;
 
-const response = await fetch('/api/subscriptions/create', {
-method: 'POST',
-headers: { 'Content-Type': 'application/json' },
-body: JSON.stringify({ planId, amount: plan.price }),
-      });
+        const response = await fetch('/api/subscriptions/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ planId, amount: plan.price }),
+        });
 
-const data = await response.json();
-if (data.paymentLink) {
-window.location.href = data.paymentLink;
-} else {
-alert('Error initializing payment');
-}
-} catch (error) {
-alert('Error initializing payment');
+        const data = await response.json();
+        if (data.paymentLink) {
+            window.location.href = data.paymentLink;
+        } else {
+            alert('Error initializing payment. Please try again.');
+        }
+    } catch (error) {
+        console.error('Payment error:', error);
+        alert('Error initializing payment. Please try again.');
     } finally {
-setLoading(false);
-}
+        setLoading(false);
+    }
+};
+
+const handleContactSales = () => {
+    window.location.href = 'mailto:support@nexaagent.app?subject=Enterprise%20Plan%20Inquiry';
 };
 
 return (
-    <div className="min-h-screen bg-background">
+  <div className="min-h-screen bg-white dark:bg-black text-black dark:text-white transition-colors duration-300">
 <Navbar />
 
 <main className="pt-24 pb-16 flex flex-col items-center">
@@ -126,10 +131,8 @@ Back to Onboarding
             <p className="text-muted-foreground mb-4">
               Need a custom solution or have questions?
             </p>
-            <Button variant="outline" size="lg" asChild>
-              <Link href="mailto:sales@example.com">
-              Contact Sales
-              </Link>
+            <Button variant="outline" size="lg" onClick={handleContactSales} disabled={loading}>
+              {loading ? 'Loading...' : 'Contact Sales'}
             </Button>
           </div>
         </div>

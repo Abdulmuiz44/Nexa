@@ -34,7 +34,7 @@ const SubscribeForm = () => {
 
   if (!selectedPlan) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-white dark:bg-black text-black dark:text-white transition-colors duration-300 flex items-center justify-center">
         <p>Plan not found.</p>
       </div>
     );
@@ -52,7 +52,7 @@ const SubscribeForm = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-white dark:bg-black text-black dark:text-white transition-colors duration-300">
       <Navbar />
       <main className="pt-24 pb-16 flex flex-col items-center">
         <div className="container px-6">

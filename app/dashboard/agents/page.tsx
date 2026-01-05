@@ -58,7 +58,7 @@ export default async function AgentsPage() {
   ];
 
   return (
-    <div className="flex-1 p-6">
+    <div className="flex-1 p-6 min-h-screen bg-white dark:bg-black text-black dark:text-white transition-colors duration-300">
       <div className="max-w-6xl mx-auto space-y-8">
         {/* Header */}
         <div>

@@ -202,7 +202,7 @@ export default function ConnectionsPage() {
     };
 
     return (
-        <div className="flex-1 p-6">
+        <div className="flex-1 p-6 min-h-screen bg-white dark:bg-black text-black dark:text-white transition-colors duration-300">
             <div className="max-w-6xl mx-auto">
                 {/* Header */}
                 <div className="flex items-center justify-between mb-6">

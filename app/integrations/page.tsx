@@ -89,9 +89,9 @@ const integrations = [
 
 export default function IntegrationsPage() {
     return (
-        <>
+        <div className="min-h-screen bg-white dark:bg-black text-black dark:text-white transition-colors duration-300">
             <Navbar />
-            <main className="min-h-screen bg-background pt-24">
+            <main className="min-h-screen bg-white dark:bg-black pt-24">
                 <PageHeader
                     badge="🔗 Integrations"
                     title="Connect All Your Platforms"
@@ -150,7 +150,7 @@ export default function IntegrationsPage() {
                 </section>
 
                 {/* How It Works */}
-                <section className="border-t border-border bg-secondary/20 py-20">
+                <section className="border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 py-20">
                     <div className="container mx-auto px-4 sm:px-6">
                         <div className="mx-auto max-w-3xl text-center">
                             <h2 className="mb-6 text-3xl font-bold">How Integration Works</h2>
@@ -200,6 +200,6 @@ export default function IntegrationsPage() {
 
                 <Footer />
             </main>
-        </>
+        </div>
     );
 }

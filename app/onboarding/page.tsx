@@ -303,10 +303,10 @@ export default function OnboardingPage() {
 
   if (status === 'loading' || initializing) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
+      <div className="flex min-h-screen items-center justify-center bg-white dark:bg-black text-black dark:text-white transition-colors duration-300 p-4">
         <div className="text-center">
           <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-primary"></div>
-          <p className="text-muted-foreground">Preparing your onboarding experience...</p>
+          <p className="text-gray-600 dark:text-gray-400">Preparing your onboarding experience...</p>
         </div>
       </div>
     );
@@ -314,9 +314,9 @@ export default function OnboardingPage() {
 
   if (!session) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
+      <div className="flex min-h-screen items-center justify-center bg-white dark:bg-black text-black dark:text-white transition-colors duration-300 p-4">
         <div className="text-center">
-          <p className="mb-4 text-muted-foreground">You need to be logged in to access this page.</p>
+          <p className="mb-4 text-gray-600 dark:text-gray-400">You need to be logged in to access this page.</p>
           <Button onClick={() => router.push('/auth/login')}>Go to Login</Button>
         </div>
       </div>
@@ -324,7 +324,7 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+    <div className="flex min-h-screen items-center justify-center bg-white dark:bg-black text-black dark:text-white transition-colors duration-300 p-4">
       <Card className="w-full max-w-2xl">
         <CardHeader>
           <div className="mb-4 text-center">

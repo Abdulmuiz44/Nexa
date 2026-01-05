@@ -123,7 +123,7 @@ export default function EditCampaignPage() {
 
   if (fetchLoading) {
     return (
-      <div className="flex-1 p-6">
+      <div className="flex-1 p-6 min-h-screen bg-white dark:bg-black text-black dark:text-white transition-colors duration-300">
         <div className="max-w-4xl mx-auto">
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin" />
@@ -134,9 +134,9 @@ export default function EditCampaignPage() {
   }
 
   return (
-    <div className="flex-1 p-6">
+    <div className="flex-1 p-6 min-h-screen bg-white dark:bg-black text-black dark:text-white transition-colors duration-300">
       <div className="max-w-4xl mx-auto">
-        {/* Header */}
+         {/* Header */}
         <div className="flex items-center gap-4 mb-6">
           <Button
             variant="ghost"

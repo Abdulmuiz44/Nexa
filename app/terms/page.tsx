@@ -4,9 +4,9 @@ import Navbar from '@/components/Navbar';
 
 export default function TermsPage() {
     return (
-        <>
+        <div className="min-h-screen bg-white dark:bg-black text-black dark:text-white transition-colors duration-300">
             <Navbar />
-            <main className="min-h-screen bg-background pt-24">
+            <main className="min-h-screen bg-white dark:bg-black pt-24">
                 <PageHeader
                     badge="📜 Terms of Service"
                     title="Terms of Service"
@@ -122,6 +122,6 @@ export default function TermsPage() {
 
                 <Footer />
             </main>
-        </>
+        </div>
     );
 }

@@ -38,7 +38,7 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-white dark:bg-black text-black dark:text-white transition-colors duration-300">
       {/* Desktop */}
       <div className="hidden md:flex">
         <AppSidebar />
@@ -49,7 +49,7 @@ export default function DashboardLayout({
 
       {/* Mobile */}
       <div className="flex min-h-screen flex-col md:hidden">
-        <header className="sticky top-0 z-40 flex h-14 items-center justify-end border-b border-border bg-background/80 px-4 backdrop-blur-sm">
+        <header className="sticky top-0 z-40 flex h-14 items-center justify-end border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-black/80 px-4 backdrop-blur-sm">
           <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon">

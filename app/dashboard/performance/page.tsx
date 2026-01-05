@@ -31,7 +31,8 @@ export default function PerformancePage() {
   }
 
   return (
-    <div className="p-8 max-w-7xl mx-auto">
+    <div className="min-h-screen bg-white dark:bg-black text-black dark:text-white transition-colors duration-300">
+      <div className="p-8 max-w-7xl mx-auto">
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2">Performance Intelligence</h1>
         <p className="text-muted-foreground">
@@ -145,6 +146,7 @@ export default function PerformancePage() {
           </div>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }

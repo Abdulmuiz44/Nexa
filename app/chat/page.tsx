@@ -45,10 +45,10 @@ export default function ChatEntryPage() {
   }, [status, userId, router]);
 
   return (
-    <div className="flex h-screen items-center justify-center bg-background">
+    <div className="flex h-screen items-center justify-center bg-white dark:bg-black text-black dark:text-white transition-colors duration-300">
       <div className="text-center">
         <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
-        <p className="mt-4 text-muted-foreground">Initializing new chat session...</p>
+        <p className="mt-4 text-gray-600 dark:text-gray-400">Initializing new chat session...</p>
       </div>
     </div>
   );

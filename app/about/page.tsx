@@ -1,13 +1,19 @@
+'use client';
+
 import PageHeader from '@/components/PageHeader';
 import { Card } from '@/components/ui/card';
 import Footer from '@/components/Footer';
 import Navbar from '@/components/Navbar';
 
 export default function AboutPage() {
+    const handleCareersClick = () => {
+        window.location.href = 'mailto:careers@nexa.ai';
+    };
+
     return (
-        <>
+        <div className="min-h-screen bg-white dark:bg-black text-black dark:text-white transition-colors duration-300">
             <Navbar />
-            <main className="min-h-screen bg-background pt-24">
+            <main className="min-h-screen bg-white dark:bg-black pt-24">
                 <PageHeader
                     badge="🚀 Our Story"
                     title="Building the Future of Social Media Marketing"
@@ -71,17 +77,14 @@ export default function AboutPage() {
                             <p className="mb-8 text-lg text-muted-foreground">
                                 We're a distributed team of engineers, designers, and growth experts passionate about making social media marketing accessible to everyone.
                             </p>
-                            <Card className="bg-gradient-to-r from-primary/10 to-secondary/10 p-8 text-center">
+                            <Card className="bg-gradient-to-r from-primary/10 to-secondary/10 p-8 text-center cursor-pointer hover:shadow-lg transition-shadow" onClick={handleCareersClick}>
                                 <h3 className="mb-2 text-xl font-semibold">Want to join us?</h3>
                                 <p className="mb-4 text-muted-foreground">
                                     We're always looking for talented people who share our vision.
                                 </p>
-                                <a
-                                    href="mailto:careers@nexa.ai"
-                                    className="font-semibold text-primary hover:underline"
-                                >
+                                <div className="font-semibold text-primary hover:underline cursor-pointer">
                                     View Open Positions →
-                                </a>
+                                </div>
                             </Card>
                         </div>
 
@@ -106,6 +109,6 @@ export default function AboutPage() {
 
                 <Footer />
             </main>
-        </>
+        </div>
     );
 }

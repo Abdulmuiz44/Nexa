@@ -46,8 +46,8 @@ function PaymentCallbackContent() {
   }, [params]);
 
   return (
-    <div className="flex min-h-[60vh] items-center justify-center p-6">
-      <Card className="max-w-md w-full">
+    <div className="flex min-h-screen items-center justify-center p-6 bg-white dark:bg-black text-black dark:text-white transition-colors duration-300">
+      <Card className="max-w-md w-full bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800">
         <CardHeader>
           <CardTitle>Payment {status === 'success' ? 'Successful' : status === 'failed' ? 'Failed' : 'Processing'}</CardTitle>
         </CardHeader>
@@ -74,8 +74,8 @@ function PaymentCallbackContent() {
 export default function PaymentCallbackPage() {
   return (
     <Suspense fallback={
-      <div className="flex min-h-[60vh] items-center justify-center p-6">
-        <Card className="max-w-md w-full">
+      <div className="flex min-h-screen items-center justify-center p-6 bg-white dark:bg-black text-black dark:text-white transition-colors duration-300">
+        <Card className="max-w-md w-full bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800">
           <CardHeader>
             <CardTitle>Processing Payment</CardTitle>
           </CardHeader>

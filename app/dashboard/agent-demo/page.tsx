@@ -16,7 +16,8 @@ export default async function AgentDemoPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-white dark:bg-black text-black dark:text-white transition-colors duration-300 p-6">
+      <div className="max-w-6xl mx-auto space-y-6">
       <div>
         <h1 className="text-3xl font-bold">Content Generation Agent</h1>
         <p className="text-muted-foreground mt-2">
@@ -25,6 +26,7 @@ export default async function AgentDemoPage() {
       </div>
 
       <ContentAgentUI />
+      </div>
     </div>
   );
 }

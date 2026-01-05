@@ -4,11 +4,17 @@ import { Shield, Lock, Key, AlertTriangle, CheckCircle, Eye } from 'lucide-react
 import Footer from '@/components/Footer';
 import Navbar from '@/components/Navbar';
 
+'use client';
+
 export default function SecurityPage() {
+    const handleSecurityEmail = () => {
+        window.location.href = 'mailto:security@nexa.ai';
+    };
+
     return (
-        <>
+        <div className="min-h-screen bg-white dark:bg-black text-black dark:text-white transition-colors duration-300">
             <Navbar />
-            <main className="min-h-screen bg-background pt-24">
+            <main className="min-h-screen bg-white dark:bg-black pt-24">
                 <PageHeader
                     badge="🔐 Security"
                     title="Enterprise-Grade Security"
@@ -115,26 +121,23 @@ export default function SecurityPage() {
                         </div>
 
                         {/* Contact */}
-                        <div className="mt-16 text-center">
-                            <Card className="bg-gradient-to-r from-primary/10 to-secondary/10 p-8">
-                                <h3 className="mb-2 text-xl font-semibold">Security Questions?</h3>
-                                <p className="mb-4 text-muted-foreground">
-                                    If you have security concerns or wish to report a vulnerability, please contact
-                                    our security team.
-                                </p>
-                                <a
-                                    href="mailto:security@nexa.ai"
-                                    className="font-semibold text-primary hover:underline"
-                                >
-                                    security@nexa.ai
-                                </a>
-                            </Card>
-                        </div>
+                         <div className="mt-16 text-center">
+                             <Card className="bg-gradient-to-r from-primary/10 to-secondary/10 p-8 cursor-pointer hover:shadow-lg transition-shadow" onClick={handleSecurityEmail}>
+                                 <h3 className="mb-2 text-xl font-semibold">Security Questions?</h3>
+                                 <p className="mb-4 text-muted-foreground">
+                                     If you have security concerns or wish to report a vulnerability, please contact
+                                     our security team.
+                                 </p>
+                                 <div className="font-semibold text-primary hover:underline cursor-pointer">
+                                     security@nexa.ai
+                                 </div>
+                             </Card>
+                         </div>
                     </div>
                 </section>
 
                 <Footer />
             </main>
-        </>
+        </div>
     );
 }
