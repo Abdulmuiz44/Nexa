@@ -7,21 +7,20 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Navigation } from "@/components/Navigation"
 import Link from "next/link"
 
 // Mark this page as dynamic to prevent static generation
 export const dynamic = 'force-dynamic';
 
 function LoginComponent() {
-const { data: session, status } = useSession();
-const [email, setEmail] = useState("")
-const [password, setPassword] = useState("")
-const [error, setError] = useState("")
-const [loading, setLoading] = useState(false)
-const router = useRouter()
-const searchParams = useSearchParams();
+  const { data: session, status } = useSession();
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [error, setError] = useState("")
+  const [loading, setLoading] = useState(false)
+  const router = useRouter()
+  const searchParams = useSearchParams();
   const message = searchParams.get('message');
 
   useEffect(() => {
@@ -76,48 +75,70 @@ const searchParams = useSearchParams();
     }
   }
 
-
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <Card className="w-full max-w-md bg-card/50 backdrop-blur-sm">
-        <CardHeader>
-          <CardTitle>Sign In to Nexa</CardTitle>
-          <CardDescription>Access your AI Growth Agent dashboard</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+    <div className="min-h-screen bg-white dark:bg-black text-black dark:text-white">
+      <Navigation />
+      <div className="flex items-center justify-center min-h-[calc(100vh-4rem)] px-6">
+        <div className="w-full max-w-md border border-gray-200 dark:border-gray-800 rounded-lg p-8">
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold mb-2">Sign In</h1>
+            <p className="text-gray-600 dark:text-gray-400">Access your AI Growth Agent dashboard</p>
+          </div>
+
           {error && (
-            <Alert variant="destructive">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
+            <div className="mb-6 p-4 border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950 rounded-lg">
+              <p className="text-red-600 dark:text-red-400 text-sm">{error}</p>
+            </div>
           )}
+
           {message && (
-            <Alert variant="default">
-              <AlertDescription>{message}</AlertDescription>
-            </Alert>
+            <div className="mb-6 p-4 border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950 rounded-lg">
+              <p className="text-green-600 dark:text-green-400 text-sm">{message}</p>
+            </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+              <Label htmlFor="email" className="text-black dark:text-white">Email</Label>
+              <Input 
+                id="email" 
+                type="email" 
+                value={email} 
+                onChange={(e) => setEmail(e.target.value)}
+                className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-black dark:text-white"
+                required 
+              />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+              <Label htmlFor="password" className="text-black dark:text-white">Password</Label>
+              <Input 
+                id="password" 
+                type="password" 
+                value={password} 
+                onChange={(e) => setPassword(e.target.value)}
+                className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-black dark:text-white"
+                required 
+              />
             </div>
 
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button 
+              type="submit" 
+              className="w-full bg-black dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200"
+              disabled={loading}
+            >
               {loading ? "Signing in..." : "Sign In"}
             </Button>
           </form>
 
-          <div className="text-center text-sm text-muted-foreground">
-          Don't have an account? <Link href="/auth/signup" className="underline">Sign up</Link>
-          </div>
-        </CardContent>
-      </Card>
+          <p className="text-center text-sm text-gray-600 dark:text-gray-400 mt-6">
+            Don't have an account?{" "}
+            <Link href="/auth/signup" className="text-black dark:text-white underline hover:no-underline">
+              Sign up
+            </Link>
+          </p>
+        </div>
+      </div>
     </div>
   )
 }

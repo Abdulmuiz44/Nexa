@@ -2,58 +2,13 @@
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Moon, Sun } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { ArrowRight } from 'lucide-react';
+import { Navigation } from '@/components/Navigation';
 
 export default function LandingPage() {
-  const [isDark, setIsDark] = useState(true);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-    // Check local storage or system preference
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme) {
-      setIsDark(savedTheme === 'dark');
-      document.documentElement.classList.toggle('dark', savedTheme === 'dark');
-    } else {
-      // Default to dark mode
-      document.documentElement.classList.add('dark');
-      setIsDark(true);
-    }
-  }, []);
-
-  const toggleTheme = () => {
-    const newDark = !isDark;
-    setIsDark(newDark);
-    document.documentElement.classList.toggle('dark', newDark);
-    localStorage.setItem('theme', newDark ? 'dark' : 'light');
-  };
-
-  if (!mounted) return null;
-
   return (
     <div className="min-h-screen bg-white dark:bg-black text-black dark:text-white transition-colors duration-300">
-      {/* Navigation */}
-      <nav className="border-b border-gray-200 dark:border-gray-800 px-6 py-4">
-        <div className="mx-auto max-w-6xl flex items-center justify-between">
-          <h1 className="text-2xl font-bold">Nexa</h1>
-          <div className="flex gap-6 items-center">
-            <Link href="#features" className="text-gray-600 dark:text-gray-400 hover:text-black dark:hover:text-white">
-              Features
-            </Link>
-            <Link href="#pricing" className="text-gray-600 dark:text-gray-400 hover:text-black dark:hover:text-white">
-              Pricing
-            </Link>
-            <Link href="/docs" className="text-gray-600 dark:text-gray-400 hover:text-black dark:hover:text-white">
-              Docs
-            </Link>
-            <Link href="/auth/signin" className="text-gray-600 dark:text-gray-400 hover:text-black dark:hover:text-white">
-              Sign In
-            </Link>
-          </div>
-        </div>
-      </nav>
+      <Navigation />
 
       {/* Hero */}
       <section className="border-b border-gray-200 dark:border-gray-800 px-6 py-20">
@@ -64,7 +19,7 @@ export default function LandingPage() {
           <p className="text-xl text-gray-600 dark:text-gray-400 mb-8">
             Automate social media posts, engage with communities, and grow your audience 24/7.
           </p>
-          <div className="flex gap-4 justify-center">
+          <div className="flex gap-4 justify-center flex-wrap">
             <Button asChild size="lg" className="bg-black dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200">
               <Link href="/auth/signup">
                 Start Free Trial
@@ -231,7 +186,7 @@ export default function LandingPage() {
           <p className="text-xl text-gray-600 dark:text-gray-400 mb-8">
             Launch your AI agent in under 10 minutes. No credit card required.
           </p>
-          <div className="flex gap-4 justify-center">
+          <div className="flex gap-4 justify-center flex-wrap">
             <Button asChild size="lg" className="bg-black dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200">
               <Link href="/auth/signup">
                 Start Free Trial
@@ -256,46 +211,29 @@ export default function LandingPage() {
             <div>
               <h4 className="font-semibold mb-4">Product</h4>
               <ul className="space-y-2 text-gray-600 dark:text-gray-400 text-sm">
-                <li><Link href="#features" className="hover:text-black dark:hover:text-white">Features</Link></li>
-                <li><Link href="#pricing" className="hover:text-black dark:hover:text-white">Pricing</Link></li>
-                <li><Link href="/docs" className="hover:text-black dark:hover:text-white">Documentation</Link></li>
+                <li><Link href="/#features" className="hover:text-black dark:hover:text-white transition-colors">Features</Link></li>
+                <li><Link href="/#pricing" className="hover:text-black dark:hover:text-white transition-colors">Pricing</Link></li>
+                <li><Link href="/docs" className="hover:text-black dark:hover:text-white transition-colors">Documentation</Link></li>
               </ul>
             </div>
             <div>
               <h4 className="font-semibold mb-4">Company</h4>
               <ul className="space-y-2 text-gray-600 dark:text-gray-400 text-sm">
-                <li><Link href="/about" className="hover:text-black dark:hover:text-white">About</Link></li>
-                <li><Link href="/blog" className="hover:text-black dark:hover:text-white">Blog</Link></li>
-                <li><Link href="/contact" className="hover:text-black dark:hover:text-white">Contact</Link></li>
+                <li><Link href="/about" className="hover:text-black dark:hover:text-white transition-colors">About</Link></li>
+                <li><Link href="/blog" className="hover:text-black dark:hover:text-white transition-colors">Blog</Link></li>
+                <li><Link href="/contact" className="hover:text-black dark:hover:text-white transition-colors">Contact</Link></li>
               </ul>
             </div>
             <div>
               <h4 className="font-semibold mb-4">Legal</h4>
               <ul className="space-y-2 text-gray-600 dark:text-gray-400 text-sm">
-                <li><Link href="/privacy" className="hover:text-black dark:hover:text-white">Privacy</Link></li>
-                <li><Link href="/terms" className="hover:text-black dark:hover:text-white">Terms</Link></li>
+                <li><Link href="/privacy" className="hover:text-black dark:hover:text-white transition-colors">Privacy</Link></li>
+                <li><Link href="/terms" className="hover:text-black dark:hover:text-white transition-colors">Terms</Link></li>
               </ul>
             </div>
           </div>
-          <div className="border-t border-gray-200 dark:border-gray-800 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
-            <p className="text-gray-600 dark:text-gray-400 text-sm">&copy; 2025 Nexa. All rights reserved.</p>
-            <button
-              onClick={toggleTheme}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-400 hover:text-black dark:hover:text-white hover:border-gray-400 dark:hover:border-gray-600 transition-colors"
-              aria-label="Toggle theme"
-            >
-              {isDark ? (
-                <>
-                  <Sun className="h-4 w-4" />
-                  Light Mode
-                </>
-              ) : (
-                <>
-                  <Moon className="h-4 w-4" />
-                  Dark Mode
-                </>
-              )}
-            </button>
+          <div className="border-t border-gray-200 dark:border-gray-800 pt-8">
+            <p className="text-gray-600 dark:text-gray-400 text-sm text-center">&copy; 2025 Nexa. All rights reserved.</p>
           </div>
         </div>
       </footer>
