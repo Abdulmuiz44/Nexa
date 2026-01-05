@@ -1,10 +1,10 @@
+'use client';
+
 import PageHeader from '@/components/PageHeader';
 import { Card } from '@/components/ui/card';
 import { Shield, Lock, Key, AlertTriangle, CheckCircle, Eye } from 'lucide-react';
 import Footer from '@/components/Footer';
 import Navbar from '@/components/Navbar';
-
-'use client';
 
 export default function SecurityPage() {
     const handleSecurityEmail = () => {
