@@ -1,10 +1,9 @@
-import PageHeader from '@/components/PageHeader';
-import { Card } from '@/components/ui/card';
+'use client';
+
+import Link from 'next/link';
+import { Navigation } from '@/components/Navigation';
 import { Button } from '@/components/ui/button';
 import { Check, ArrowRight } from 'lucide-react';
-import Footer from '@/components/Footer';
-import Navbar from '@/components/Navbar';
-import Link from 'next/link';
 
 const integrations = [
     {
@@ -90,42 +89,52 @@ const integrations = [
 export default function IntegrationsPage() {
     return (
         <div className="min-h-screen bg-white dark:bg-black text-black dark:text-white transition-colors duration-300">
-            <Navbar />
-            <main className="min-h-screen bg-white dark:bg-black pt-24">
-                <PageHeader
-                    badge="🔗 Integrations"
-                    title="Connect All Your Platforms"
-                    description="Nexa integrates with all major social media platforms to provide seamless, unified automation across your entire social presence."
-                />
+            <Navigation />
 
-                <section className="container mx-auto px-4 py-20 sm:px-6">
-                    <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+            {/* Hero */}
+            <section className="border-b border-gray-200 dark:border-gray-800 px-6 py-20">
+                <div className="mx-auto max-w-4xl text-center">
+                    <div className="inline-block mb-4 px-3 py-1 bg-gray-100 dark:bg-gray-900 rounded-full text-sm font-medium">
+                        🔗 Integrations
+                    </div>
+                    <h1 className="text-5xl font-bold mb-6">Connect All Your Platforms</h1>
+                    <p className="text-xl text-gray-600 dark:text-gray-400">
+                        Nexa integrates with all major social media platforms to provide seamless, unified automation across your entire social presence.
+                    </p>
+                </div>
+            </section>
+
+            {/* Integrations Grid */}
+            <section className="border-b border-gray-200 dark:border-gray-800 px-6 py-20">
+                <div className="mx-auto max-w-6xl">
+                    <div className="grid gap-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                         {integrations.map((integration, idx) => (
-                            <Card
+                            <div
                                 key={idx}
-                                className={`group relative overflow-hidden rounded-3xl border-border bg-card/50 p-8 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-neon ${integration.status === "Coming Soon" ? "opacity-75" : ""
-                                    }`}
+                                className={`p-8 border border-gray-200 dark:border-gray-800 rounded-lg hover:border-gray-400 dark:hover:border-gray-600 transition-colors relative ${
+                                    integration.status === "Coming Soon" ? "opacity-75" : ""
+                                }`}
                             >
                                 {integration.status === "Coming Soon" && (
-                                    <div className="absolute right-4 top-4 rounded-full bg-secondary px-3 py-1 text-xs font-semibold">
+                                    <div className="absolute right-4 top-4 rounded-full bg-gray-200 dark:bg-gray-800 px-3 py-1 text-xs font-semibold">
                                         Coming Soon
                                     </div>
                                 )}
 
-                                <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-xl bg-primary/10 text-3xl font-bold text-primary shadow-inner transition-all group-hover:scale-110">
+                                <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-900 text-3xl font-bold">
                                     {integration.icon}
                                 </div>
 
                                 <h3 className="mb-3 text-2xl font-bold">{integration.name}</h3>
-                                <p className="mb-6 text-muted-foreground leading-relaxed">
+                                <p className="mb-6 text-gray-600 dark:text-gray-400 leading-relaxed">
                                     {integration.description}
                                 </p>
 
-                                <div className="space-y-2">
+                                <div className="space-y-2 mb-6">
                                     {integration.features.map((feature, i) => (
                                         <div key={i} className="flex items-start gap-2">
-                                            <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" />
-                                            <span className="text-sm text-muted-foreground">{feature}</span>
+                                            <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-black dark:text-white" />
+                                            <span className="text-sm text-gray-600 dark:text-gray-400">{feature}</span>
                                         </div>
                                     ))}
                                 </div>
@@ -133,7 +142,7 @@ export default function IntegrationsPage() {
                                 {integration.status === "Available" && (
                                     <Button
                                         variant="outline"
-                                        className="mt-6 w-full"
+                                        className="w-full border-gray-300 dark:border-gray-700 text-black dark:text-white hover:bg-gray-100 dark:hover:bg-gray-900"
                                         asChild
                                     >
                                         <Link href="/auth/signup">
@@ -142,64 +151,95 @@ export default function IntegrationsPage() {
                                         </Link>
                                     </Button>
                                 )}
-
-                                <div className="absolute inset-x-0 bottom-0 h-[1px] bg-gradient-to-r from-transparent via-primary/50 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                            </Card>
+                            </div>
                         ))}
                     </div>
-                </section>
+                </div>
+            </section>
 
-                {/* How It Works */}
-                <section className="border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 py-20">
-                    <div className="container mx-auto px-4 sm:px-6">
-                        <div className="mx-auto max-w-3xl text-center">
-                            <h2 className="mb-6 text-3xl font-bold">How Integration Works</h2>
-                            <p className="mb-12 text-lg text-muted-foreground">
-                                Connecting your social media accounts to Nexa is quick, secure, and takes less than 2 minutes per platform.
-                            </p>
+            {/* How It Works */}
+            <section className="border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 px-6 py-20">
+                <div className="mx-auto max-w-6xl">
+                    <div className="mx-auto max-w-3xl text-center">
+                        <h2 className="mb-6 text-4xl font-bold">How Integration Works</h2>
+                        <p className="mb-12 text-lg text-gray-600 dark:text-gray-400">
+                            Connecting your social media accounts to Nexa is quick, secure, and takes less than 2 minutes per platform.
+                        </p>
 
-                            <div className="grid gap-6 sm:grid-cols-3">
-                                {[
-                                    { step: "1", title: "Authorize", description: "Securely connect via OAuth 2.0" },
-                                    { step: "2", title: "Configure", description: "Set your posting preferences" },
-                                    { step: "3", title: "Automate", description: "Let Nexa handle the rest" },
-                                ].map((item, idx) => (
-                                    <Card key={idx} className="p-6">
-                                        <div className="mb-4 mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary text-lg font-bold text-primary-foreground">
-                                            {item.step}
-                                        </div>
-                                        <h3 className="mb-2 font-semibold">{item.title}</h3>
-                                        <p className="text-sm text-muted-foreground">{item.description}</p>
-                                    </Card>
-                                ))}
-                            </div>
+                        <div className="grid gap-6 sm:grid-cols-3">
+                            {[
+                                { step: "1", title: "Authorize", description: "Securely connect via OAuth 2.0" },
+                                { step: "2", title: "Configure", description: "Set your posting preferences" },
+                                { step: "3", title: "Automate", description: "Let Nexa handle the rest" },
+                            ].map((item, idx) => (
+                                <div key={idx} className="p-6 border border-gray-200 dark:border-gray-800 rounded-lg">
+                                    <div className="mb-4 mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-black dark:bg-white text-white dark:text-black font-bold">
+                                        {item.step}
+                                    </div>
+                                    <h3 className="mb-2 font-semibold">{item.title}</h3>
+                                    <p className="text-sm text-gray-600 dark:text-gray-400">{item.description}</p>
+                                </div>
+                            ))}
                         </div>
                     </div>
-                </section>
+                </div>
+            </section>
 
-                {/* CTA */}
-                <section className="container mx-auto px-4 py-20 sm:px-6">
-                    <Card className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-primary/20 via-primary/5 to-secondary/20 p-12 text-center">
-                        <div className="absolute -top-24 right-12 h-48 w-48 rounded-full bg-primary/20 blur-3xl" />
-                        <div className="relative">
-                            <h2 className="mb-4 text-3xl font-bold sm:text-4xl">
-                                Ready to Connect Your Accounts?
-                            </h2>
-                            <p className="mx-auto mb-8 max-w-2xl text-lg text-muted-foreground">
-                                Start automating your social media presence across all platforms in minutes.
-                            </p>
-                            <Button variant="hero" size="lg" asChild>
-                                <Link href="/auth/signup">
-                                    Get Started Free
-                                    <ArrowRight className="ml-2 h-4 w-4" />
-                                </Link>
-                            </Button>
+            {/* CTA */}
+            <section className="border-b border-gray-200 dark:border-gray-800 px-6 py-20">
+                <div className="mx-auto max-w-4xl text-center">
+                    <h2 className="mb-6 text-4xl font-bold">
+                        Ready to Connect Your Accounts?
+                    </h2>
+                    <p className="mx-auto mb-8 max-w-2xl text-lg text-gray-600 dark:text-gray-400">
+                        Start automating your social media presence across all platforms in minutes.
+                    </p>
+                    <Button asChild size="lg" className="bg-black dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200">
+                        <Link href="/auth/signup">
+                            Get Started Free
+                            <ArrowRight className="ml-2 h-5 w-5" />
+                        </Link>
+                    </Button>
+                </div>
+            </section>
+
+            {/* Footer */}
+            <footer className="border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 px-6 py-12">
+                <div className="mx-auto max-w-6xl">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+                        <div>
+                            <h3 className="font-bold mb-4">Nexa</h3>
+                            <p className="text-gray-600 dark:text-gray-400 text-sm">AI agent for marketing and content creation.</p>
                         </div>
-                    </Card>
-                </section>
-
-                <Footer />
-            </main>
+                        <div>
+                            <h4 className="font-semibold mb-4">Product</h4>
+                            <ul className="space-y-2 text-gray-600 dark:text-gray-400 text-sm">
+                                <li><Link href="/#features" className="hover:text-black dark:hover:text-white transition-colors">Features</Link></li>
+                                <li><Link href="/#pricing" className="hover:text-black dark:hover:text-white transition-colors">Pricing</Link></li>
+                                <li><Link href="/docs" className="hover:text-black dark:hover:text-white transition-colors">Documentation</Link></li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 className="font-semibold mb-4">Company</h4>
+                            <ul className="space-y-2 text-gray-600 dark:text-gray-400 text-sm">
+                                <li><Link href="/about" className="hover:text-black dark:hover:text-white transition-colors">About</Link></li>
+                                <li><Link href="/blog" className="hover:text-black dark:hover:text-white transition-colors">Blog</Link></li>
+                                <li><Link href="/contact" className="hover:text-black dark:hover:text-white transition-colors">Contact</Link></li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 className="font-semibold mb-4">Legal</h4>
+                            <ul className="space-y-2 text-gray-600 dark:text-gray-400 text-sm">
+                                <li><Link href="/privacy" className="hover:text-black dark:hover:text-white transition-colors">Privacy</Link></li>
+                                <li><Link href="/terms" className="hover:text-black dark:hover:text-white transition-colors">Terms</Link></li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div className="border-t border-gray-200 dark:border-gray-800 pt-8">
+                        <p className="text-gray-600 dark:text-gray-400 text-sm text-center">&copy; 2025 Nexa. All rights reserved.</p>
+                    </div>
+                </div>
+            </footer>
         </div>
     );
 }

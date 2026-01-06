@@ -1,15 +1,11 @@
 'use client';
 
-import PageHeader from '@/components/PageHeader';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { TrendingUp, Clock, User, ArrowRight } from 'lucide-react';
-import Footer from '@/components/Footer';
-import Navbar from '@/components/Navbar';
 import Link from 'next/link';
+import { Navigation } from '@/components/Navigation';
+import { Button } from '@/components/ui/button';
+import { Clock, User } from 'lucide-react';
 import { useState } from 'react';
 
-// Placeholder blog posts
 const blogPosts = [
     {
         title: "10 Social Media Automation Strategies That Actually Work in 2024",
@@ -72,7 +68,7 @@ const categories = ["All", "Strategy", "AI & Technology", "Platforms", "Case Stu
 export default function BlogPage() {
     const [selectedCategory, setSelectedCategory] = useState("All");
     const [displayedPosts, setDisplayedPosts] = useState(blogPosts);
-    
+
     const handleCategorySelect = (category: string) => {
         setSelectedCategory(category);
         if (category === "All") {
@@ -83,98 +79,143 @@ export default function BlogPage() {
     };
 
     const handleLoadMore = () => {
-        // In a real app, this would fetch more posts from an API
         alert('Loading more articles...');
     };
 
     return (
         <div className="min-h-screen bg-white dark:bg-black text-black dark:text-white transition-colors duration-300">
-            <Navbar />
-            <main className="min-h-screen bg-white dark:bg-black pt-24">
-                <PageHeader
-                    badge="📝 Blog"
-                    title="Insights on AI-Powered Growth"
-                    description="Tips, strategies, and insights on social media automation, AI content creation, and growing your brand."
-                />
+            <Navigation />
 
-                <section className="container mx-auto px-4 py-20 sm:px-6">
-                    {/* Categories */}
-                    <div className="mb-12 flex flex-wrap justify-center gap-2">
+            {/* Hero */}
+            <section className="border-b border-gray-200 dark:border-gray-800 px-6 py-20">
+                <div className="mx-auto max-w-4xl text-center">
+                    <div className="inline-block mb-4 px-3 py-1 bg-gray-100 dark:bg-gray-900 rounded-full text-sm font-medium">
+                        📝 Blog
+                    </div>
+                    <h1 className="text-5xl font-bold mb-6">Insights on AI-Powered Growth</h1>
+                    <p className="text-xl text-gray-600 dark:text-gray-400">
+                        Tips, strategies, and insights on social media automation, AI content creation, and growing your brand.
+                    </p>
+                </div>
+            </section>
+
+            {/* Categories */}
+            <section className="border-b border-gray-200 dark:border-gray-800 px-6 py-12">
+                <div className="mx-auto max-w-6xl">
+                    <div className="flex flex-wrap justify-center gap-2">
                         {categories.map((category) => (
                             <Button
                                 key={category}
-                                variant={selectedCategory === category ? "hero" : "outline"}
+                                variant={selectedCategory === category ? "default" : "outline"}
                                 size="sm"
                                 onClick={() => handleCategorySelect(category)}
+                                className={selectedCategory === category ? "bg-black dark:bg-white text-white dark:text-black" : "border-gray-300 dark:border-gray-700 text-black dark:text-white hover:bg-gray-100 dark:hover:bg-gray-900"}
                             >
                                 {category}
                             </Button>
                         ))}
                     </div>
+                </div>
+            </section>
 
-                    {/* Blog Grid */}
-                    <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+            {/* Blog Grid */}
+            <section className="border-b border-gray-200 dark:border-gray-800 px-6 py-20">
+                <div className="mx-auto max-w-6xl">
+                    <div className="grid gap-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                         {displayedPosts.map((post, idx) => (
-                            <Card
+                            <div
                                 key={idx}
-                                className="group overflow-hidden rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-neon"
+                                className="p-6 border border-gray-200 dark:border-gray-800 rounded-lg hover:border-gray-400 dark:hover:border-gray-600 transition-colors"
                             >
-                                <div className="aspect-video w-full bg-secondary/30 flex items-center justify-center">
+                                <div className="aspect-video w-full bg-gray-100 dark:bg-gray-900 flex items-center justify-center mb-4 rounded-lg">
                                     <span className="text-4xl">📰</span>
                                 </div>
 
-                                <div className="p-6">
-                                    <div className="mb-3 flex items-center gap-2 text-xs text-muted-foreground">
-                                        <span className="rounded-full bg-primary/10 px-2 py-1 text-primary">
-                                            {post.category}
-                                        </span>
-                                        <span className="flex items-center gap-1">
-                                            <Clock className="h-3 w-3" />
-                                            {post.readTime}
-                                        </span>
-                                    </div>
-
-                                    <h3 className="mb-2 text-xl font-semibold line-clamp-2 group-hover:text-primary transition-colors">
-                                        {post.title}
-                                    </h3>
-
-                                    <p className="mb-4 text-sm text-muted-foreground line-clamp-3">
-                                        {post.excerpt}
-                                    </p>
-
-                                    <div className="flex items-center justify-between border-t border-border pt-4">
-                                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                            <User className="h-4 w-4" />
-                                            <span>{post.author}</span>
-                                        </div>
-                                        <span className="text-xs text-muted-foreground">{post.date}</span>
-                                    </div>
+                                <div className="mb-3 flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
+                                    <span className="rounded-full bg-gray-100 dark:bg-gray-900 px-2 py-1">
+                                        {post.category}
+                                    </span>
+                                    <span className="flex items-center gap-1">
+                                        <Clock className="h-3 w-3" />
+                                        {post.readTime}
+                                    </span>
                                 </div>
-                            </Card>
+
+                                <h3 className="mb-2 text-lg font-semibold line-clamp-2">
+                                    {post.title}
+                                </h3>
+
+                                <p className="mb-4 text-sm text-gray-600 dark:text-gray-400 line-clamp-3">
+                                    {post.excerpt}
+                                </p>
+
+                                <div className="flex items-center justify-between border-t border-gray-200 dark:border-gray-800 pt-4">
+                                    <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                                        <User className="h-4 w-4" />
+                                        <span>{post.author}</span>
+                                    </div>
+                                    <span className="text-xs text-gray-600 dark:text-gray-400">{post.date}</span>
+                                </div>
+                            </div>
                         ))}
                     </div>
 
                     {/* Load More */}
                     <div className="mt-12 text-center">
-                        <Button variant="outline" size="lg" onClick={handleLoadMore}>
+                        <Button variant="outline" size="lg" onClick={handleLoadMore} className="border-gray-300 dark:border-gray-700 text-black dark:text-white hover:bg-gray-100 dark:hover:bg-gray-900">
                             Load More Articles
                         </Button>
                     </div>
-                </section>
+                </div>
+            </section>
 
-                {/* Newsletter CTA */}
-                <section className="border-t border-border bg-secondary/20 py-20">
-                    <div className="container mx-auto px-4 text-center sm:px-6">
-                        <h2 className="mb-4 text-3xl font-bold">Never Miss an Update</h2>
-                        <p className="mx-auto mb-8 max-w-2xl text-lg text-muted-foreground">
-                            Get our latest blog posts, growth tips, and platform updates delivered to your inbox weekly.
-                        </p>
-                        {/* Newsletter form would go here - using the Newsletter Form component */}
+            {/* Newsletter CTA */}
+            <section className="border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 px-6 py-20">
+                <div className="mx-auto max-w-4xl text-center">
+                    <h2 className="mb-4 text-3xl font-bold">Never Miss an Update</h2>
+                    <p className="mx-auto mb-8 max-w-2xl text-lg text-gray-600 dark:text-gray-400">
+                        Get our latest blog posts, growth tips, and platform updates delivered to your inbox weekly.
+                    </p>
+                </div>
+            </section>
+
+            {/* Footer */}
+            <footer className="border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 px-6 py-12">
+                <div className="mx-auto max-w-6xl">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+                        <div>
+                            <h3 className="font-bold mb-4">Nexa</h3>
+                            <p className="text-gray-600 dark:text-gray-400 text-sm">AI agent for marketing and content creation.</p>
+                        </div>
+                        <div>
+                            <h4 className="font-semibold mb-4">Product</h4>
+                            <ul className="space-y-2 text-gray-600 dark:text-gray-400 text-sm">
+                                <li><Link href="/#features" className="hover:text-black dark:hover:text-white transition-colors">Features</Link></li>
+                                <li><Link href="/#pricing" className="hover:text-black dark:hover:text-white transition-colors">Pricing</Link></li>
+                                <li><Link href="/docs" className="hover:text-black dark:hover:text-white transition-colors">Documentation</Link></li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 className="font-semibold mb-4">Company</h4>
+                            <ul className="space-y-2 text-gray-600 dark:text-gray-400 text-sm">
+                                <li><Link href="/about" className="hover:text-black dark:hover:text-white transition-colors">About</Link></li>
+                                <li><Link href="/blog" className="hover:text-black dark:hover:text-white transition-colors">Blog</Link></li>
+                                <li><Link href="/contact" className="hover:text-black dark:hover:text-white transition-colors">Contact</Link></li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 className="font-semibold mb-4">Legal</h4>
+                            <ul className="space-y-2 text-gray-600 dark:text-gray-400 text-sm">
+                                <li><Link href="/privacy" className="hover:text-black dark:hover:text-white transition-colors">Privacy</Link></li>
+                                <li><Link href="/terms" className="hover:text-black dark:hover:text-white transition-colors">Terms</Link></li>
+                            </ul>
+                        </div>
                     </div>
-                </section>
-
-                <Footer />
-            </main>
+                    <div className="border-t border-gray-200 dark:border-gray-800 pt-8">
+                        <p className="text-gray-600 dark:text-gray-400 text-sm text-center">&copy; 2025 Nexa. All rights reserved.</p>
+                    </div>
+                </div>
+            </footer>
         </div>
     );
 }

@@ -1,10 +1,9 @@
-import PageHeader from '@/components/PageHeader';
-import { Card } from '@/components/ui/card';
+'use client';
+
+import Link from 'next/link';
+import { Navigation } from '@/components/Navigation';
 import { Button } from '@/components/ui/button';
 import { Bot, Calendar, MessageSquare, Target, BarChart3, Zap, Users, Shield, Sparkles, Clock, TrendingUp, ArrowRight } from 'lucide-react';
-import Footer from '@/components/Footer';
-import Link from 'next/link';
-import Navbar from '@/components/Navbar';
 
 const features = [
     {
@@ -108,85 +107,92 @@ const features = [
 export default function FeaturesPage() {
     return (
         <div className="min-h-screen bg-white dark:bg-black text-black dark:text-white transition-colors duration-300">
-            <Navbar />
-            <main className="min-h-screen bg-white dark:bg-black pt-24">
-                <PageHeader
-                    badge="✨ Platform Features"
-                    title="Everything You Need to Grow"
-                    description="Powerful AI-driven features designed to automate your social media growth and save you hours every week."
-                >
-                    <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
-                        <Button variant="hero" size="lg" asChild>
+            <Navigation />
+
+            {/* Hero */}
+            <section className="border-b border-gray-200 dark:border-gray-800 px-6 py-20">
+                <div className="mx-auto max-w-4xl text-center">
+                    <div className="inline-block mb-4 px-3 py-1 bg-gray-100 dark:bg-gray-900 rounded-full text-sm font-medium">
+                        ✨ Platform Features
+                    </div>
+                    <h1 className="text-5xl font-bold mb-6">Everything You Need to Grow</h1>
+                    <p className="text-xl text-gray-600 dark:text-gray-400 mb-8">
+                        Powerful AI-driven features designed to automate your social media growth and save you hours every week.
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                        <Button asChild size="lg" className="bg-black dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200">
                             <Link href="/auth/signup">
                                 Start Free Trial
-                                <ArrowRight className="ml-2 h-4 w-4" />
+                                <ArrowRight className="ml-2 h-5 w-5" />
                             </Link>
                         </Button>
-                        <Button variant="outline" size="lg" asChild>
+                        <Button variant="outline" size="lg" className="border-gray-300 dark:border-gray-700 text-black dark:text-white hover:bg-gray-100 dark:hover:bg-gray-900" asChild>
                             <Link href="/pricing">View Pricing</Link>
                         </Button>
                     </div>
-                </PageHeader>
+                </div>
+            </section>
 
-                <section className="container mx-auto px-4 py-20 sm:px-6">
+            <main className="min-h-screen bg-white dark:bg-black">
+                <section className="border-b border-gray-200 dark:border-gray-800 px-6 py-20">
+                    <div className="mx-auto max-w-6xl">
                     <div className="grid gap-8 md:grid-cols-2 lg:gap-12">
                         {features.map((feature, idx) => (
-                            <Card
+                            <div
                                 key={idx}
-                                className="group relative overflow-hidden rounded-3xl border-border bg-card/50 p-8 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:scale-[1.02] hover:border-primary/50 hover:shadow-neon"
+                                className="p-8 border border-gray-200 dark:border-gray-800 rounded-lg hover:border-gray-400 dark:hover:border-gray-600 transition-colors"
                             >
-                                <div className={`mb-6 inline-flex h-14 w-14 items-center justify-center rounded-xl bg-${feature.color}/10 text-${feature.color} shadow-inner transition-all group-hover:scale-110`}>
-                                    <feature.icon className="h-7 w-7" />
+                                <div className="mb-6 inline-flex h-12 w-12 items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-900 text-black dark:text-white">
+                                    <feature.icon className="h-6 w-6" />
                                 </div>
 
                                 <h3 className="mb-3 text-2xl font-bold">{feature.title}</h3>
-                                <p className="mb-6 text-muted-foreground leading-relaxed">
+                                <p className="mb-6 text-gray-600 dark:text-gray-400 leading-relaxed">
                                     {feature.description}
                                 </p>
 
                                 <div className="space-y-2">
                                     {feature.benefits.map((benefit, i) => (
                                         <div key={i} className="flex items-start gap-2">
-                                            <Sparkles className={`mt-0.5 h-4 w-4 flex-shrink-0 text-${feature.color}`} />
-                                            <span className="text-sm text-muted-foreground">{benefit}</span>
+                                            <Sparkles className="mt-0.5 h-4 w-4 flex-shrink-0 text-gray-600 dark:text-gray-400" />
+                                            <span className="text-sm text-gray-600 dark:text-gray-400">{benefit}</span>
                                         </div>
                                     ))}
                                 </div>
-
-                                <div className="absolute inset-x-0 bottom-0 h-[1px] bg-gradient-to-r from-transparent via-primary/50 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                            </Card>
+                            </div>
                         ))}
+                    </div>
                     </div>
                 </section>
 
                 {/* Integration Section */}
-                <section className="border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 py-20">
-                    <div className="container mx-auto px-4 text-center sm:px-6">
-                        <h2 className="mb-6 text-3xl font-bold sm:text-4xl">
+                <section className="border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 px-6 py-20">
+                    <div className="mx-auto max-w-6xl text-center">
+                        <h2 className="mb-6 text-4xl font-bold">
                             Seamless Platform Integration
                         </h2>
-                        <p className="mx-auto mb-12 max-w-2xl text-lg text-muted-foreground">
+                        <p className="mx-auto mb-12 max-w-2xl text-lg text-gray-600 dark:text-gray-400">
                             Connect your social media accounts and start automating in minutes. We support all major platforms.
                         </p>
 
-                        <div className="mx-auto grid max-w-4xl gap-6 sm:grid-cols-3">
+                        <div className="mx-auto grid max-w-4xl gap-6 grid-cols-1 sm:grid-cols-3">
                             {[
                                 { name: "Twitter / X", icon: "𝕏", desc: "Automated tweets, replies, and engagement" },
                                 { name: "Reddit", icon: "R", desc: "Community posts and discussion participation" },
                                 { name: "LinkedIn", icon: "in", desc: "Professional content and networking" },
                             ].map((platform, idx) => (
-                                <Card key={idx} className="p-6">
-                                    <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-2xl font-bold text-primary mx-auto">
+                                <div key={idx} className="p-6 border border-gray-200 dark:border-gray-800 rounded-lg hover:border-gray-400 dark:hover:border-gray-600 transition-colors">
+                                    <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-900 text-2xl font-bold text-black dark:text-white mx-auto">
                                         {platform.icon}
                                     </div>
                                     <h3 className="mb-2 font-semibold">{platform.name}</h3>
-                                    <p className="text-sm text-muted-foreground">{platform.desc}</p>
-                                </Card>
+                                    <p className="text-sm text-gray-600 dark:text-gray-400">{platform.desc}</p>
+                                </div>
                             ))}
                         </div>
 
                         <div className="mt-12">
-                            <Link href="/integrations" className="text-primary hover:underline">
+                            <Link href="/integrations" className="text-black dark:text-white hover:underline">
                                 View all integrations →
                             </Link>
                         </div>
@@ -194,27 +200,62 @@ export default function FeaturesPage() {
                 </section>
 
                 {/* CTA Section */}
-                <section className="container mx-auto px-4 py-20 sm:px-6">
-                    <Card className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-primary/20 via-primary/5 to-secondary/20 p-12 text-center">
-                        <div className="absolute -top-24 right-12 h-48 w-48 rounded-full bg-primary/20 blur-3xl" />
-                        <div className="relative">
-                            <h2 className="mb-4 text-3xl font-bold sm:text-4xl">
+                <section className="border-b border-gray-200 dark:border-gray-800 px-6 py-20">
+                    <div className="mx-auto max-w-4xl text-center">
+                        <div className="relative p-12">
+                            <h2 className="mb-4 text-4xl font-bold">
                                 Ready to supercharge your social media?
                             </h2>
-                            <p className="mx-auto mb-8 max-w-2xl text-lg text-muted-foreground">
+                            <p className="mx-auto mb-8 max-w-2xl text-lg text-gray-600 dark:text-gray-400">
                                 Join 500+ founders and marketing teams who are growing faster with Nexa.
                             </p>
-                            <Button variant="hero" size="lg" asChild>
+                            <Button asChild size="lg" className="bg-black dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200">
                                 <Link href="/auth/signup">
                                     Start Your Free Trial
-                                    <ArrowRight className="ml-2 h-4 w-4" />
+                                    <ArrowRight className="ml-2 h-5 w-5" />
                                 </Link>
                             </Button>
                         </div>
-                    </Card>
+                    </div>
                 </section>
 
-                <Footer />
+                {/* Footer */}
+                <footer className="border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 px-6 py-12">
+                    <div className="mx-auto max-w-6xl">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+                            <div>
+                                <h3 className="font-bold mb-4">Nexa</h3>
+                                <p className="text-gray-600 dark:text-gray-400 text-sm">AI agent for marketing and content creation.</p>
+                            </div>
+                            <div>
+                                <h4 className="font-semibold mb-4">Product</h4>
+                                <ul className="space-y-2 text-gray-600 dark:text-gray-400 text-sm">
+                                    <li><Link href="/#features" className="hover:text-black dark:hover:text-white transition-colors">Features</Link></li>
+                                    <li><Link href="/#pricing" className="hover:text-black dark:hover:text-white transition-colors">Pricing</Link></li>
+                                    <li><Link href="/docs" className="hover:text-black dark:hover:text-white transition-colors">Documentation</Link></li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h4 className="font-semibold mb-4">Company</h4>
+                                <ul className="space-y-2 text-gray-600 dark:text-gray-400 text-sm">
+                                    <li><Link href="/about" className="hover:text-black dark:hover:text-white transition-colors">About</Link></li>
+                                    <li><Link href="/blog" className="hover:text-black dark:hover:text-white transition-colors">Blog</Link></li>
+                                    <li><Link href="/contact" className="hover:text-black dark:hover:text-white transition-colors">Contact</Link></li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h4 className="font-semibold mb-4">Legal</h4>
+                                <ul className="space-y-2 text-gray-600 dark:text-gray-400 text-sm">
+                                    <li><Link href="/privacy" className="hover:text-black dark:hover:text-white transition-colors">Privacy</Link></li>
+                                    <li><Link href="/terms" className="hover:text-black dark:hover:text-white transition-colors">Terms</Link></li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div className="border-t border-gray-200 dark:border-gray-800 pt-8">
+                            <p className="text-gray-600 dark:text-gray-400 text-sm text-center">&copy; 2025 Nexa. All rights reserved.</p>
+                        </div>
+                    </div>
+                </footer>
             </main>
         </div>
     );
