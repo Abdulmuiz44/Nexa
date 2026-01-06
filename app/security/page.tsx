@@ -121,18 +121,18 @@ export default function SecurityPage() {
                         </div>
 
                         {/* Contact */}
-                         <div className="mt-16 text-center">
-                             <Card className="bg-gradient-to-r from-primary/10 to-secondary/10 p-8 cursor-pointer hover:shadow-lg transition-shadow" onClick={handleSecurityEmail}>
-                                 <h3 className="mb-2 text-xl font-semibold">Security Questions?</h3>
-                                 <p className="mb-4 text-muted-foreground">
-                                     If you have security concerns or wish to report a vulnerability, please contact
-                                     our security team.
-                                 </p>
-                                 <div className="font-semibold text-primary hover:underline cursor-pointer">
-                                     security@nexa.ai
-                                 </div>
-                             </Card>
-                         </div>
+                        <div className="mt-16 text-center">
+                            <Card className="bg-gradient-to-r from-primary/10 to-secondary/10 p-8 cursor-pointer hover:shadow-lg transition-shadow" onClick={handleSecurityEmail}>
+                                <h3 className="mb-2 text-xl font-semibold">Security Questions?</h3>
+                                <p className="mb-4 text-muted-foreground">
+                                    If you have security concerns or wish to report a vulnerability, please contact
+                                    our security team.
+                                </p>
+                                <div className="font-semibold text-primary hover:underline cursor-pointer">
+                                    security@nexa.ai
+                                </div>
+                            </Card>
+                        </div>
                     </div>
                 </section>
 
