@@ -36,19 +36,21 @@ export async function GET(req: Request) {
             return NextResponse.json({ error: error.message }, { status: 500 });
         }
 
-        // Format the history to include the last message
-        const formatted = (conversations || []).map((conv: any) => {
-            const sortedMessages = (conv.messages || []).sort(
-                (a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-            );
+        // Format the history to include the last message and message count
+         const formatted = (conversations || []).map((conv: any) => {
+             const sortedMessages = (conv.messages || []).sort(
+                 (a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+             );
 
-            return {
-                id: conv.id,
-                title: conv.title || 'Untitled Chat',
-                created_at: conv.created_at,
-                last_message: sortedMessages[0]?.content || 'No messages yet'
-            };
-        });
+             return {
+                 id: conv.id,
+                 title: conv.title || 'Untitled Chat',
+                 created_at: conv.created_at,
+                 updated_at: conv.updated_at,
+                 message_count: (conv.messages || []).length,
+                 last_message: sortedMessages[0]?.content || 'No messages yet'
+             };
+         });
 
         return NextResponse.json({ conversations: formatted });
     } catch (err: any) {
