@@ -98,17 +98,16 @@ export default function BillingPage() {
               </div>
               <Progress value={0} className="h-2" />
             </div>
-          </CardContent>
-        </Card>
+            </div>
+            </div>
 
-        {/* Credit Usage Statistics */}
-        <Card className="p-6 mb-8">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                <Activity className="h-5 w-5" />
-                Credit Usage
-              </CardTitle>
+            {/* Credit Usage Statistics */}
+            <div className="p-6 border border-gray-200 dark:border-gray-800 rounded-lg hover:border-gray-400 dark:hover:border-gray-600 transition-colors mb-8">
+            <div className="flex items-center justify-between mb-4">
+             <h3 className="text-lg font-semibold flex items-center gap-2">
+               <Activity className="h-5 w-5" />
+               Credit Usage
+             </h3>
               <div className="flex items-center gap-2">
                 <Select value={timeframe} onValueChange={setTimeframe}>
                   <SelectTrigger className="w-32">
@@ -128,33 +127,32 @@ export default function BillingPage() {
                 >
                   <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
                 </Button>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
+                </div>
+                </div>
+                <div>
             {usageStats ? (
               <div className="space-y-6">
                 {/* Usage Overview */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="text-center">
                     <div className="text-2xl font-bold text-red-500">{usageStats.totalSpent.toFixed(2)}</div>
-                    <div className="text-sm text-muted-foreground">Credits Used</div>
-                  </div>
-                  <div className="text-center">
+                    <div className="text-sm text-gray-600 dark:text-gray-400">Credits Used</div>
+                    </div>
+                    <div className="text-center">
                     <div className="text-2xl font-bold text-green-500">{usageStats.totalEarned.toFixed(2)}</div>
-                    <div className="text-sm text-muted-foreground">Credits Earned</div>
-                  </div>
-                  <div className="text-center">
+                    <div className="text-sm text-gray-600 dark:text-gray-400">Credits Earned</div>
+                    </div>
+                    <div className="text-center">
                     <div className="text-2xl font-bold text-blue-500">
                       {usageStats.byType ? Object.keys(usageStats.byType).length : 0}
                     </div>
-                    <div className="text-sm text-muted-foreground">Usage Types</div>
-                  </div>
-                  <div className="text-center">
+                    <div className="text-sm text-gray-600 dark:text-gray-400">Usage Types</div>
+                    </div>
+                    <div className="text-center">
                     <div className="text-2xl font-bold text-purple-500">
                       {usageStats.byDay ? Object.keys(usageStats.byDay).length : 0}
                     </div>
-                    <div className="text-sm text-muted-foreground">Active Days</div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">Active Days</div>
                   </div>
                 </div>
 
@@ -164,7 +162,7 @@ export default function BillingPage() {
                     <h4 className="text-sm font-semibold mb-3">Usage by Type</h4>
                     <div className="space-y-2">
                       {Object.entries(usageStats.byType).map(([type, credits]: [string, any]) => (
-                        <div key={type} className="flex items-center justify-between p-2 bg-muted rounded">
+                        <div key={type} className="flex items-center justify-between p-2 bg-gray-100 dark:bg-gray-800 rounded">
                           <span className="text-sm capitalize">{type.replace('_', ' ')}</span>
                           <span className="font-medium">{Number(credits).toFixed(2)} credits</span>
                         </div>
@@ -179,17 +177,17 @@ export default function BillingPage() {
                     <h4 className="text-sm font-semibold mb-3">Recent Usage</h4>
                     <div className="space-y-2 max-h-48 overflow-y-auto">
                       {usageStats.recentUsage.map((usage: any, index: number) => (
-                        <div key={index} className="flex items-center justify-between p-2 border rounded">
+                        <div key={index} className="flex items-center justify-between p-2 border border-gray-200 dark:border-gray-800 rounded">
                           <div className="text-sm">
                             <div className="font-medium capitalize">{usage.type.replace('_', ' ')}</div>
-                            <div className="text-muted-foreground text-xs">
+                            <div className="text-gray-600 dark:text-gray-400 text-xs">
                               {new Date(usage.date).toLocaleString()}
                             </div>
                           </div>
                           <div className="text-right">
                             <div className="font-medium text-red-500">-{usage.credits.toFixed(2)}</div>
                             {usage.description && (
-                              <div className="text-xs text-muted-foreground">{usage.description}</div>
+                              <div className="text-xs text-gray-600 dark:text-gray-400">{usage.description}</div>
                             )}
                           </div>
                         </div>
@@ -204,7 +202,7 @@ export default function BillingPage() {
                     <TrendingUp className="h-4 w-4 text-blue-500" />
                     Usage Insights
                   </h4>
-                  <div className="text-sm text-muted-foreground space-y-1">
+                  <div className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
                     <p>• You've used {usageStats.totalSpent.toFixed(2)} credits {timeframe === 'month' ? 'this month' : timeframe === 'week' ? 'this week' : 'this year'}</p>
                     {usageStats.totalSpent > balance * 0.8 && (
                       <p className="text-orange-600">⚠️ You're using credits quickly. Consider topping up soon.</p>
@@ -217,53 +215,45 @@ export default function BillingPage() {
               </div>
             ) : (
               <div className="text-center py-8">
-                <Activity className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <Activity className="h-12 w-12 text-gray-400 dark:text-gray-600 mx-auto mb-4" />
                 <h3 className="text-lg font-medium mb-2">Loading Usage Statistics</h3>
-                <p className="text-muted-foreground">Fetching your credit usage data...</p>
+                <p className="text-gray-600 dark:text-gray-400">Fetching your credit usage data...</p>
               </div>
             )}
-          </CardContent>
-        </Card>
+            </div>
+            </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          <Card className="p-6">
-            <CardHeader className="pb-4">
-              <CardTitle className="flex items-center gap-2"><Zap className="h-5 w-5 text-yellow-500" /> Credit Balance</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold mb-2">{balance.toFixed(2)}</div>
-              <p className="text-sm text-muted-foreground mb-4">Credits available</p>
-              <div className="flex items-center gap-2">
-                <Input type="number" min={MINIMUM_PURCHASE_CREDITS * CREDIT_VALUE_USD} placeholder={`Min $${(MINIMUM_PURCHASE_CREDITS * CREDIT_VALUE_USD).toFixed(2)}`} value={amountUSD} onChange={(e) => setAmountUSD(e.target.value)} />
-                <Button className="min-w-[170px]" onClick={startCheckout} disabled={buying}>
-                  <Plus className="mr-2 h-4 w-4" /> {buying ? 'Opening…' : 'Buy Credits'}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="p-6 border border-gray-200 dark:border-gray-800 rounded-lg hover:border-gray-400 dark:hover:border-gray-600 transition-colors">
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2"><Zap className="h-5 w-5 text-yellow-500" /> Credit Balance</h3>
+            <div className="text-3xl font-bold mb-2">{balance.toFixed(2)}</div>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">Credits available</p>
+            <div className="flex items-center gap-2">
+              <Input type="number" min={MINIMUM_PURCHASE_CREDITS * CREDIT_VALUE_USD} placeholder={`Min $${(MINIMUM_PURCHASE_CREDITS * CREDIT_VALUE_USD).toFixed(2)}`} value={amountUSD} onChange={(e) => setAmountUSD(e.target.value)} />
+              <Button className="min-w-[170px]" onClick={startCheckout} disabled={buying}>
+                <Plus className="mr-2 h-4 w-4" /> {buying ? 'Opening…' : 'Buy Credits'}
+              </Button>
+            </div>
+          </div>
 
-          <Card className="p-6">
-            <CardHeader className="pb-4">
-              <CardTitle className="flex items-center gap-2"><CreditCard className="h-5 w-5 text-blue-500" /> Recent Transactions</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3 max-h-64 overflow-auto pr-1">
-                {(!transactions || transactions.length === 0) && <div className="text-sm text-muted-foreground">No transactions yet</div>}
-                {transactions && transactions.map((t) => (
-                  <div key={t.id} className="flex items-center justify-between p-3 border rounded-md">
-                    <div className="text-sm">
-                      <div className="font-medium capitalize">{String(t.tx_type).replace('_',' ')}</div>
-                      <div className="text-muted-foreground text-xs">{new Date(t.created_at).toLocaleString()}</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-medium">{Number(t.credits).toFixed(2)}</div>
-                      <div className="text-xs text-muted-foreground">{t.description || ''}</div>
-                    </div>
+          <div className="p-6 border border-gray-200 dark:border-gray-800 rounded-lg hover:border-gray-400 dark:hover:border-gray-600 transition-colors">
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2"><CreditCard className="h-5 w-5 text-blue-500" /> Recent Transactions</h3>
+            <div className="space-y-3 max-h-64 overflow-auto pr-1">
+              {(!transactions || transactions.length === 0) && <div className="text-sm text-gray-600 dark:text-gray-400">No transactions yet</div>}
+              {transactions && transactions.map((t) => (
+                <div key={t.id} className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-800 rounded-md">
+                  <div className="text-sm">
+                    <div className="font-medium capitalize">{String(t.tx_type).replace('_',' ')}</div>
+                    <div className="text-gray-600 dark:text-gray-400 text-xs">{new Date(t.created_at).toLocaleString()}</div>
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+                  <div className="text-right">
+                    <div className="font-medium">{Number(t.credits).toFixed(2)}</div>
+                    <div className="text-xs text-gray-600 dark:text-gray-400">{t.description || ''}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </div>
