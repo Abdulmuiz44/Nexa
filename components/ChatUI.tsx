@@ -3,7 +3,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Bot, User, Loader2, Send } from 'lucide-react';
 import { useSession } from 'next-auth/react';
@@ -244,8 +243,8 @@ export default function ChatUI({ conversationId }: { conversationId?: string }) 
       <div className="flex-1 p-4 sm:p-6">
         <div className="mx-auto flex h-full max-w-4xl flex-col items-center justify-center">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Loading chat...</p>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 dark:border-blue-400 mx-auto mb-4"></div>
+            <p className="text-gray-600 dark:text-gray-400">Loading chat...</p>
           </div>
         </div>
       </div>
@@ -258,10 +257,10 @@ export default function ChatUI({ conversationId }: { conversationId?: string }) 
       <div className="flex-1 p-4 sm:p-6">
         <div className="mx-auto flex h-full max-w-4xl flex-col items-center justify-center">
           <div className="text-center">
-            <p className="text-muted-foreground mb-4">Please log in to access the chat.</p>
+            <p className="text-gray-600 dark:text-gray-400 mb-4">Please log in to access the chat.</p>
             <button
               onClick={() => window.location.href = '/auth/login'}
-              className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 transition-colors"
+              className="bg-blue-600 dark:bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors"
             >
               Go to Login
             </button>
@@ -275,32 +274,32 @@ export default function ChatUI({ conversationId }: { conversationId?: string }) 
     <div className="flex-1 p-4 sm:p-6">
       <div className="mx-auto flex h-full max-w-4xl flex-col">
         <div className="mb-6 flex flex-col gap-2 sm:mb-8">
-          <div className="flex items-center justify-between">
-            <h1 className="flex items-center gap-3 text-2xl font-bold sm:text-3xl">
-              <Bot className="h-7 w-7 text-primary sm:h-8 sm:w-8" />
-              Chat with Nexa
-            </h1>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Mode:</span>
-              <Select value={agentMode} onValueChange={(value: 'manual' | 'autonomous' | 'review') => setAgentMode(value)}>
-                <SelectTrigger className="w-32">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="manual">Manual</SelectItem>
-                  <SelectItem value="autonomous">Autonomous</SelectItem>
-                  <SelectItem value="review">Review</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <p className="text-sm text-muted-foreground sm:text-base">
-            Your intelligent social media management companion powered by AI
-          </p>
-        </div>
+           <div className="flex items-center justify-between">
+             <h1 className="flex items-center gap-3 text-2xl font-bold sm:text-3xl">
+               <Bot className="h-7 w-7 text-blue-600 dark:text-blue-400 sm:h-8 sm:w-8" />
+               Chat with Nexa
+             </h1>
+             <div className="flex items-center gap-2">
+               <span className="text-sm text-gray-600 dark:text-gray-400">Mode:</span>
+               <Select value={agentMode} onValueChange={(value: 'manual' | 'autonomous' | 'review') => setAgentMode(value)}>
+                 <SelectTrigger className="w-32 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700">
+                   <SelectValue />
+                 </SelectTrigger>
+                 <SelectContent className="bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700">
+                   <SelectItem value="manual">Manual</SelectItem>
+                   <SelectItem value="autonomous">Autonomous</SelectItem>
+                   <SelectItem value="review">Review</SelectItem>
+                 </SelectContent>
+               </Select>
+             </div>
+           </div>
+           <p className="text-sm text-gray-600 dark:text-gray-400 sm:text-base">
+             Your intelligent social media management companion powered by AI
+           </p>
+         </div>
 
-        <Card className="flex flex-1 flex-col rounded-3xl border-border/60 bg-card/40 backdrop-blur">
-          <CardContent className="flex flex-1 flex-col gap-4 p-4 sm:p-6">
+         <div className="flex flex-1 flex-col rounded-3xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/50 backdrop-blur">
+           <div className="flex flex-1 flex-col gap-4 p-4 sm:p-6">
             <ScrollArea className="flex-1 pr-2 sm:pr-4" ref={scrollAreaRef}>
               <div className="space-y-4">
                 {isLoadingHistory ? (
@@ -321,8 +320,8 @@ export default function ChatUI({ conversationId }: { conversationId?: string }) 
                       >
                         <div
                           className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${message.role === 'user'
-                            ? 'bg-primary text-primary-foreground'
-                            : 'bg-muted'
+                            ? 'bg-blue-600 dark:bg-blue-500 text-white'
+                            : 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100'
                             }`}
                         >
                           {message.role === 'user' ? (
@@ -333,8 +332,8 @@ export default function ChatUI({ conversationId }: { conversationId?: string }) 
                         </div>
                         <div
                           className={`rounded-lg px-3 py-2 ${message.role === 'user'
-                            ? 'bg-primary text-primary-foreground'
-                            : 'bg-muted'
+                            ? 'bg-blue-600 dark:bg-blue-500 text-white'
+                            : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100'
                             }`}
                         >
                           {message.type && message.type !== 'text' && (
@@ -354,34 +353,34 @@ export default function ChatUI({ conversationId }: { conversationId?: string }) 
                     </div>
                   )))}
                 {isLoading && (
-                  <div className="flex gap-3 justify-start">
-                    <div className="flex gap-2 max-w-[80%]">
-                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-                        <Bot className="h-4 w-4" />
-                      </div>
-                      <div className="bg-muted rounded-lg px-3 py-2">
-                        <div className="flex items-center gap-2">
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          <span className="text-sm">Nexa is thinking...</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
+                   <div className="flex gap-3 justify-start">
+                     <div className="flex gap-2 max-w-[80%]">
+                       <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-900 dark:text-gray-100">
+                         <Bot className="h-4 w-4" />
+                       </div>
+                       <div className="bg-gray-100 dark:bg-gray-800 rounded-lg px-3 py-2 text-gray-900 dark:text-gray-100">
+                         <div className="flex items-center gap-2">
+                           <Loader2 className="h-4 w-4 animate-spin" />
+                           <span className="text-sm">Nexa is thinking...</span>
+                         </div>
+                       </div>
+                     </div>
+                   </div>
+                 )}
               </div>
             </ScrollArea>
 
             {/* Quick action to confirm last AI message as a post */}
-            {messages.length > 0 && messages[messages.length - 1]?.role === 'assistant' && (
-              <div className="flex justify-end">
-                <button
-                  onClick={() => setConfirmOpen(true)}
-                  className="text-xs text-primary underline"
-                >
-                  Use last AI message as a post
-                </button>
-              </div>
-            )}
+             {messages.length > 0 && messages[messages.length - 1]?.role === 'assistant' && (
+               <div className="flex justify-end">
+                 <button
+                   onClick={() => setConfirmOpen(true)}
+                   className="text-xs text-blue-600 dark:text-blue-400 underline hover:text-blue-700 dark:hover:text-blue-300"
+                 >
+                   Use last AI message as a post
+                 </button>
+               </div>
+             )}
 
             <div className="flex flex-col gap-3 sm:flex-row sm:gap-2">
               <Input
@@ -403,9 +402,9 @@ export default function ChatUI({ conversationId }: { conversationId?: string }) 
                 <span className="hidden sm:inline">Send</span>
               </Button>
             </div>
-          </CardContent>
-        </Card>
-      </div>
+            </div>
+            </div>
+            </div>
 
       {/* Post confirmation modal */}
       <PostConfirmModal
