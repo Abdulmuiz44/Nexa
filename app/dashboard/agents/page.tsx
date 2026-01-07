@@ -75,40 +75,38 @@ export default async function AgentsPage() {
             const isActive = agent.status === 'Active';
 
             return (
-              <Card key={agent.id} className={isActive ? '' : 'opacity-75'}>
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-primary/10">
-                        <IconComponent className="h-5 w-5 text-primary" />
-                      </div>
-                      <div>
-                        <CardTitle className="text-lg">{agent.name}</CardTitle>
-                        <CardDescription className="text-xs mt-1">
-                          {agent.status === 'Active' ? (
-                            <span className="inline-flex items-center gap-1 text-green-600">
-                              <span className="h-2 w-2 rounded-full bg-green-600"></span>
-                              {agent.status}
-                            </span>
-                          ) : (
-                            <span className="text-muted-foreground">{agent.status}</span>
-                          )}
-                        </CardDescription>
+              <div key={agent.id} className={`p-6 border border-gray-200 dark:border-gray-800 rounded-lg hover:border-gray-400 dark:hover:border-gray-600 transition-colors ${isActive ? '' : 'opacity-75'}`}>
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
+                      <IconComponent className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold">{agent.name}</h3>
+                      <div className="text-xs mt-1">
+                        {agent.status === 'Active' ? (
+                          <span className="inline-flex items-center gap-1 text-green-600">
+                            <span className="h-2 w-2 rounded-full bg-green-600"></span>
+                            {agent.status}
+                          </span>
+                        ) : (
+                          <span className="text-gray-600 dark:text-gray-400">{agent.status}</span>
+                        )}
                       </div>
                     </div>
                   </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-sm text-muted-foreground">{agent.description}</p>
+                </div>
+                <div className="space-y-4">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">{agent.description}</p>
 
                   {/* Capabilities */}
                   <div>
-                    <div className="text-xs font-semibold text-muted-foreground mb-2">Capabilities</div>
+                    <div className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">Capabilities</div>
                     <div className="flex flex-wrap gap-2">
                       {agent.capabilities.map((capability) => (
                         <span
                           key={capability}
-                          className="inline-flex items-center rounded-full bg-accent px-2.5 py-0.5 text-xs font-medium"
+                          className="inline-flex items-center rounded-full bg-gray-100 dark:bg-gray-800 px-2.5 py-0.5 text-xs font-medium"
                         >
                           {capability}
                         </span>
@@ -126,50 +124,46 @@ export default async function AgentsPage() {
                       Coming Soon
                     </Button>
                   )}
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             );
           })}
         </div>
 
         {/* Quick Start Section */}
-        <Card className="border-l-4 border-l-blue-500 bg-blue-50/50">
-          <CardHeader>
-            <CardTitle className="text-base">Quick Start</CardTitle>
-            <CardDescription>Get started with the agent system</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ol className="space-y-3 text-sm">
-              <li className="flex gap-3">
-                <span className="font-bold text-blue-600 min-w-6">1.</span>
-                <span>
-                  Try the <Link href="/dashboard/agent-demo" className="font-semibold text-blue-600 hover:underline">
-                    Content Agent
-                  </Link>{' '}
-                  to generate platform-specific content
-                </span>
-              </li>
-              <li className="flex gap-3">
-                <span className="font-bold text-blue-600 min-w-6">2.</span>
-                <span>
-                  Use the{' '}
-                  <Link href="/dashboard/workflow-demo" className="font-semibold text-blue-600 hover:underline">
-                    Workflow Engine
-                  </Link>{' '}
-                  to automate the entire pipeline
-                </span>
-              </li>
-              <li className="flex gap-3">
-                <span className="font-bold text-blue-600 min-w-6">3.</span>
-                <span>Monitor results in the Analytics dashboard</span>
-              </li>
-              <li className="flex gap-3">
-                <span className="font-bold text-blue-600 min-w-6">4.</span>
-                <span>Set up automated workflows in your campaigns</span>
-              </li>
-            </ol>
-          </CardContent>
-        </Card>
+        <div className="p-6 border border-gray-200 dark:border-gray-800 rounded-lg hover:border-gray-400 dark:hover:border-gray-600 transition-colors border-l-4 border-l-blue-500">
+          <h3 className="text-lg font-semibold text-base mb-2">Quick Start</h3>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">Get started with the agent system</p>
+          <ol className="space-y-3 text-sm">
+            <li className="flex gap-3">
+              <span className="font-bold text-blue-600 min-w-6">1.</span>
+              <span>
+                Try the <Link href="/dashboard/agent-demo" className="font-semibold text-blue-600 hover:underline">
+                  Content Agent
+                </Link>{' '}
+                to generate platform-specific content
+              </span>
+            </li>
+            <li className="flex gap-3">
+              <span className="font-bold text-blue-600 min-w-6">2.</span>
+              <span>
+                Use the{' '}
+                <Link href="/dashboard/workflow-demo" className="font-semibold text-blue-600 hover:underline">
+                  Workflow Engine
+                </Link>{' '}
+                to automate the entire pipeline
+              </span>
+            </li>
+            <li className="flex gap-3">
+              <span className="font-bold text-blue-600 min-w-6">3.</span>
+              <span>Monitor results in the Analytics dashboard</span>
+            </li>
+            <li className="flex gap-3">
+              <span className="font-bold text-blue-600 min-w-6">4.</span>
+              <span>Set up automated workflows in your campaigns</span>
+            </li>
+          </ol>
+        </div>
       </div>
     </div>
   );

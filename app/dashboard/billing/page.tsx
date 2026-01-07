@@ -76,14 +76,14 @@ export default function BillingPage() {
       <div className="max-w-4xl mx-auto">
         <div className="mb-6">
           <h1 className="text-3xl font-bold">Billing & Credits</h1>
-          <p className="text-muted-foreground mt-2">Manage your credits and subscription plan</p>
+          <p className="text-gray-600 dark:text-gray-400 mt-2">Manage your credits and subscription plan</p>
         </div>
 
-        <Card className="p-6 mb-8">
-          <CardHeader className="pb-4">
-            <CardTitle className="flex items-center gap-2"><Crown className="h-5 w-5 text-yellow-500" /> Current Plan</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <div className="p-6 border border-gray-200 dark:border-gray-800 rounded-lg hover:border-gray-400 dark:hover:border-gray-600 transition-colors mb-8">
+          <div className="pb-4 mb-4">
+            <h3 className="text-lg font-semibold flex items-center gap-2"><Crown className="h-5 w-5 text-yellow-500" /> Current Plan</h3>
+          </div>
+          <div>
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="text-xl font-bold">{(session?.user as any)?.subscriptionTier || 'Growth'}</h3>

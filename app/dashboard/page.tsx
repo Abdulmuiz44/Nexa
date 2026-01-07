@@ -71,78 +71,70 @@ export default function DashboardPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card className="p-6">
+          <div className="p-6 border border-gray-200 dark:border-gray-800 rounded-lg hover:border-gray-400 dark:hover:border-gray-600 transition-colors">
             <div className="flex items-center justify-between mb-2">
-              <div className="text-sm text-muted-foreground">Credits</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Credits</div>
               <Zap className="h-4 w-4 text-yellow-500" />
             </div>
             <div className="text-3xl font-bold">{credits ? fmt(credits.balance) : (loading ? '—' : '0')}</div>
-            <div className="text-xs text-muted-foreground">Remaining this month</div>
-          </Card>
+            <div className="text-xs text-gray-600 dark:text-gray-400">Remaining this month</div>
+          </div>
 
-          <Card className="p-6">
+          <div className="p-6 border border-gray-200 dark:border-gray-800 rounded-lg hover:border-gray-400 dark:hover:border-gray-600 transition-colors">
             <div className="flex items-center justify-between mb-2">
-              <div className="text-sm text-muted-foreground">Scheduled</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Scheduled</div>
               <Calendar className="h-4 w-4 text-blue-500" />
             </div>
             <div className="text-3xl font-bold">{loading ? '—' : scheduledCount}</div>
-            <div className="text-xs text-muted-foreground">Pending posts</div>
-          </Card>
+            <div className="text-xs text-gray-600 dark:text-gray-400">Pending posts</div>
+          </div>
 
-          <Card className="p-6">
+          <div className="p-6 border border-gray-200 dark:border-gray-800 rounded-lg hover:border-gray-400 dark:hover:border-gray-600 transition-colors">
             <div className="flex items-center justify-between mb-2">
-              <div className="text-sm text-muted-foreground">Impressions</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Impressions</div>
               <BarChart3 className="h-4 w-4 text-green-500" />
             </div>
             <div className="text-3xl font-bold">{fmt(impressions)}</div>
-            <div className="text-xs text-muted-foreground">Last 30 days</div>
-          </Card>
+            <div className="text-xs text-gray-600 dark:text-gray-400">Last 30 days</div>
+          </div>
 
-          <Card className="p-6">
+          <div className="p-6 border border-gray-200 dark:border-gray-800 rounded-lg hover:border-gray-400 dark:hover:border-gray-600 transition-colors">
             <div className="flex items-center justify-between mb-2">
-              <div className="text-sm text-muted-foreground">Engagement rate</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Engagement rate</div>
               <TrendingUp className="h-4 w-4 text-emerald-500" />
             </div>
             <div className="text-3xl font-bold">{avgRate.toFixed(1)}%</div>
-            <div className="text-xs text-muted-foreground">Last 30 days</div>
-          </Card>
+            <div className="text-xs text-gray-600 dark:text-gray-400">Last 30 days</div>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card className="p-6">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2"><Activity className="h-5 w-5" /> Recent Activity</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {logs && logs.length > 0 ? logs.slice(0, 10).map((l) => (
-                  <div key={l.id} className="flex items-center justify-between border rounded-md p-3">
-                    <div className="min-w-0">
-                      <div className="text-sm font-medium truncate">{l.message}</div>
-                      <div className="text-xs text-muted-foreground">{new Date(l.timestamp).toLocaleString()}</div>
-                    </div>
-                    <span className="ml-3 shrink-0 text-xs rounded-full bg-accent/40 px-2 py-1">{l.type}</span>
+          <div className="p-6 border border-gray-200 dark:border-gray-800 rounded-lg hover:border-gray-400 dark:hover:border-gray-600 transition-colors">
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2"><Activity className="h-5 w-5" /> Recent Activity</h3>
+            <div className="space-y-3">
+              {logs && logs.length > 0 ? logs.slice(0, 10).map((l) => (
+                <div key={l.id} className="flex items-center justify-between border border-gray-200 dark:border-gray-800 rounded-md p-3">
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium truncate">{l.message}</div>
+                    <div className="text-xs text-gray-600 dark:text-gray-400">{new Date(l.timestamp).toLocaleString()}</div>
                   </div>
-                )) : (
-                  <div className="text-sm text-muted-foreground">{loading ? 'Loading...' : 'No recent activity'}</div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+                  <span className="ml-3 shrink-0 text-xs rounded-full bg-gray-100 dark:bg-gray-800 px-2 py-1">{l.type}</span>
+                </div>
+              )) : (
+                <div className="text-sm text-gray-600 dark:text-gray-400">{loading ? 'Loading...' : 'No recent activity'}</div>
+              )}
+            </div>
+          </div>
 
-          <Card className="p-6">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2"><LinkIcon className="h-5 w-5" /> Connected Accounts</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold mb-2">{loading ? '—' : connectCount}</div>
-              <p className="text-sm text-muted-foreground mb-4">Accounts connected to Nexa</p>
-              <div className="flex gap-2">
-                <Button asChild variant="outline"><Link href="/dashboard/connections">Manage Connections</Link></Button>
-                <Button asChild><Link href="/dashboard/analytics">View Analytics</Link></Button>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="p-6 border border-gray-200 dark:border-gray-800 rounded-lg hover:border-gray-400 dark:hover:border-gray-600 transition-colors">
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2"><LinkIcon className="h-5 w-5" /> Connected Accounts</h3>
+            <div className="text-3xl font-bold mb-2">{loading ? '—' : connectCount}</div>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">Accounts connected to Nexa</p>
+            <div className="flex gap-2">
+              <Button asChild variant="outline"><Link href="/dashboard/connections">Manage Connections</Link></Button>
+              <Button asChild><Link href="/dashboard/analytics">View Analytics</Link></Button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

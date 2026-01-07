@@ -207,11 +207,11 @@ export default function ConnectionsPage() {
                 {/* Header */}
                 <div className="flex items-center justify-between mb-6">
                     <div>
-                        <h1 className="text-3xl font-bold">Social Media Connections</h1>
-                        <p className="text-muted-foreground mt-2">
-                            Connect your social media accounts to start posting and tracking engagement
-                        </p>
-                    </div>
+                         <h1 className="text-3xl font-bold">Social Media Connections</h1>
+                         <p className="text-gray-600 dark:text-gray-400 mt-2">
+                             Connect your social media accounts to start posting and tracking engagement
+                         </p>
+                     </div>
                 </div>
 
                 {/* Success Message */}
@@ -251,55 +251,55 @@ export default function ConnectionsPage() {
                     <div className="mb-8">
                         <h2 className="text-xl font-semibold mb-4">Connected Accounts</h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {connections.map((conn) => (
-                                <Card key={conn.id} className="hover:shadow-md transition-shadow">
-                                    <CardHeader className="pb-3">
-                                        <div className="flex items-start justify-between">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center text-2xl">
-                                                    {getPlatformIcon(conn.platform)}
+                                {connections.map((conn) => (
+                                    <div key={conn.id} className="p-6 border border-gray-200 dark:border-gray-800 rounded-lg hover:border-gray-400 dark:hover:border-gray-600 transition-colors">
+                                        <div className="pb-3">
+                                            <div className="flex items-start justify-between">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center text-2xl">
+                                                        {getPlatformIcon(conn.platform)}
+                                                    </div>
+                                                    <div>
+                                                        <h3 className="text-lg font-semibold capitalize">{conn.platform}</h3>
+                                                        <p className="text-sm text-gray-600 dark:text-gray-400">@{conn.username}</p>
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <CardTitle className="text-lg capitalize">{conn.platform}</CardTitle>
-                                                    <p className="text-sm text-muted-foreground">@{conn.username}</p>
-                                                </div>
+                                                <Badge variant="default" className="bg-green-600 hover:bg-green-700">
+                                                    <CheckCircle2 className="h-3 w-3 mr-1" />
+                                                    Active
+                                                </Badge>
                                             </div>
-                                            <Badge variant="default" className="bg-green-600 hover:bg-green-700">
-                                                <CheckCircle2 className="h-3 w-3 mr-1" />
-                                                Active
-                                            </Badge>
                                         </div>
-                                    </CardHeader>
-                                    <CardContent className="pt-0 space-y-3">
-                                        <div className="text-xs text-muted-foreground space-y-1">
-                                            <p>Connected: {new Date(conn.connectedAt).toLocaleDateString()}</p>
-                                            {conn.verified && <p className="text-blue-600">✓ Verified account</p>}
-                                            {conn.isExpired && (
-                                                <p className="text-yellow-600">⚠️ Connection expiring soon</p>
-                                            )}
+                                        <div className="pt-0 space-y-3">
+                                            <div className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
+                                                <p>Connected: {new Date(conn.connectedAt).toLocaleDateString()}</p>
+                                                {conn.verified && <p className="text-blue-600">✓ Verified account</p>}
+                                                {conn.isExpired && (
+                                                    <p className="text-yellow-600">⚠️ Connection expiring soon</p>
+                                                )}
+                                            </div>
+                                            <Button
+                                                onClick={() => disconnectPlatform(conn.platform)}
+                                                disabled={disconnecting === conn.platform}
+                                                variant="destructive"
+                                                size="sm"
+                                                className="w-full"
+                                            >
+                                                {disconnecting === conn.platform ? (
+                                                    <>
+                                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                                        Disconnecting...
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Trash2 className="h-4 w-4 mr-2" />
+                                                        Disconnect
+                                                    </>
+                                                )}
+                                            </Button>
                                         </div>
-                                        <Button
-                                            onClick={() => disconnectPlatform(conn.platform)}
-                                            disabled={disconnecting === conn.platform}
-                                            variant="destructive"
-                                            size="sm"
-                                            className="w-full"
-                                        >
-                                            {disconnecting === conn.platform ? (
-                                                <>
-                                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                                    Disconnecting...
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <Trash2 className="h-4 w-4 mr-2" />
-                                                    Disconnect
-                                                </>
-                                            )}
-                                        </Button>
-                                    </CardContent>
-                                </Card>
-                            ))}
+                                    </div>
+                                ))}
                         </div>
                     </div>
                 )}
@@ -307,8 +307,8 @@ export default function ConnectionsPage() {
                 {/* Loading State */}
                 {loading && (
                     <div className="text-center py-12">
-                        <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
-                        <p className="text-muted-foreground">Loading your connections...</p>
+                        <Loader2 className="h-8 w-8 animate-spin text-blue-600 dark:text-blue-400 mx-auto mb-4" />
+                        <p className="text-gray-600 dark:text-gray-400">Loading your connections...</p>
                     </div>
                 )}
 
@@ -324,9 +324,9 @@ export default function ConnectionsPage() {
                                 const isConnecting = connecting === platform;
 
                                 return (
-                                    <Card
+                                    <div
                                         key={platform}
-                                        className={`cursor-pointer transition-all hover:shadow-md ${isConnected ? 'opacity-50 pointer-events-none' : ''
+                                        className={`p-6 border border-gray-200 dark:border-gray-800 rounded-lg hover:border-gray-400 dark:hover:border-gray-600 transition-colors cursor-pointer ${isConnected ? 'opacity-50 pointer-events-none' : ''
                                             }`}
                                     >
                                         <button
@@ -334,7 +334,7 @@ export default function ConnectionsPage() {
                                                 connectPlatform(platform as 'twitter' | 'reddit' | 'linkedin')
                                             }
                                             disabled={isConnecting || isConnected}
-                                            className="w-full h-full p-6 text-center"
+                                            className="w-full h-full text-center"
                                         >
                                             <div className="flex flex-col items-center gap-3">
                                                 <div className="text-4xl">{getPlatformIcon(platform)}</div>
@@ -345,7 +345,7 @@ export default function ConnectionsPage() {
                                                             : platform.charAt(0).toUpperCase() + platform.slice(1)}
                                                     </p>
                                                     {isConnecting && (
-                                                        <p className="text-sm text-muted-foreground flex items-center justify-center gap-2 mt-1">
+                                                        <p className="text-sm text-gray-600 dark:text-gray-400 flex items-center justify-center gap-2 mt-1">
                                                             <Loader2 className="h-3 w-3 animate-spin" />
                                                             Connecting...
                                                         </p>
@@ -356,14 +356,14 @@ export default function ConnectionsPage() {
                                                         </p>
                                                     )}
                                                     {!isConnecting && !isConnected && (
-                                                        <p className="text-sm text-muted-foreground mt-1">
+                                                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                                                             Click to connect
                                                         </p>
                                                     )}
                                                 </div>
                                             </div>
                                         </button>
-                                    </Card>
+                                    </div>
                                 );
                             })}
                         </div>
@@ -373,9 +373,9 @@ export default function ConnectionsPage() {
                 {/* Empty State */}
                 {!loading && connections.length === 0 && (
                     <div className="text-center py-12">
-                        <Zap className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                        <Zap className="h-16 w-16 text-gray-400 dark:text-gray-600 mx-auto mb-4" />
                         <h3 className="text-xl font-semibold mb-2">No connections yet</h3>
-                        <p className="text-muted-foreground mb-6">
+                        <p className="text-gray-600 dark:text-gray-400 mb-6">
                             Connect your social media accounts to start posting and tracking engagement
                         </p>
                     </div>

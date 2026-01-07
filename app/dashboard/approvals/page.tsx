@@ -80,39 +80,35 @@ export default function ApprovalsPage() {
       <div className="p-8 max-w-6xl mx-auto">
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2">Approval Queue</h1>
-        <p className="text-muted-foreground">
+        <p className="text-gray-600 dark:text-gray-400">
           Review and approve AI-generated posts before they go live
         </p>
       </div>
 
       {approvals.length === 0 ? (
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-center text-muted-foreground">
-              No posts pending approval. All set! 🎉
-            </p>
-          </CardContent>
-        </Card>
+        <div className="p-6 border border-gray-200 dark:border-gray-800 rounded-lg hover:border-gray-400 dark:hover:border-gray-600 transition-colors">
+          <p className="text-center text-gray-600 dark:text-gray-400">
+            No posts pending approval. All set! 🎉
+          </p>
+        </div>
       ) : (
         <div className="space-y-4">
           {approvals.map((approval) => (
-            <Card key={approval.id}>
-              <CardHeader>
-                <div className="flex justify-between items-start">
-                  <div>
-                    <CardTitle className="text-lg">
-                      {approval.post?.platform?.toUpperCase()} Post
-                    </CardTitle>
-                    <CardDescription>
-                      Scheduled for: {approval.post?.scheduled_at 
-                        ? new Date(approval.post.scheduled_at).toLocaleString()
-                        : 'Not scheduled'}
-                    </CardDescription>
-                  </div>
-                  <Badge variant="outline">Pending</Badge>
+            <div key={approval.id} className="p-6 border border-gray-200 dark:border-gray-800 rounded-lg hover:border-gray-400 dark:hover:border-gray-600 transition-colors">
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <h3 className="text-lg font-semibold">
+                    {approval.post?.platform?.toUpperCase()} Post
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Scheduled for: {approval.post?.scheduled_at 
+                      ? new Date(approval.post.scheduled_at).toLocaleString()
+                      : 'Not scheduled'}
+                  </p>
                 </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
+                <Badge variant="outline">Pending</Badge>
+              </div>
+              <div className="space-y-4">
                 {editingId === approval.id ? (
                   <Textarea
                     value={editedContent}
@@ -120,65 +116,65 @@ export default function ApprovalsPage() {
                     className="min-h-[100px]"
                   />
                 ) : (
-                  <div className="p-4 bg-muted rounded-lg">
+                  <div className="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
                     <p className="whitespace-pre-wrap">{approval.original_content}</p>
                   </div>
                 )}
 
                 <div className="flex gap-2">
-                  {editingId === approval.id ? (
-                    <>
-                      <Button
-                        onClick={() => handleApprove(approval.id, editedContent)}
-                        className="flex-1"
-                      >
-                        Save & Approve
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={() => {
-                          setEditingId(null);
-                          setEditedContent('');
-                        }}
-                        className="flex-1"
-                      >
-                        Cancel
-                      </Button>
-                    </>
-                  ) : (
-                    <>
-                      <Button
-                        onClick={() => handleApprove(approval.id)}
-                        className="flex-1"
-                      >
-                        Approve
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={() => {
-                          setEditingId(approval.id);
-                          setEditedContent(approval.original_content);
-                        }}
-                        className="flex-1"
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        onClick={() => handleReject(approval.id)}
-                        className="flex-1"
-                      >
-                        Reject
-                      </Button>
-                    </>
-                  )}
+                   {editingId === approval.id ? (
+                     <>
+                       <Button
+                         onClick={() => handleApprove(approval.id, editedContent)}
+                         className="flex-1"
+                       >
+                         Save & Approve
+                       </Button>
+                       <Button
+                         variant="outline"
+                         onClick={() => {
+                           setEditingId(null);
+                           setEditedContent('');
+                         }}
+                         className="flex-1"
+                       >
+                         Cancel
+                       </Button>
+                     </>
+                   ) : (
+                     <>
+                       <Button
+                         onClick={() => handleApprove(approval.id)}
+                         className="flex-1"
+                       >
+                         Approve
+                       </Button>
+                       <Button
+                         variant="outline"
+                         onClick={() => {
+                           setEditingId(approval.id);
+                           setEditedContent(approval.original_content);
+                         }}
+                         className="flex-1"
+                       >
+                         Edit
+                       </Button>
+                       <Button
+                         variant="destructive"
+                         onClick={() => handleReject(approval.id)}
+                         className="flex-1"
+                       >
+                         Reject
+                       </Button>
+                     </>
+                   )}
+                 </div>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
-      </div>
-    </div>
-  );
-}
+                </div>
+                ))}
+                </div>
+                )}
+                </div>
+                </div>
+                );
+                }

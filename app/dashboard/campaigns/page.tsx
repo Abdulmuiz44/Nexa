@@ -353,7 +353,7 @@ const handleDeleteCampaign = async (campaignId: string) => {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-3xl font-bold">Campaigns</h1>
-            <p className="text-muted-foreground mt-2">
+            <p className="text-gray-600 dark:text-gray-400 mt-2">
               Manage and schedule your social media campaigns
             </p>
           </div>
@@ -371,13 +371,13 @@ const handleDeleteCampaign = async (campaignId: string) => {
           <TabsContent value="list">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {campaigns.map((campaign) => (
-                <Card key={campaign.id} className="p-6 hover:shadow-md transition-shadow">
-                  <CardHeader className="pb-4">
+                <div key={campaign.id} className="p-6 border border-gray-200 dark:border-gray-800 rounded-lg hover:border-gray-400 dark:hover:border-gray-600 transition-colors">
+                  <div className="pb-4">
                     <div className="flex items-center justify-between">
-                      <CardTitle className="flex items-center gap-2">
+                      <h3 className="text-lg font-semibold flex items-center gap-2">
                         <Calendar className="h-5 w-5" />
                         {campaign.name}
-                      </CardTitle>
+                      </h3>
                       <div className="flex items-center gap-2">
                         <Badge className={`${getStatusColor(campaign.status)} text-white`}>
                           {getStatusIcon(campaign.status)}
@@ -399,16 +399,16 @@ const handleDeleteCampaign = async (campaignId: string) => {
                         </Button>
                       </div>
                     </div>
-                  </CardHeader>
-                  <CardContent>
+                  </div>
+                  <div>
                     {campaign.description && (
-                      <p className="text-sm text-muted-foreground mb-4">
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
                         {campaign.description}
                       </p>
                     )}
                     <div className="space-y-2">
                       <div className="flex items-center gap-4 text-sm">
-                        <span className="text-muted-foreground">Platforms:</span>
+                        <span className="text-gray-600 dark:text-gray-400">Platforms:</span>
                         <div className="flex gap-1">
                           {campaign.platforms.map((platform) => (
                             <Badge key={platform} variant="secondary" className="text-xs">
@@ -418,41 +418,41 @@ const handleDeleteCampaign = async (campaignId: string) => {
                         </div>
                       </div>
                       <div className="flex items-center gap-4 text-sm">
-                        <span className="text-muted-foreground">Duration:</span>
+                        <span className="text-gray-600 dark:text-gray-400">Duration:</span>
                         <span>{campaign.duration_days} days</span>
                       </div>
                       <div className="flex items-center gap-4 text-sm">
-                        <span className="text-muted-foreground">Posts/Day:</span>
+                        <span className="text-gray-600 dark:text-gray-400">Posts/Day:</span>
                         <span>{campaign.posts_per_day}</span>
                       </div>
                       {campaign.topic && (
                         <div className="flex items-center gap-4 text-sm">
-                          <span className="text-muted-foreground">Topic:</span>
+                          <span className="text-gray-600 dark:text-gray-400">Topic:</span>
                           <span>{campaign.topic}</span>
                         </div>
                       )}
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               ))}
 
               {/* Create Campaign Card */}
-              <Card className="p-6 border-dashed border-2 hover:border-primary transition-colors cursor-pointer" onClick={handleCreateCampaign}>
-                <CardContent className="flex flex-col items-center justify-center py-8">
-                  <Plus className="h-12 w-12 text-muted-foreground mb-4" />
+              <div className="p-6 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg hover:border-gray-400 dark:hover:border-gray-600 transition-colors cursor-pointer" onClick={handleCreateCampaign}>
+                <div className="flex flex-col items-center justify-center py-8">
+                  <Plus className="h-12 w-12 text-gray-400 dark:text-gray-600 mb-4" />
                   <h3 className="text-lg font-semibold mb-2">Create Campaign</h3>
-                  <p className="text-sm text-muted-foreground text-center">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 text-center">
                     Set up automated posting schedules and content strategies
                   </p>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             </div>
 
             {campaigns.length === 0 && (
               <div className="text-center py-12">
-                <Calendar className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                <Calendar className="h-16 w-16 text-gray-400 dark:text-gray-600 mx-auto mb-4" />
                 <h3 className="text-xl font-semibold mb-2">No campaigns yet</h3>
-                <p className="text-muted-foreground mb-4">
+                <p className="text-gray-600 dark:text-gray-400 mb-4">
                   Create your first campaign to start automating your social media presence
                 </p>
                 <Button onClick={handleCreateCampaign}>
