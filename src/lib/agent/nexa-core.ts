@@ -494,22 +494,39 @@ Requirements:
   }
 
   private async schedulePostingJob(postId: string, scheduledTime: Date): Promise<void> {
-    // This would integrate with BullMQ
-    // For now, just log
-    console.log(`Scheduling post ${postId} for ${scheduledTime}`);
+    // @ts-ignore - dynamic import for queue
+    const { scheduledPostsQueue } = await import('@/src/queue/scheduledPosts');
+
+    const delay = Math.max(0, scheduledTime.getTime() - Date.now());
+
+    await scheduledPostsQueue.add(
+      'schedulePost',
+      { scheduledPostId: postId },
+      { delay, jobId: `post_${postId}` }
+    );
+
+    console.log(`Scheduled post ${postId} for ${scheduledTime} (delay: ${delay}ms)`);
   }
 
   private async postToPlatform(
     postId: string,
     platform: Platform,
-    _content: string,
-    _userId: string
+    content: string,
+    userId: string
   ): Promise<{ platformPostId: string; platformPostUrl: string }> {
-    // This would call the platform APIs
-    // For now, mock response
+    // @ts-ignore - dynamic import for service
+    const { SocialMediaService } = await import('@/src/services/socialMediaService');
+
+    const service = new SocialMediaService(userId);
+    const result = await service.post(platform, content);
+
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to post');
+    }
+
     return {
-      platformPostId: `mock_${platform}_${Date.now()}`,
-      platformPostUrl: `https://${platform}.com/post/mock_${Date.now()}`
+      platformPostId: result.platformPostId || `${platform}_${Date.now()}`,
+      platformPostUrl: result.platformPostUrl || `https://${platform}.com/post/${result.platformPostId}`
     };
   }
 

@@ -24,14 +24,14 @@ async function getUserToken(userId: string, platform: SocialPlatform): Promise<{
   expires_at?: string | null
 }> {
   const { data, error } = await supabaseServer
-    .from('user_tokens')
+    .from('connected_accounts')
     .select('access_token, refresh_token, expires_at')
     .eq('user_id', userId)
     .eq('platform', platform)
     .maybeSingle()
 
   if (error || !data) {
-    throw new Error('OAuth token not found for platform')
+    throw new Error(`OAuth token not found for ${platform}`)
   }
 
   return data
@@ -39,7 +39,7 @@ async function getUserToken(userId: string, platform: SocialPlatform): Promise<{
 
 async function persistToken(userId: string, platform: SocialPlatform, updates: Partial<{ access_token: string; refresh_token: string; expires_at: string }>) {
   await supabaseServer
-    .from('user_tokens')
+    .from('connected_accounts')
     .update(updates)
     .eq('user_id', userId)
     .eq('platform', platform)
