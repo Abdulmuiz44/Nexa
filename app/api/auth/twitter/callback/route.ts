@@ -10,6 +10,11 @@ interface OAuthMetadata {
     codeVerifier?: string;
 }
 
+interface RedirectData {
+    uri?: string;
+    codeVerifier?: string;
+}
+
 export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const state = searchParams.get('state');
@@ -30,8 +35,21 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ error: 'Invalid or expired state' }, { status: 400 });
     }
 
-    const metadata = dbState.metadata as OAuthMetadata;
-    const codeVerifier = metadata?.codeVerifier;
+    // Try to get codeVerifier from metadata first, then from redirect_uri JSON fallback
+    let codeVerifier: string | undefined;
+
+    const metadata = dbState.metadata as OAuthMetadata | null;
+    if (metadata?.codeVerifier) {
+        codeVerifier = metadata.codeVerifier;
+    } else if (dbState.redirect_uri) {
+        // Try to parse redirect_uri as JSON (fallback storage)
+        try {
+            const redirectData = JSON.parse(dbState.redirect_uri) as RedirectData;
+            codeVerifier = redirectData.codeVerifier;
+        } catch (e) {
+            // Not JSON, likely just a plain URI
+        }
+    }
 
     if (!codeVerifier) {
         return NextResponse.json({ error: 'Missing code verifier' }, { status: 400 });
@@ -74,7 +92,7 @@ export async function GET(req: NextRequest) {
         // 4. Cleanup State
         await supabaseServer.from('oauth_states').delete().eq('id', dbState.id);
 
-        return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/dashboard/settings?connected=twitter`);
+        return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/dashboard/connections?success=Twitter%20connected%20successfully`);
 
     } catch (error) {
         console.error('Twitter Auth Error:', error);

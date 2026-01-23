@@ -39,9 +39,9 @@ export async function GET(req: NextRequest) {
             clientId: CLIENT_ID,
             clientSecret: CLIENT_SECRET,
             redirectUri: REDIRECT_URI
-        });
+        }) as any;
 
-        const user = await r.getMe();
+        const user = await r.getMe() as any;
         const username = user.name;
         const userId = user.id;
 

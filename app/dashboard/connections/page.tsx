@@ -61,87 +61,72 @@ export default function ConnectionsPage() {
     }, [searchParams, router]);
 
     const fetchConnections = async () => {
-      try {
-        setError(null);
-        const res = await fetch('/api/composio/connections');
-        
-        if (!res.ok) {
-          throw new Error(`API error: ${res.status}`);
-        }
+        try {
+            setError(null);
+            // Use direct OAuth connections API instead of Composio
+            const res = await fetch('/api/connectors');
 
-        const data = await res.json();
-        // Filter out any mock/test data - validate connections rigorously
-        const realConnections = (data.connections || []).filter((conn: Connection) => {
-          // Must have required fields
-          if (!conn.accountId || !conn.username || !conn.id) {
-            return false;
-          }
-          
-          // Filter out mock/test/demo accounts
-          const testPatterns = ['mock', 'test', 'demo', 'mock_', 'test_', 'demo_'];
-          const lowerUsername = conn.username.toLowerCase();
-          if (testPatterns.some(pattern => lowerUsername.includes(pattern))) {
-            return false;
-          }
-          
-          // Filter out empty or invalid IDs
-          if (conn.id === '' || conn.accountId === '' || conn.username === '') {
-            return false;
-          }
-          
-          return true;
-        });
-        
-        setConnections(realConnections);
-        
-        if (data.hasExpiredConnections) {
-          setError('⚠️ Some connections may have expired. Please reconnect them.');
+            if (!res.ok) {
+                throw new Error(`API error: ${res.status}`);
+            }
+
+            const data = await res.json();
+            // Map connections from direct OAuth format
+            const directConnections = (data.connections || []).map((conn: any) => ({
+                id: conn.id,
+                platform: conn.platform,
+                username: conn.username,
+                accountId: conn.platformUserId,
+                status: conn.isExpired ? 'expired' : 'active',
+                connectedAt: conn.connectedAt,
+                verified: true,
+                isExpired: conn.isExpired,
+            }));
+
+            setConnections(directConnections);
+
+            if (data.hasExpiredConnections) {
+                setError('⚠️ Some connections may have expired. Please reconnect them.');
+            }
+        } catch (err) {
+            console.error('Failed to fetch connections:', err);
+            setError('Failed to load connections. Please try again.');
+        } finally {
+            setLoading(false);
         }
-      } catch (err) {
-        console.error('Failed to fetch connections:', err);
-        setError('Failed to load connections. Please try again.');
-      } finally {
-        setLoading(false);
-      }
     };
 
     const connectPlatform = async (
-    platform: 'twitter' | 'reddit' | 'linkedin'
-  ) => {
+        platform: 'twitter' | 'reddit' | 'linkedin'
+    ) => {
+        // Check if already connected
+        const isAlreadyConnected = connections.some(c => c.platform === platform);
+        if (isAlreadyConnected) {
+            setError(`${platform} is already connected. Disconnect it first to connect a different account.`);
+            return;
+        }
+
         setConnecting(platform);
         setError(null);
         setSuccess(null);
 
         try {
-            const res = await fetch(`/api/composio/auth/${platform}`, {
-                method: 'POST',
-            });
-
-            if (!res.ok) {
-                const data = await res.json();
-
-                if (res.status === 409) {
-                    setError(`${platform} is already connected. Disconnect it first to connect a different account.`);
-                } else if (res.status === 501) {
-                    setError(data.message || `${platform} integration is not yet available`);
-                } else {
-                    setError(data.details || data.message || `Failed to initiate ${platform} connection`);
-                }
+            // Use direct OAuth login routes instead of Composio
+            if (platform === 'twitter') {
+                // Redirect directly to Twitter OAuth endpoint
+                window.location.href = '/api/auth/twitter/login';
                 return;
-            }
-
-            const data = await res.json();
-
-            if (data.authUrl) {
-                // Redirect to OAuth - this will navigate away and return via callback
-                window.location.href = data.authUrl;
+            } else if (platform === 'reddit') {
+                window.location.href = '/api/auth/reddit/login';
+                return;
             } else {
-                setError(`Failed to get authorization URL for ${platform}`);
+                setError(`${platform} integration is not yet available`);
+                setConnecting(null);
+                return;
             }
         } catch (err) {
             console.error('Connection error:', err);
             setError(`Network error: Failed to connect ${platform}. Please check your connection and try again.`);
-        } finally {
             setConnecting(null);
         }
     };
@@ -156,14 +141,15 @@ export default function ConnectionsPage() {
         setSuccess(null);
 
         try {
+            // Use direct connectors API instead of Composio
             const res = await fetch(
-                `/api/composio/connections?platform=${platform}`,
+                `/api/connectors?platform=${platform}`,
                 { method: 'DELETE' }
             );
 
             if (!res.ok) {
                 const data = await res.json();
-                setError(data.message || `Failed to disconnect ${platform}`);
+                setError(data.error || `Failed to disconnect ${platform}`);
                 return;
             }
 
@@ -185,8 +171,8 @@ export default function ConnectionsPage() {
         }
     };
 
-  // Currently only Twitter is supported
-  const platforms = ['twitter'];
+    // Currently only Twitter is supported
+    const platforms = ['twitter'];
 
     const getPlatformIcon = (platform: string) => {
         switch (platform) {
@@ -207,11 +193,11 @@ export default function ConnectionsPage() {
                 {/* Header */}
                 <div className="flex items-center justify-between mb-6">
                     <div>
-                         <h1 className="text-3xl font-bold">Social Media Connections</h1>
-                         <p className="text-gray-600 dark:text-gray-400 mt-2">
-                             Connect your social media accounts to start posting and tracking engagement
-                         </p>
-                     </div>
+                        <h1 className="text-3xl font-bold">Social Media Connections</h1>
+                        <p className="text-gray-600 dark:text-gray-400 mt-2">
+                            Connect your social media accounts to start posting and tracking engagement
+                        </p>
+                    </div>
                 </div>
 
                 {/* Success Message */}
@@ -251,55 +237,55 @@ export default function ConnectionsPage() {
                     <div className="mb-8">
                         <h2 className="text-xl font-semibold mb-4">Connected Accounts</h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {connections.map((conn) => (
-                                    <div key={conn.id} className="p-6 border border-gray-200 dark:border-gray-800 rounded-lg hover:border-gray-400 dark:hover:border-gray-600 transition-colors">
-                                        <div className="pb-3">
-                                            <div className="flex items-start justify-between">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center text-2xl">
-                                                        {getPlatformIcon(conn.platform)}
-                                                    </div>
-                                                    <div>
-                                                        <h3 className="text-lg font-semibold capitalize">{conn.platform}</h3>
-                                                        <p className="text-sm text-gray-600 dark:text-gray-400">@{conn.username}</p>
-                                                    </div>
+                            {connections.map((conn) => (
+                                <div key={conn.id} className="p-6 border border-gray-200 dark:border-gray-800 rounded-lg hover:border-gray-400 dark:hover:border-gray-600 transition-colors">
+                                    <div className="pb-3">
+                                        <div className="flex items-start justify-between">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center text-2xl">
+                                                    {getPlatformIcon(conn.platform)}
                                                 </div>
-                                                <Badge variant="default" className="bg-green-600 hover:bg-green-700">
-                                                    <CheckCircle2 className="h-3 w-3 mr-1" />
-                                                    Active
-                                                </Badge>
+                                                <div>
+                                                    <h3 className="text-lg font-semibold capitalize">{conn.platform}</h3>
+                                                    <p className="text-sm text-gray-600 dark:text-gray-400">@{conn.username}</p>
+                                                </div>
                                             </div>
-                                        </div>
-                                        <div className="pt-0 space-y-3">
-                                            <div className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
-                                                <p>Connected: {new Date(conn.connectedAt).toLocaleDateString()}</p>
-                                                {conn.verified && <p className="text-blue-600">✓ Verified account</p>}
-                                                {conn.isExpired && (
-                                                    <p className="text-yellow-600">⚠️ Connection expiring soon</p>
-                                                )}
-                                            </div>
-                                            <Button
-                                                onClick={() => disconnectPlatform(conn.platform)}
-                                                disabled={disconnecting === conn.platform}
-                                                variant="destructive"
-                                                size="sm"
-                                                className="w-full"
-                                            >
-                                                {disconnecting === conn.platform ? (
-                                                    <>
-                                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                                        Disconnecting...
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <Trash2 className="h-4 w-4 mr-2" />
-                                                        Disconnect
-                                                    </>
-                                                )}
-                                            </Button>
+                                            <Badge variant="default" className="bg-green-600 hover:bg-green-700">
+                                                <CheckCircle2 className="h-3 w-3 mr-1" />
+                                                Active
+                                            </Badge>
                                         </div>
                                     </div>
-                                ))}
+                                    <div className="pt-0 space-y-3">
+                                        <div className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
+                                            <p>Connected: {new Date(conn.connectedAt).toLocaleDateString()}</p>
+                                            {conn.verified && <p className="text-blue-600">✓ Verified account</p>}
+                                            {conn.isExpired && (
+                                                <p className="text-yellow-600">⚠️ Connection expiring soon</p>
+                                            )}
+                                        </div>
+                                        <Button
+                                            onClick={() => disconnectPlatform(conn.platform)}
+                                            disabled={disconnecting === conn.platform}
+                                            variant="destructive"
+                                            size="sm"
+                                            className="w-full"
+                                        >
+                                            {disconnecting === conn.platform ? (
+                                                <>
+                                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                                    Disconnecting...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Trash2 className="h-4 w-4 mr-2" />
+                                                    Disconnect
+                                                </>
+                                            )}
+                                        </Button>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     </div>
                 )}

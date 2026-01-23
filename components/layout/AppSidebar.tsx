@@ -23,6 +23,8 @@ import {
   Bell,
   Database,
   History,
+  PenSquare,
+  Bot,
 } from "lucide-react";
 import { supabaseClient } from "@/lib/supabaseClient";
 import {
@@ -35,6 +37,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 const navItems = [
+  { title: "Compose", href: "/dashboard/compose", icon: PenSquare },
+  { title: "Reply Agent", href: "/dashboard/reply-agent", icon: Bot },
   { title: "Chat", href: "/chat", icon: MessageSquare },
   { title: "History", href: "/chat/history", icon: History },
   { title: "Campaigns", href: "/dashboard/campaigns", icon: MessageSquare },
