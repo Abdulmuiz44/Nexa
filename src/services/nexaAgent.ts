@@ -1,5 +1,5 @@
 import { contentGenerator, ContentRequest, GeneratedContent } from './contentGenerator';
-import { composio } from '@/lib/composio';
+import { SocialMediaService } from './socialMediaService';
 import { supabaseServer } from '@/src/lib/supabaseServer';
 import { Queue } from 'bullmq';
 
@@ -34,9 +34,16 @@ export class NexaAgent {
 
     this.postQueue = new Queue('postScheduler', {
       connection: {
-        host: process.env.REDIS_URL || 'localhost',
+        host: process.env.REDIS_URL || '127.0.0.1',
         port: 6379,
+        maxRetriesPerRequest: null,
+        enableReadyCheck: false,
+        retryStrategy: (times: number) => 60000, // Retry every 60s
       },
+    });
+
+    this.postQueue.on('error', (err) => {
+      // Completely silent on connection issues in the agent
     });
   }
 
@@ -134,7 +141,7 @@ export class NexaAgent {
 
   private async getActiveConnections() {
     const { data } = await supabaseServer
-      .from('composio_connections')
+      .from('connected_accounts')
       .select('*')
       .eq('user_id', this.userId);
 
@@ -143,7 +150,7 @@ export class NexaAgent {
 
   private async getConnectionForPlatform(platform: string) {
     const connections = await this.getActiveConnections();
-    return connections.find(conn => conn.toolkit_slug.includes(platform));
+    return connections.find(conn => conn.platform === platform);
   }
 
   private async schedulePost(content: GeneratedContent, connectionId: string, scheduledTime: Date, campaignId?: string) {
@@ -152,7 +159,6 @@ export class NexaAgent {
       .insert({
         user_id: this.userId,
         campaign_id: campaignId,
-        composio_connection_id: connectionId,
         platform: content.platform as any,
         content: content.content,
         status: 'scheduled',
@@ -171,7 +177,7 @@ export class NexaAgent {
 
     // Add to queue
     await this.postQueue.add(
-      'schedulePost',
+      'post_to_social_media',
       { postId: post.id },
       {
         delay: scheduledTime.getTime() - Date.now(),
@@ -185,30 +191,13 @@ export class NexaAgent {
   }
 
   private async postImmediately(content: GeneratedContent, connectionId: string, campaignId?: string) {
-    const connection = await supabaseServer
-      .from('composio_connections')
-      .select('*')
-      .eq('id', connectionId)
-      .single();
-
-    if (!connection.data) throw new Error('Connection not found');
-
     try {
-      // Post via Composio
-      const composioClient = composio as any;
-      if (!composioClient) {
-        throw new Error('Composio is not configured');
-      }
+      const socialMediaService = new SocialMediaService(this.userId);
+      const result = await socialMediaService.post(content.platform as any, content.content);
 
-      const result = await composioClient.tools.execute({
-        connectionId: connection.data.composio_connection_id,
-        appName: connection.data.toolkit_slug,
-        actionName: content.platform === 'twitter' ? 'create_tweet' : 'submit_post',
-        input: {
-          content: content.content,
-          // Add platform-specific params
-        },
-      });
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to post content');
+      }
 
       // Save to database
       const { data: post, error } = await supabaseServer
@@ -216,12 +205,12 @@ export class NexaAgent {
         .insert({
           user_id: this.userId,
           campaign_id: campaignId,
-          composio_connection_id: connectionId,
           platform: content.platform as any,
           content: content.content,
           status: 'published',
           published_at: new Date(),
-          platform_post_id: (result as any).executionId,
+          platform_post_id: result.platformPostId,
+          platform_post_url: result.platformPostUrl,
           metadata: {
             generatedBy: 'nexa_agent',
             confidence: content.confidence,
@@ -243,7 +232,6 @@ export class NexaAgent {
         .insert({
           user_id: this.userId,
           campaign_id: campaignId,
-          composio_connection_id: connectionId,
           platform: content.platform as any,
           content: content.content,
           status: 'failed',

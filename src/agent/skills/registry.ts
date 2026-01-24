@@ -1,4 +1,7 @@
-import type { SkillResult, TaskType } from "../../types/agent"
+import { TaskType, type SkillResult } from "../../types/agent"
+
+export { TaskType }
+export type { SkillResult }
 
 export interface Skill {
   name: string

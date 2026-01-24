@@ -1,8 +1,14 @@
 import { SocialMediaService, Platform } from './socialMediaService';
-import { EngagementSuiteService } from '@/src/lib/services/engagementSuiteService';
 import { supabaseServer } from '@/src/lib/supabaseServer';
 import { callUserLLM } from '@/src/lib/ai/user-provider';
 import { recordAIUsage } from '@/lib/utils/credits';
+import { executeMCPTool } from '@/lib/mcpClient';
+
+// Stub for removed EngagementSuiteService - engagement features disabled
+const EngagementSuiteService = {
+  discoverEngagementOpportunities: async (userId: string, minScore: number, limit: number): Promise<any[]> => [],
+  engageWithOpportunity: async (oppId: string, userId: string, action: string) => ({ success: false }),
+};
 
 interface AutonomousAgentConfig {
   userId: string;
@@ -103,18 +109,48 @@ export class AutonomousAgent {
 
   private async generateAndPost(): Promise<void> {
     const platform = this.config.platforms[Math.floor(Math.random() * this.config.platforms.length)];
-    if (platform === 'twitter') await this.generateAndPostTweet();
-    else if (platform === 'reddit') await this.generateAndPostReddit();
+    const topic = this.config.contentTopics[Math.floor(Math.random() * this.config.contentTopics.length)];
+
+    // Step 1: Perform research using MCP if enabled
+    const searchContext = await this.researchTopic(topic);
+
+    // Step 2: Generate and post
+    if (platform === 'twitter') await this.generateAndPostTweet(topic, searchContext);
+    else if (platform === 'reddit') await this.generateAndPostReddit(topic, searchContext);
   }
 
-  private async generateAndPostTweet(): Promise<void> {
-    const topic = this.config.contentTopics[Math.floor(Math.random() * this.config.contentTopics.length)];
-    const prompt = `Generate a tweet about "${topic}" for ${this.config.targetAudience}. Max 280 chars.`;
+  private async researchTopic(topic: string): Promise<string> {
+    try {
+      await this.logActivity('mcp_research_started', `Researching topic: ${topic}`);
+
+      // Call Brave Search MCP tool
+      const searchResult = await executeMCPTool('SEARCH', 'brave_web_search', {
+        query: `${topic} latest trends 2026`
+      });
+
+      // Extract snippets for context
+      const snippets = (searchResult as any).map((r: any) => r.snippet).join('\n\n');
+
+      await this.logActivity('mcp_research_completed', `Found ${searchResult.length} search results for ${topic}`);
+      return snippets;
+    } catch (error) {
+      console.error('MCP Research failed:', error);
+      return '';
+    }
+  }
+
+  private async generateAndPostTweet(topic: string, context?: string): Promise<void> {
+    const prompt = `
+Context from Web Search:
+${context || 'No additional context available.'}
+
+Generate a tweet about "${topic}" for ${this.config.targetAudience} based on the context above. 
+Ensure it's timely and engaging. Max 280 chars.`;
 
     const response = await this.callAutonomousLLM([
-      { role: 'system', content: 'You are a social media expert. Generate engaging tweets.' },
+      { role: 'system', content: 'You are a social media expert. Generate engaging tweets based on research context.' },
       { role: 'user', content: prompt }
-    ], { temperature: 0.8, max_tokens: 100 }, 'auto_tweet');
+    ], { temperature: 0.8, max_tokens: 150 }, 'auto_tweet');
 
     const tweetContent = response.message || '';
     const result = await this.socialMediaService.post('twitter', tweetContent);
@@ -125,14 +161,18 @@ export class AutonomousAgent {
     }
   }
 
-  private async generateAndPostReddit(): Promise<void> {
-    const topic = this.config.contentTopics[Math.floor(Math.random() * this.config.contentTopics.length)];
-    const prompt = `Generate a Reddit post JSON for "${topic}". Format: {"title":"...", "content":"...", "subreddit":"..."}`;
+  private async generateAndPostReddit(topic: string, context?: string): Promise<void> {
+    const prompt = `
+Context from Web Search:
+${context || 'No additional context available.'}
+
+Generate a Reddit post JSON for "${topic}" based on the context above. 
+Format: {"title":"...", "content":"...", "subreddit":"..."}`;
 
     const response = await this.callAutonomousLLM([
-      { role: 'system', content: 'You create Reddit posts. Return valid JSON only.' },
+      { role: 'system', content: 'You create Reddit posts based on market research. Return valid JSON only.' },
       { role: 'user', content: prompt }
-    ], { temperature: 0.7, max_tokens: 400 }, 'auto_reddit');
+    ], { temperature: 0.7, max_tokens: 600 }, 'auto_reddit');
 
     try {
       const data = JSON.parse(response.message || '{}');
@@ -157,12 +197,12 @@ export class AutonomousAgent {
       );
 
       for (const opp of opportunities) {
-        if (opp.relevance_score < this.config.engagementRules.minEngagementScore) continue;
+        if ((opp as any).relevance_score < this.config.engagementRules.minEngagementScore) continue;
 
         await EngagementSuiteService.engageWithOpportunity(
-          opp.id,
+          (opp as any).id,
           this.config.userId,
-          opp.suggested_action
+          (opp as any).suggested_action
         );
         await this.sleep(5000);
       }

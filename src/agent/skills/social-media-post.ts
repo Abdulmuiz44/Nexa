@@ -1,14 +1,13 @@
 import type { Skill, SkillResult } from "./registry"
 import { TaskType } from "../../types/agent"
 import type { LLMWrapper } from "../llm/wrapper"
-import { composio } from "@/lib/composio"
 
 export class SocialMediaPostSkill implements Skill {
   name = "Social Media Post"
   description = "Create and schedule social media posts"
   type = TaskType.SOCIAL_MEDIA_POST
 
-  constructor(private llm: LLMWrapper) {}
+  constructor(private llm: LLMWrapper) { }
 
   async execute(payload: Record<string, any>): Promise<SkillResult> {
     try {
@@ -77,7 +76,7 @@ export class SocialMediaPostSkill implements Skill {
       instagram: 2200,
     }
 
-    const limit = platformLimits[platform.toLowerCase()] || 280
+    const limit = platformLimits[platform.toLowerCase() as keyof typeof platformLimits] || 280
 
     if (content.length <= limit) {
       return content

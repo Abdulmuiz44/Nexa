@@ -2,8 +2,24 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { supabaseServer } from '@/src/lib/supabaseServer';
-import { composioHelpers } from '@/lib/composioClient';
 import { callUserLLM } from '@/src/lib/ai/user-provider';
+
+// Stub for removed Composio integration - social media actions now use direct API
+const composioHelpers = {
+  postToTwitter: async (content: string, userId: string) => ({ success: false, error: 'Twitter posting requires direct connection. Please use the Connections page.' }),
+  postToReddit: async (subreddit: string, title: string, content: string, userId: string) => ({ success: false, error: 'Reddit posting requires direct connection. Please use the Connections page.' }),
+  getTwitterTimeline: async (userId: string, maxResults: number) => [],
+  searchUserTweets: async (userId: string, query: string, maxResults: number) => [],
+  engageWithTweet: async (userId: string, tweetId: string, type: string, replyContent?: string) => ({ success: false, error: 'Engagement requires direct Twitter connection.' }),
+  analyzeTweet: async (userId: string, content: string) => ({ sentiment: 'neutral', topics: [], engagement_potential: 50 }),
+  generateTweet: async (userId: string, topic: string, context?: string) => 'Generated tweet placeholder',
+  analyzeTweetPatterns: async (userId: string) => ({ patterns: [], insights: [] }),
+  getTwitterAnalytics: async (tweetId: string, userId: string) => ({ impressions: 0, engagements: 0, likes: 0, retweets: 0 }),
+  hasActiveConnection: async (platform: string, userId: string) => {
+    const { data } = await supabaseServer.from('connected_accounts').select('id').eq('user_id', userId).eq('platform', platform).single();
+    return !!data;
+  },
+};
 
 export async function POST(req: Request) {
   try {

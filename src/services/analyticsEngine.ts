@@ -1,4 +1,4 @@
-import { composio } from '@/lib/composio';
+import { SocialMediaService } from './socialMediaService';
 import { supabaseServer } from '@/src/lib/supabaseServer';
 
 
@@ -9,19 +9,16 @@ export class AnalyticsEngine {
       // Get post details
       const { data: post } = await supabaseServer
         .from('posts')
-        .select(`
-          *,
-          composio_connections(*)
-        `)
+        .select('*')
         .eq('id', postId)
         .single();
 
-      if (!post || !post.composio_connections) {
-        console.error('Post or connection not found for analytics');
+      if (!post) {
+        console.error('Post not found for analytics');
         return;
       }
 
-      const connection = post.composio_connections;
+      const socialMediaService = new SocialMediaService(post.user_id);
       const platform = post.platform;
       const platformPostId = post.platform_post_id;
 
@@ -30,14 +27,13 @@ export class AnalyticsEngine {
         return;
       }
 
-      // Fetch analytics from platform via Composio
-      const analytics = await this.fetchPlatformAnalytics(
-        platform,
-        platformPostId,
-        connection.composio_connection_id,
-        connection.toolkit_slug,
-        post.user_id
+      // Fetch analytics from platform via direct API
+      const analyticsInfo = await socialMediaService.getPostAnalytics(
+        platform as any,
+        platformPostId
       );
+
+      const analytics = this.normalizeAnalyticsResponse(platform, analyticsInfo);
 
       if (analytics) {
         // Store in database
@@ -72,10 +68,7 @@ export class AnalyticsEngine {
 
       const { data: posts } = await supabaseServer
         .from('posts')
-        .select(`
-          *,
-          composio_connections(*)
-        `)
+        .select('*')
         .eq('user_id', userId)
         .eq('status', 'published')
         .gte('published_at', thirtyDaysAgo.toISOString());
@@ -98,35 +91,11 @@ export class AnalyticsEngine {
   private async fetchPlatformAnalytics(
     platform: string,
     postId: string,
-    connectionId: string,
-    toolkitSlug: string,
     userId: string
   ): Promise<any> {
     try {
-      if (!composio) {
-        // Composio not configured, skip external analytics fetch
-        return null;
-      }
-
-      let toolName: string;
-      let arguments_: any = {};
-
-      if (platform === 'twitter') {
-        toolName = 'TWITTER_GET_TWEET';
-        arguments_ = { tweet_id: postId };
-      } else if (platform === 'reddit') {
-        toolName = 'REDDIT_GET_POST_INFO'; // Assuming this is the correct tool name
-        arguments_ = { post_id: postId };
-      } else {
-        return null;
-      }
-
-      const result = await composio.tools.execute(toolName, {
-        userId,
-        arguments: arguments_,
-      });
-
-      // Normalize the response
+      const socialMediaService = new SocialMediaService(userId);
+      const result = await socialMediaService.getPostAnalytics(platform as any, postId);
       return this.normalizeAnalyticsResponse(platform, result);
     } catch (error) {
       console.error(`Error fetching ${platform} analytics:`, error);
@@ -135,27 +104,27 @@ export class AnalyticsEngine {
   }
 
   private normalizeAnalyticsResponse(platform: string, response: any): any {
-    const data = response.data as any;
+    if (!response) return null;
 
     if (platform === 'twitter') {
       return {
-        impressions: data?.public_metrics?.impressions || 0,
-        engagements: data?.public_metrics?.engagements || 0,
-        likes: data?.public_metrics?.like_count || 0,
-        comments: data?.public_metrics?.reply_count || 0,
-        shares: data?.public_metrics?.retweet_count || 0,
-        clicks: data?.public_metrics?.url_clicks || 0,
-        engagementRate: this.calculateEngagementRate(data?.public_metrics),
+        impressions: response.impression_count || 0,
+        engagements: (response.retweet_count || 0) + (response.reply_count || 0) + (response.like_count || 0),
+        likes: response.like_count || 0,
+        comments: response.reply_count || 0,
+        shares: response.retweet_count || 0,
+        clicks: response.url_link_clicks || 0,
+        engagementRate: this.calculateEngagementRate(response),
       };
     } else if (platform === 'reddit') {
       return {
-        impressions: data?.view_count || 0,
-        engagements: (data?.ups || 0) + (data?.num_comments || 0),
-        likes: data?.ups || 0,
-        comments: data?.num_comments || 0,
-        shares: 0, // Reddit doesn't have direct shares
+        impressions: response.score || 0, // Score as proxy if impressions unavailable
+        engagements: (response.score || 0) + (response.comments || 0),
+        likes: response.score || 0,
+        comments: response.comments || 0,
+        shares: 0,
         clicks: 0,
-        engagementRate: 0, // Would need more complex calculation
+        engagementRate: 0,
       };
     }
 

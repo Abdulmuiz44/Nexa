@@ -31,14 +31,15 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ error: 'Invalid or expired state' }, { status: 400 });
     }
 
+    // 2. Exchange Code for Tokens
+    const redirectUri = dbState.redirect_uri || REDIRECT_URI;
     try {
-        // 2. Exchange Code for Tokens
         const r = await Snoowrap.fromAuthCode({
             code,
             userAgent: process.env.REDDIT_USER_AGENT || 'nexa-app/1.0',
             clientId: CLIENT_ID,
             clientSecret: CLIENT_SECRET,
-            redirectUri: REDIRECT_URI
+            redirectUri: redirectUri
         }) as any;
 
         const user = await r.getMe() as any;

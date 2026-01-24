@@ -4,7 +4,18 @@ import { supabaseServer } from '@/src/lib/supabaseServer';
 
 const CLIENT_ID = process.env.TWITTER_CLIENT_ID!;
 const CLIENT_SECRET = process.env.TWITTER_CLIENT_SECRET!;
-const REDIRECT_URI = `${process.env.NEXTAUTH_URL}/api/auth/twitter/callback`;
+
+const getFallbackRedirectUri = (req: NextRequest) => {
+    const url = new URL(req.url);
+    let host = process.env.NEXTAUTH_URL;
+    if (!host) {
+        const protocol = url.host.includes('localhost') || url.host.includes('127.0.0.1') ? 'http:' : url.protocol;
+        host = `${protocol}//${url.host}`;
+    }
+    return `${host.replace(/\/$/, '')}/api/auth/twitter/callback`;
+};
+
+const REDIRECT_URI_DEFAULT = process.env.NEXTAUTH_URL ? `${process.env.NEXTAUTH_URL}/api/auth/twitter/callback` : '';
 
 interface OAuthMetadata {
     codeVerifier?: string;
@@ -35,19 +46,24 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ error: 'Invalid or expired state' }, { status: 400 });
     }
 
-    // Try to get codeVerifier from metadata first, then from redirect_uri JSON fallback
+    // Try to get codeVerifier and redirectUri from metadata first, then from redirect_uri JSON fallback
     let codeVerifier: string | undefined;
+    let redirectUri = getFallbackRedirectUri(req);
 
     const metadata = dbState.metadata as OAuthMetadata | null;
     if (metadata?.codeVerifier) {
         codeVerifier = metadata.codeVerifier;
-    } else if (dbState.redirect_uri) {
+    }
+
+    if (dbState.redirect_uri) {
         // Try to parse redirect_uri as JSON (fallback storage)
         try {
             const redirectData = JSON.parse(dbState.redirect_uri) as RedirectData;
-            codeVerifier = redirectData.codeVerifier;
+            if (redirectData.codeVerifier) codeVerifier = redirectData.codeVerifier;
+            if (redirectData.uri) redirectUri = redirectData.uri;
         } catch (e) {
             // Not JSON, likely just a plain URI
+            redirectUri = dbState.redirect_uri;
         }
     }
 
@@ -62,7 +78,7 @@ export async function GET(req: NextRequest) {
         const { client: loggedClient, accessToken, refreshToken, expiresIn } = await client.loginWithOAuth2({
             code,
             codeVerifier,
-            redirectUri: REDIRECT_URI,
+            redirectUri,
         });
 
         const { data: user } = await loggedClient.v2.me();

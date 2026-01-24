@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { supabaseServer } from '@/src/lib/supabaseServer'
+import { isRedisAvailable } from '@/lib/utils/redis-check'
 
 export async function POST(req: Request) {
   try {
@@ -40,12 +41,16 @@ export async function POST(req: Request) {
     }
 
     // Enqueue job (lazy import so dev without Redis doesn't crash)
-    try {
-      const { scheduledPostsQueue } = await import('@/src/queue/scheduledPosts')
-      const delay = Math.max(0, when.getTime() - Date.now())
-      await scheduledPostsQueue.add('executeScheduledPost', { scheduledPostId: data.id }, { delay, jobId: data.id })
-    } catch (e) {
-      console.warn('Queue unavailable, skipping enqueue', e)
+    if (await isRedisAvailable()) {
+      try {
+        const { scheduledPostsQueue } = await import('@/src/queue/scheduledPosts')
+        const delay = Math.max(0, when.getTime() - Date.now())
+        await scheduledPostsQueue.add('executeScheduledPost', { scheduledPostId: data.id }, { delay, jobId: data.id })
+      } catch (e) {
+        console.warn('Queue unavailable, skipping enqueue', e)
+      }
+    } else {
+      // Redis unavailable - skipping background queue (silent)
     }
 
     return NextResponse.json({ success: true, scheduled_post: data })

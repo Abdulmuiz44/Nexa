@@ -4,7 +4,16 @@ import { post_to_platform } from '@/src/services/postToPlatform'
 
 const connection = process.env.REDIS_URL
   ? { url: process.env.REDIS_URL }
-  : { host: '127.0.0.1', port: 6379 }
+  : {
+    host: '127.0.0.1',
+    port: 6379,
+    maxRetriesPerRequest: null,
+    enableReadyCheck: false,
+    retryStrategy: (times: number) => {
+      // Only try every 60 seconds if it keeps failing to keep logs clean
+      return 60000;
+    }
+  }
 
 interface JobData { scheduledPostId: string }
 
@@ -34,7 +43,7 @@ export const scheduledPostsWorker = new Worker(
       const delay = new Date(post.scheduled_at).getTime() - Date.now()
       const anyJob = job as any
       await anyJob.update({ scheduledPostId })
-      await anyJob.retry().catch(() => {})
+      await anyJob.retry().catch(() => { })
 
       return { rescheduled: true, delay }
     }
@@ -78,3 +87,11 @@ export const scheduledPostsWorker = new Worker(
   },
   { connection, removeOnComplete: { age: 3600, count: 100 }, removeOnFail: { age: 3600, count: 100 } }
 )
+
+scheduledPostsWorker.on('error', (error) => {
+  if (error.message.includes('ECONNREFUSED')) {
+    // Suppress spamming Redis connection refused errors in console
+    return;
+  }
+  console.error('Worker error:', error);
+})

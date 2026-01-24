@@ -1,13 +1,14 @@
 import type { Skill, SkillResult } from "./registry"
 import { TaskType } from "../../types/agent"
 import type { LLMWrapper } from "../llm/wrapper"
+import { executeMCPTool } from "@/lib/mcpClient"
 
 export class MarketResearchSkill implements Skill {
   name = "Market Research"
   description = "Conduct market research and competitive analysis"
   type = TaskType.MARKET_RESEARCH
 
-  constructor(private llm: LLMWrapper) {}
+  constructor(private llm: LLMWrapper) { }
 
   async execute(payload: Record<string, any>): Promise<SkillResult> {
     try {
@@ -46,27 +47,42 @@ export class MarketResearchSkill implements Skill {
     targetAudience: string,
     competitors: string[],
   ): Promise<any> {
+    // Live research via MCP
+    let liveData = ""
+    try {
+      const searchResult = await executeMCPTool("SEARCH", "brave_web_search", {
+        query: `${topic} ${industry} market trends 2026 competitors`,
+      })
+      liveData = (searchResult as any).map((r: any) => r.snippet).join("\n\n")
+    } catch (e) {
+      console.warn("MCP Search failed for MarketResearchSkill, falling back to LLM knowledge.", e)
+    }
+
     // Market size and trends analysis
     const marketAnalysis = await this.llm.generateText({
       model: process.env.MISTRAL_MODEL || "mistral-large-latest",
       messages: [
         {
           role: "system",
-          content: "You are a market research analyst. Provide detailed, data-driven insights.",
+          content: "You are a market research analyst. Use the provided real-time data to provide detailed insights.",
         },
         {
           role: "user",
-          content: `Analyze the market for ${topic} in the ${industry} industry. 
-          Target audience: ${targetAudience}
-          
-          Provide insights on:
-          1. Market size and growth trends
-          2. Key market drivers
-          3. Challenges and opportunities
-          4. Target audience behavior and preferences
-          5. Pricing strategies
-          
-          Format as structured analysis with clear sections.`,
+          content: `
+Real-time Context:
+${liveData || "No live data available."}
+
+Analyze the market for ${topic} in the ${industry} industry. 
+Target audience: ${targetAudience}
+
+Provide insights on:
+1. Market size and growth trends
+2. Key market drivers
+3. Challenges and opportunities
+4. Target audience behavior and preferences
+5. Pricing strategies
+
+Format as structured analysis with clear sections.`,
         },
       ],
       maxTokens: 800,

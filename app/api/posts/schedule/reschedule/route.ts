@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { supabaseServer } from '@/src/lib/supabaseServer'
+import { isRedisAvailable } from '@/lib/utils/redis-check'
 
 export async function POST(req: Request) {
   try {
@@ -26,11 +27,15 @@ export async function POST(req: Request) {
     if (post.status !== 'pending') return NextResponse.json({ error: 'Only pending posts can be rescheduled' }, { status: 409 })
 
     // Remove existing job (lazy)
-    try {
-      const { scheduledPostsQueue } = await import('@/src/queue/scheduledPosts')
-      const job = await scheduledPostsQueue.getJob(id)
-      if (job) await job.remove()
-    } catch {}
+    if (await isRedisAvailable()) {
+      try {
+        const { scheduledPostsQueue } = await import('@/src/queue/scheduledPosts')
+        const job = await scheduledPostsQueue.getJob(id)
+        if (job) await job.remove()
+      } catch (err) {
+        console.warn('Queue cleanup (reschedule) failed:', err)
+      }
+    }
 
     // Update DB time
     const { error: upErr } = await supabaseServer
@@ -41,11 +46,15 @@ export async function POST(req: Request) {
     if (upErr) return NextResponse.json({ error: 'Failed to update schedule' }, { status: 500 })
 
     // Enqueue again with same jobId (lazy)
-    try {
-      const { scheduledPostsQueue } = await import('@/src/queue/scheduledPosts')
-      const delay = Math.max(0, newTime.getTime() - Date.now())
-      await scheduledPostsQueue.add('executeScheduledPost', { scheduledPostId: id }, { delay, jobId: id })
-    } catch {}
+    if (await isRedisAvailable()) {
+      try {
+        const { scheduledPostsQueue } = await import('@/src/queue/scheduledPosts')
+        const delay = Math.max(0, newTime.getTime() - Date.now())
+        await scheduledPostsQueue.add('executeScheduledPost', { scheduledPostId: id }, { delay, jobId: id })
+      } catch (err) {
+        console.warn('Queue re-enqueue failed:', err)
+      }
+    }
 
     return NextResponse.json({ success: true })
   } catch (err: any) {

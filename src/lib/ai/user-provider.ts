@@ -12,18 +12,33 @@ interface ProviderRow {
 }
 
 export async function getUserProvider(userId: string): Promise<ProviderRow | null> {
-  const { data, error } = await supabaseServer
-    .from('users')
-    .select('id, ai_provider, ai_model, ai_provider_api_key')
-    .eq('id', userId)
-    .single();
+  try {
+    const { data, error } = await supabaseServer
+      .from('users')
+      .select('id')
+      .eq('id', userId)
+      .single();
 
-  if (error) {
-    console.error('Error fetching AI provider config for user', { userId, error });
-    return null;
+    if (error) {
+      console.error('Error fetching user for AI provider config', { userId, error });
+      return null;
+    }
+
+    // Try to get AI columns separately to avoid crashing if they don't exist
+    const { data: aiData } = await supabaseServer
+      .from('users')
+      .select('ai_provider, ai_model, ai_provider_api_key')
+      .eq('id', userId)
+      .single();
+
+    return {
+      ...data,
+      ...(aiData || {})
+    } as ProviderRow;
+  } catch (err) {
+    console.warn('AI provider columns might be missing in users table, falling back to system defaults.');
+    return { id: userId };
   }
-
-  return data as ProviderRow;
 }
 
 interface CallLLMArgs {

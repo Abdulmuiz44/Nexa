@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { supabaseServer } from '@/src/lib/supabaseServer'
+import { isRedisAvailable } from '@/lib/utils/redis-check'
 
 export async function POST(req: Request) {
   try {
@@ -23,11 +24,15 @@ export async function POST(req: Request) {
     if (post.status !== 'pending') return NextResponse.json({ error: 'Only pending posts can be cancelled' }, { status: 409 })
 
     // Remove queued job if exists (lazy)
-    try {
-      const { scheduledPostsQueue } = await import('@/src/queue/scheduledPosts')
-      const job = await scheduledPostsQueue.getJob(id)
-      if (job) await job.remove()
-    } catch {}
+    if (await isRedisAvailable()) {
+      try {
+        const { scheduledPostsQueue } = await import('@/src/queue/scheduledPosts')
+        const job = await scheduledPostsQueue.getJob(id)
+        if (job) await job.remove()
+      } catch (err) {
+        console.warn('Queue cleanup failed:', err)
+      }
+    }
 
     // Mark as cancelled
     await supabaseServer

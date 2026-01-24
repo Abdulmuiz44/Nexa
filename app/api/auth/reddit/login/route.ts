@@ -7,7 +7,13 @@ import crypto from 'crypto';
 
 const CLIENT_ID = process.env.REDDIT_CLIENT_ID!;
 const CLIENT_SECRET = process.env.REDDIT_CLIENT_SECRET!;
-const REDIRECT_URI = `${process.env.NEXTAUTH_URL}/api/auth/reddit/callback`;
+
+// Ensure REDIRECT_URI is consistent and uses the current host if NEXTAUTH_URL is confusing
+const getRedirectUri = (req: NextRequest) => {
+    const url = new URL(req.url);
+    const host = process.env.NEXTAUTH_URL || `${url.protocol}//${url.host}`;
+    return `${host}/api/auth/reddit/callback`;
+};
 
 export async function GET(req: NextRequest) {
     const session = await getServerSession(authOptions);
@@ -17,11 +23,12 @@ export async function GET(req: NextRequest) {
     }
 
     const state = crypto.randomBytes(16).toString('hex');
+    const redirectUri = getRedirectUri(req);
 
     // Save state to DB for validation
     const { error } = await supabaseServer.from('oauth_states').insert({
         state,
-        redirect_uri: REDIRECT_URI,
+        redirect_uri: redirectUri,
         platform: 'reddit',
         user_id: session.user.id
     });
@@ -34,7 +41,7 @@ export async function GET(req: NextRequest) {
     const url = Snoowrap.getAuthUrl({
         clientId: CLIENT_ID,
         scope: ['identity', 'submit', 'read', 'mysubreddits'],
-        redirectUri: REDIRECT_URI,
+        redirectUri: redirectUri,
         permanent: true,
         state
     });

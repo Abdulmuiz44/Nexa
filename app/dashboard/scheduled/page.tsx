@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Calendar } from '@/components/ui/calendar'
 import { useToast } from '@/components/ui/use-toast'
+import { Sparkles, Loader2 } from 'lucide-react'
 
 const fetcher = (url: string) => fetch(url).then(r => r.json())
 
@@ -18,7 +19,7 @@ type ScheduledPost = {
   platform: 'twitter' | 'reddit'
   content: string
   media_url?: string | null
-  status: 'pending' | 'posted' | 'failed' | 'cancelled'
+  status: 'pending' | 'posted' | 'failed' | 'cancelled' | 'scheduled'
   scheduled_at: string
   posted_at?: string | null
   error_message?: string | null
@@ -33,6 +34,7 @@ export default function ScheduledPostsPage() {
   const [reschedId, setReschedId] = useState<string | null>(null)
   const [newWhen, setNewWhen] = useState('')
   const [busy, setBusy] = useState(false)
+  const [generating, setGenerating] = useState(false)
   const { toast } = useToast()
 
   const filtered = useMemo(() => {
@@ -77,17 +79,63 @@ export default function ScheduledPostsPage() {
     }
   }
 
+  const onGenerateCalendar = async () => {
+    setGenerating(true)
+    try {
+      const res = await fetch('/api/calendar/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ platforms: ['twitter', 'reddit'] })
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Generation failed')
+
+      toast({
+        title: 'Calendar Generated',
+        description: data.message || 'Your 30-day content plan is ready!',
+      })
+      mutate()
+    } catch (e: any) {
+      toast({
+        title: 'Generation Failed',
+        description: e.message,
+        variant: 'destructive'
+      })
+    } finally {
+      setGenerating(false)
+    }
+  }
+
   const dateHasPosts = (date: Date) => posts.some(p => {
     const dt = new Date(p.scheduled_at)
-    return dt.toDateString() === date.toDateString() && p.status === 'pending'
+    return dt.toDateString() === date.toDateString() && (p.status === 'pending' || p.status === 'scheduled')
   })
 
   return (
     <div className="flex-1 p-6 min-h-screen bg-white dark:bg-black text-black dark:text-white transition-colors duration-300">
       <div className="max-w-6xl mx-auto">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold">Scheduled Posts</h1>
-          <p className="text-muted-foreground mt-2">View, cancel, and reschedule upcoming posts.</p>
+        <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold">Scheduled Posts</h1>
+            <p className="text-muted-foreground mt-2">View, cancel, and reschedule upcoming posts.</p>
+          </div>
+          <Button
+            onClick={onGenerateCalendar}
+            disabled={generating}
+            className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-lg transition-all duration-300"
+          >
+            {generating ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Generating Plan...
+              </>
+            ) : (
+              <>
+                <Sparkles className="mr-2 h-4 w-4" />
+                Generate 30-Day Plan
+              </>
+            )}
+          </Button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -123,7 +171,7 @@ export default function ScheduledPostsPage() {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <Badge variant="secondary">{p.platform}</Badge>
-                          <Badge className={p.status === 'pending' ? 'bg-yellow-500' : p.status === 'posted' ? 'bg-green-600' : p.status === 'failed' ? 'bg-red-600' : 'bg-gray-500'}>
+                          <Badge className={p.status === 'pending' || p.status === 'scheduled' ? 'bg-yellow-500' : p.status === 'posted' ? 'bg-green-600' : p.status === 'failed' ? 'bg-red-600' : 'bg-gray-500'}>
                             {p.status}
                           </Badge>
                         </div>
@@ -139,7 +187,7 @@ export default function ScheduledPostsPage() {
                         <Button
                           size="sm"
                           variant="outline"
-                          disabled={busy || p.status !== 'pending'}
+                          disabled={busy || (p.status !== 'pending' && p.status !== 'scheduled')}
                           onClick={() => setReschedId(p.id)}
                         >
                           Reschedule
@@ -147,7 +195,7 @@ export default function ScheduledPostsPage() {
                         <Button
                           size="sm"
                           variant="destructive"
-                          disabled={busy || p.status !== 'pending'}
+                          disabled={busy || (p.status !== 'pending' && p.status !== 'scheduled')}
                           onClick={() => onCancel(p.id)}
                         >
                           Cancel
