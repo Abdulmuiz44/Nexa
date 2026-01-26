@@ -28,15 +28,18 @@ export async function GET(req: Request) {
 
     const items = (posts || []).map((p: any) => {
       const a = Array.isArray(p.analytics) ? p.analytics : []
-      const sums = a.reduce((acc: any, row: any) => {
-        acc.impressions += row.impressions || 0
-        acc.engagements += row.engagements || 0
-        acc.likes += row.likes || 0
-        acc.comments += row.comments || 0
-        acc.shares += row.shares || 0
-        acc.clicks += row.clicks || 0
-        return acc
-      }, { impressions: 0, engagements: 0, likes: 0, comments: 0, shares: 0, clicks: 0 })
+      const latest = a.sort((x: any, y: any) =>
+        new Date(y.fetched_at).getTime() - new Date(x.fetched_at).getTime()
+      )[0] || {}
+
+      const metrics = {
+        impressions: latest.impressions || 0,
+        engagements: latest.engagements || 0,
+        likes: latest.likes || 0,
+        comments: latest.comments || 0,
+        shares: latest.shares || 0,
+        clicks: latest.clicks || 0
+      }
 
       return {
         id: p.id,
@@ -44,7 +47,7 @@ export async function GET(req: Request) {
         content: p.content,
         published_at: p.published_at,
         url: p.platform_post_url,
-        metrics: sums,
+        metrics: metrics,
       }
     })
 

@@ -50,6 +50,7 @@ interface CallLLMArgs {
     max_tokens?: number;
     functions?: unknown[];
     tool_choice?: string;
+    response_format?: { type: 'json_object' | 'text' };
   };
 }
 

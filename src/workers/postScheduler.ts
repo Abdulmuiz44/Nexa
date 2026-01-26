@@ -1,6 +1,7 @@
 import { Worker } from 'bullmq';
 import { SocialMediaService } from '@/src/services/socialMediaService';
 import { supabaseServer } from '@/src/lib/supabaseServer';
+import { analyticsEngine } from '@/src/services/analyticsEngine';
 
 const connection = process.env.REDIS_URL
   ? { url: process.env.REDIS_URL }
@@ -90,39 +91,19 @@ export const postSchedulerWorker = new Worker(
 export const analyticsWorker = new Worker(
   'analytics',
   async () => {
-    // Get all connected accounts
-    const { data: accounts } = await supabaseServer
+    // Get all users who have connected accounts
+    const { data: users } = await supabaseServer
       .from('connected_accounts')
-      .select('*');
+      .select('user_id');
 
-    for (const account of accounts || []) {
+    const uniqueUserIds = [...new Set((users || []).map(u => u.user_id))];
+
+    for (const userId of uniqueUserIds) {
       try {
-        const socialMediaService = new SocialMediaService(account.user_id);
-        // Fetch metrics based on toolkit
-        let metrics;
-        if (account.platform === 'twitter') {
-          metrics = await socialMediaService.getPostAnalytics('twitter', ''); // Empty ID for account level if supported
-        } else if (account.platform === 'reddit') {
-          // Add Reddit metrics action
-        }
-
-        if (metrics) {
-          // Store in analytics table
-          await supabaseServer
-            .from('analytics')
-            .insert({
-              post_id: null, // For account-level metrics
-              platform: account.platform as any,
-              impressions: metrics.impression_count || metrics.view_count || 0,
-              engagements: metrics.reply_count || metrics.retweet_count || metrics.like_count || 0,
-              likes: metrics.like_count || 0,
-              comments: metrics.reply_count || 0,
-              shares: metrics.retweet_count || 0,
-              meta: metrics,
-            });
-        }
+        console.log(`Starting bulk analytics collection for user: ${userId}`);
+        await analyticsEngine.collectBulkAnalytics(userId);
       } catch (error: any) {
-        console.error('Analytics fetch error:', error);
+        console.error(`Analytics fetch error for user ${userId}:`, error);
       }
     }
   },

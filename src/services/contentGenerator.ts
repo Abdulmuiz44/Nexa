@@ -238,16 +238,37 @@ Suggest an improved version that would perform better. Focus on:
 
       if (!analytics || analytics.length < 5) return;
 
-      // Analyze patterns
+      // Group analytics into high and low performing
       const highPerforming = analytics.filter(a => a.engagement_rate > 2);
       const lowPerforming = analytics.filter(a => a.engagement_rate < 0.5);
 
-      // Extract successful patterns
-      const successfulElements = this.extractPatterns(highPerforming);
-      const avoidElements = this.extractPatterns(lowPerforming, true);
+      if (highPerforming.length === 0) return;
+
+      const prompt = `Analyze these social media posts for patterns. 
+High Performing:
+${highPerforming.map(a => `- [${a.posts.platform}] "${a.posts.content}" (Engagement: ${a.engagement_rate}%)`).join('\n')}
+
+Low Performing:
+${lowPerforming.map(a => `- [${a.posts.platform}] "${a.posts.content}" (Engagement: ${a.engagement_rate}%)`).join('\n')}
+
+Identify:
+1. "successful_patterns": 3-5 specific traits (tone, topics, structure) common in high-performing posts.
+2. "avoid_patterns": 3-5 traits common in low-performing posts.
+
+Format as JSON object with these two keys as string arrays.`;
+
+      const aiResponse = await callUserLLM({
+        userId,
+        payload: {
+          model: 'mistral-large-latest',
+          messages: [{ role: 'user', content: prompt }],
+          response_format: { type: 'json_object' }
+        }
+      });
+
+      const learning = JSON.parse(aiResponse.message);
 
       // Store learning for future use
-      // First fetch current onboarding data
       const { data: currentUser } = await supabaseServer
         .from('users')
         .select('onboarding_data')
@@ -258,45 +279,20 @@ Suggest an improved version that would perform better. Focus on:
       const newOnboardingData = {
         ...currentOnboardingData,
         ai_learning: {
-          successful_patterns: successfulElements,
-          avoid_patterns: avoidElements,
+          successful_patterns: learning.successful_patterns || [],
+          avoid_patterns: learning.avoid_patterns || [],
           last_updated: new Date().toISOString(),
         }
       };
 
       await supabaseServer
         .from('users')
-        .update({
-          onboarding_data: newOnboardingData
-        })
+        .update({ onboarding_data: newOnboardingData })
         .eq('id', userId);
 
     } catch (error) {
       console.error('Error learning from analytics:', error);
     }
-  }
-
-  private extractPatterns(analytics: any[], avoid = false): string[] {
-    const patterns: string[] = [];
-    const contents = analytics.map(a => a.posts.content);
-
-    // Simple pattern extraction (could be more sophisticated)
-    const commonWords = this.findCommonWords(contents);
-    const avgLength = contents.reduce((sum, c) => sum + c.length, 0) / contents.length;
-
-    if (avoid) {
-      patterns.push(`Avoid ${avgLength < 50 ? 'very short' : avgLength > 200 ? 'very long' : 'medium length'} posts`);
-      if (commonWords.length > 0) {
-        patterns.push(`Avoid overusing words like: ${commonWords.slice(0, 3).join(', ')}`);
-      }
-    } else {
-      patterns.push(`Use ${avgLength < 50 ? 'short' : avgLength > 200 ? 'long' : 'medium length'} posts`);
-      if (commonWords.length > 0) {
-        patterns.push(`Effective words: ${commonWords.slice(0, 3).join(', ')}`);
-      }
-    }
-
-    return patterns;
   }
 
   private findCommonWords(contents: string[]): string[] {
