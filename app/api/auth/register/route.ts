@@ -1,41 +1,78 @@
-import { NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { supabaseServer } from '@/src/lib/supabaseServer';
 import bcrypt from 'bcryptjs';
 import { generateApiKey } from '@/lib/utils';
+import { registerSchema } from '@/lib/schemas/auth';
+import { validateBody, isValidationError } from '@/lib/api/validation';
+import { apiSuccess, apiError, apiConflict, validationError } from '@/lib/api/response';
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+  const requestId = req.headers.get('x-request-id') || undefined;
+
   try {
-    const { name, email, password } = await req.json();
+    // Validate request body
+    const { data: body, error: validationErr } = await validateBody(req, registerSchema, requestId);
 
-    if (!name || !email || !password) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    if (validationErr) {
+      return validationErr;
     }
 
-    const { data: existingUser } = await supabaseServer.from('users').select('id').eq('email', email).single();
+    if (!body) {
+      return apiError('Invalid request body', 400, 'BAD_REQUEST', requestId);
+    }
+
+    // Check if user already exists
+    const { data: existingUser, error: fetchError } = await supabaseServer
+      .from('users')
+      .select('id')
+      .eq('email', body.email)
+      .single();
+
+    if (fetchError && fetchError.code !== 'PGRST116') {
+      console.error('Database error:', fetchError);
+      return apiError('Failed to check user existence', 500, 'DATABASE_ERROR', requestId);
+    }
+
     if (existingUser) {
-      return NextResponse.json({ error: 'User with this email already exists' }, { status: 409 });
+      return apiConflict('User with this email already exists', requestId);
     }
 
-    const password_hash = await bcrypt.hash(password, 10);
+    // Hash password and generate API key
+    const password_hash = await bcrypt.hash(body.password, 10);
     const api_key = generateApiKey();
 
-    const { error: insertError } = await supabaseServer.from('users').insert({
-      name,
-      email,
-      password_hash,
-      api_key,
-      status: 'onboarding',
-    }).select().single();
+    // Create new user
+    const { data: newUser, error: insertError } = await supabaseServer
+      .from('users')
+      .insert({
+        name: body.name,
+        email: body.email,
+        password_hash,
+        api_key,
+        status: 'onboarding',
+      })
+      .select()
+      .single();
 
-    if (insertError) {
+    if (insertError || !newUser) {
       console.error('Error creating user:', insertError);
-      return NextResponse.json({ error: 'Failed to create user' }, { status: 500 });
+      return apiError('Failed to create user', 500, 'USER_CREATION_ERROR', requestId);
     }
 
-    return NextResponse.json({ success: true });
-
+    return apiSuccess(
+      {
+        id: newUser.id,
+        email: newUser.email,
+        name: newUser.name,
+        status: newUser.status,
+      },
+      201,
+      'USER_CREATED',
+      requestId
+    );
   } catch (error: unknown) {
-    console.error('API Error:', error);
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'An unexpected error occurred' }, { status: 500 });
+    console.error('Register API error:', error);
+    const message = error instanceof Error ? error.message : 'An unexpected error occurred';
+    return apiError(message, 500, 'INTERNAL_ERROR', requestId);
   }
 }

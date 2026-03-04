@@ -1,8 +1,10 @@
-import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { NextRequest } from 'next/server';
 import { supabaseServer } from '@/src/lib/supabaseServer';
 import crypto from 'crypto';
+import { createPostSchema } from '@/lib/schemas/posts';
+import { validateBody } from '@/lib/api/validation';
+import { apiSuccess, apiError, apiCreated, apiUnauthorized, apiNotFound, apiConflict } from '@/lib/api/response';
+import { getAuthenticatedUser } from '@/lib/api/auth-middleware';
 
 // TODO: Implement post scheduling queue
 // const postSchedulerQueue = new Queue('postScheduler', {
@@ -12,78 +14,94 @@ import crypto from 'crypto';
 //   },
 // });
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+  const requestId = req.headers.get('x-request-id') || undefined;
+
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // Authenticate user
+    const user = await getAuthenticatedUser();
+    if (!user) {
+      return apiUnauthorized('Authentication required', requestId);
     }
 
-    const { content, platform, connectionId, campaignId, scheduledAt, preview = true } = await req.json();
+    // Validate request body
+    const { data: body, error: validationErr } = await validateBody(req, createPostSchema, requestId);
 
-    if (!content || !platform || !connectionId) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    if (validationErr) {
+      return validationErr;
     }
+
+    if (!body) {
+      return apiError('Invalid request body', 400, 'BAD_REQUEST', requestId);
+    }
+
+    // Extract fields from validated body
+    const { content, platform, campaign_id: campaignId, scheduled_at: scheduledAt } = body;
+    const preview = req.nextUrl.searchParams.get('preview') === 'true';
 
     // Get connection
-    const { data: connection } = await supabaseServer
+    const { data: connection, error: connError } = await supabaseServer
       .from('composio_connections')
       .select('*')
-      .eq('id', connectionId)
-      .eq('user_id', session.user.id)
+      .eq('user_id', user.id)
       .single();
 
-    if (!connection) {
-      return NextResponse.json({ error: 'Connection not found' }, { status: 404 });
+    if (connError || !connection) {
+      return apiNotFound('No platform connection found. Please connect your account first.', requestId);
     }
 
     const idempotencyKey = crypto.randomUUID();
 
     if (preview) {
       // Return preview data
-      return NextResponse.json({
-        preview: true,
-        content,
-        platform,
-        connection: {
-          id: connection.id,
-          toolkit: connection.toolkit_slug,
+      return apiSuccess(
+        {
+          preview: true,
+          content,
+          platform,
+          connection: {
+            id: connection.id,
+            toolkit: connection.toolkit_slug,
+          },
+          idempotencyKey,
         },
-        idempotencyKey,
-      });
+        200,
+        'POST_PREVIEW',
+        requestId
+      );
     }
 
     // Check for idempotency
-    const existingPost = await supabaseServer
+    const { data: existingPost, error: dupError } = await supabaseServer
       .from('posts')
       .select('id')
       .eq('meta->>idempotencyKey', idempotencyKey)
       .single();
 
-    if (existingPost.data) {
-      return NextResponse.json({ error: 'Duplicate request' }, { status: 409 });
+    if (existingPost && !dupError) {
+      return apiConflict('Post already created with this request', requestId);
     }
 
     if (scheduledAt) {
       // Schedule post
       const { data: post, error: postError } = await supabaseServer
-      .from('posts')
-      .insert({
-      user_id: session.user.id,
-      campaign_id: campaignId,
-      platform: platform as 'twitter' | 'reddit',
-      content,
-      composio_connection_id: connection.id,
-      status: 'scheduled',
-      scheduled_at: new Date(scheduledAt),
-      meta: { idempotencyKey },
-      })
+        .from('posts')
+        .insert({
+          user_id: user.id,
+          campaign_id: campaignId,
+          platform: platform as 'twitter' | 'reddit',
+          content,
+          composio_connection_id: connection.id,
+          status: 'scheduled',
+          scheduled_at: new Date(scheduledAt),
+          meta: { idempotencyKey },
+        })
         .select()
         .single();
 
-      if (postError) {
+      if (postError || !post) {
         console.error('Error saving scheduled post:', postError);
-        return NextResponse.json({ error: 'Failed to schedule post' }, { status: 500 });
+        return apiError('Failed to schedule post', 500, 'DATABASE_ERROR', requestId);
       }
 
       // TODO: Add to scheduling queue
@@ -100,11 +118,13 @@ export async function POST(req: Request) {
       //   }
       // );
 
-      return NextResponse.json({
-        success: true,
-        post,
-        scheduled: true,
-      });
+      return apiCreated(
+        {
+          post,
+          scheduled: true,
+        },
+        requestId
+      );
     }
 
     // TODO: Execute posting via Composio
@@ -123,7 +143,7 @@ export async function POST(req: Request) {
     const { data: post, error: postError } = await supabaseServer
       .from('posts')
       .insert({
-        user_id: session.user.id,
+        user_id: user.id,
         campaign_id: campaignId,
         platform: platform as 'twitter' | 'reddit',
         content,
@@ -136,16 +156,18 @@ export async function POST(req: Request) {
       .select()
       .single();
 
-    if (postError) {
+    if (postError || !post) {
       console.error('Error saving post:', postError);
-      return NextResponse.json({ error: 'Failed to save post' }, { status: 500 });
+      return apiError('Failed to save post', 500, 'DATABASE_ERROR', requestId);
     }
 
-    return NextResponse.json({
-      success: true,
-      post,
-      platformResult: { executionId: `placeholder-${Date.now()}` },
-    });
+    return apiCreated(
+      {
+        post,
+        platformResult: { executionId: `placeholder-${Date.now()}` },
+      },
+      requestId
+    );
     // TODO: Add error handling for posting failures
     // } catch (error: unknown) {
     //   console.error('Composio execute error:', error);
@@ -154,7 +176,7 @@ export async function POST(req: Request) {
     //   await supabaseServer
     //     .from('posts')
     //     .insert({
-    //       user_id: session.user.id,
+    //       user_id: user.id,
     //       campaign_id: campaignId,
     //       platform: platform as 'twitter' | 'reddit',
     //       content,
@@ -163,11 +185,11 @@ export async function POST(req: Request) {
     //       meta: { error: error instanceof Error ? error.message : String(error), idempotencyKey },
     //     });
     //
-    //   return NextResponse.json({ error: 'Failed to post content' }, { status: 500 });
+    //   return apiError('Failed to post content', 500, 'POSTING_ERROR', requestId);
     // }
   } catch (error: unknown) {
     console.error('Posts create error:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Failed to create post';
-    return NextResponse.json({ error: errorMessage }, { status: 500 });
+    const message = error instanceof Error ? error.message : 'Failed to create post';
+    return apiError(message, 500, 'INTERNAL_ERROR', requestId);
   }
 }
