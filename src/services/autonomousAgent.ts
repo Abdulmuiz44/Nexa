@@ -129,7 +129,7 @@ export class AutonomousAgent {
       });
 
       // Extract snippets for context
-      const snippets = (searchResult as any).map((r: any) => r.snippet).join('\n\n');
+      const snippets = (searchResult as Array<Record<string, string>>).map((r: Record<string, string>) => r.snippet).join('\n\n');
 
       await this.logActivity('mcp_research_completed', `Found ${searchResult.length} search results for ${topic}`);
       return snippets;
@@ -248,7 +248,7 @@ Format: {"title":"...", "content":"...", "subreddit":"..."}`;
     });
   }
 
-  private async logActivity(action: string, description: string, metadata: any = {}) {
+  private async logActivity(action: string, description: string, metadata: Record<string, unknown> = {}) {
     await supabaseServer.from('activity_log').insert({
       user_id: this.config.userId, action, description,
       metadata: { ...metadata, agent: 'autonomous_agent' }

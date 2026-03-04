@@ -147,7 +147,7 @@ export async function POST(req: Request) {
       platformResult: { executionId: `placeholder-${Date.now()}` },
     });
     // TODO: Add error handling for posting failures
-    // } catch (error: any) {
+    // } catch (error: unknown) {
     //   console.error('Composio execute error:', error);
     //
     //   // Save failed post
@@ -160,13 +160,14 @@ export async function POST(req: Request) {
     //       content,
     //       composio_connection_id: connection.id,
     //       status: 'failed',
-    //       meta: { error: error.message, idempotencyKey },
+    //       meta: { error: error instanceof Error ? error.message : String(error), idempotencyKey },
     //     });
     //
     //   return NextResponse.json({ error: 'Failed to post content' }, { status: 500 });
     // }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Posts create error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : 'Failed to create post';
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

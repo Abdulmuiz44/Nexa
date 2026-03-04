@@ -3,6 +3,26 @@ import { getSupabaseClient } from '@/lib/supabaseClient';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
+interface ABTestVariant {
+  content: string;
+  headline?: string;
+}
+
+interface ABTestRow {
+  id: string;
+  name: string;
+  status: string;
+  platform: string;
+  variants: Array<{
+    impressions?: number;
+    engagements?: number;
+  }>;
+  winner_variant_id?: string;
+  start_date?: string;
+  end_date?: string;
+  created_at: string;
+}
+
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
@@ -29,7 +49,7 @@ export async function GET() {
     }
 
     // Transform data for frontend
-    const transformedTests = (tests || []).map((test: any) => ({
+    const transformedTests = (tests || []).map((test: ABTestRow) => ({
       id: test.id,
       name: test.name,
       status: test.status,
@@ -39,11 +59,11 @@ export async function GET() {
       startDate: test.start_date,
       endDate: test.end_date,
       totalImpressions: (test.variants || []).reduce(
-        (sum: number, v: any) => sum + (v.impressions || 0),
+        (sum: number, v: Record<string, any>) => sum + (v.impressions || 0),
         0,
       ),
       totalEngagements: (test.variants || []).reduce(
-        (sum: number, v: any) => sum + (v.engagements || 0),
+        (sum: number, v: Record<string, any>) => sum + (v.engagements || 0),
         0,
       ),
       created_at: test.created_at,
@@ -95,7 +115,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create test variants
-    const variantsData = variants.map((variant: any, index: number) => ({
+    const variantsData = variants.map((variant: ABTestVariant, index: number) => ({
       test_id: test.id,
       variant_name: `Variant ${index + 1}`,
       content: variant.content,

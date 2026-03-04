@@ -63,10 +63,10 @@ export class ExperimentsService {
    */
   static async generateVariants(
     experimentType: Experiment['experiment_type'],
-    controlConfig: any,
+    controlConfig: Record<string, any>,
     numVariants: number = 2
-  ): Promise<any[]> {
-    const variants: any[] = [];
+  ): Promise<ExperimentVariant[]> {
+    const variants: ExperimentVariant[] = [];
 
     switch (experimentType) {
       case 'time':
@@ -279,9 +279,11 @@ export class ExperimentsService {
     const testVariants = variants.slice(1);
 
     const typedVariants = variants as ExperimentVariantStats[];
-    const winner = typedVariants.reduce((best: ExperimentVariantStats, current: ExperimentVariantStats) =>
-      current.avg_engagement_rate > best.avg_engagement_rate ? current : best,
-      typedVariants[0]);
+    const winner = typedVariants.reduce(
+      (best: ExperimentVariantStats, current: ExperimentVariantStats): ExperimentVariantStats =>
+        current.avg_engagement_rate > best.avg_engagement_rate ? current : best,
+      typedVariants[0]
+    );
 
     // Calculate statistical significance
     const significance = this.calculateSignificance(
@@ -429,16 +431,16 @@ export class ExperimentsService {
     }
 
     // Check emoji usage correlation
-    const withEmoji = posts.filter((p: any) => /[\u{1F600}-\u{1F64F}]/u.test(p.content));
-    const withoutEmoji = posts.filter((p: any) => !/[\u{1F600}-\u{1F64F}]/u.test(p.content));
+    const withEmoji = posts.filter((p: Record<string, any>) => /[\u{1F600}-\u{1F64F}]/u.test(p.content));
+    const withoutEmoji = posts.filter((p: Record<string, any>) => !/[\u{1F600}-\u{1F64F}]/u.test(p.content));
 
     if (withEmoji.length > 5 && withoutEmoji.length > 5) {
       recommendations.push('Test emoji usage - you have enough data to compare performance');
     }
 
     // Check question vs statement
-    const questions = posts.filter((p: any) => p.content.includes('?'));
-    const statements = posts.filter((p: any) => !p.content.includes('?'));
+    const questions = posts.filter((p: Record<string, any>) => p.content.includes('?'));
+    const statements = posts.filter((p: Record<string, any>) => !p.content.includes('?'));
 
     if (questions.length > 5 && statements.length > 5) {
       recommendations.push('Test questions vs statements - see which format your audience prefers');

@@ -80,7 +80,7 @@ export class NexaAgent {
     }
   }
 
-  async generateAndSchedulePost(request: PostRequest): Promise<{ success: boolean; post?: any; scheduled?: boolean }> {
+  async generateAndSchedulePost(request: PostRequest): Promise<{ success: boolean; post?: Record<string, unknown>; scheduled?: boolean }> {
     try {
       // Check if platform is connected
       const connection = await this.getConnectionForPlatform(request.platform);
@@ -245,7 +245,7 @@ export class NexaAgent {
     }
   }
 
-  private async logActivity(action: string, description: string, metadata: any = {}) {
+  private async logActivity(action: string, description: string, metadata: Record<string, unknown> = {}) {
     await supabaseServer
       .from('activity_log')
       .insert({

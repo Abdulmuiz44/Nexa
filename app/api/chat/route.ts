@@ -4,6 +4,20 @@ import { authOptions } from '@/lib/auth';
 import { supabaseServer } from '@/src/lib/supabaseServer';
 import { callUserLLM } from '@/src/lib/ai/user-provider';
 
+interface ToolCall {
+  function?: {
+    name: string;
+    arguments: string;
+  };
+  name?: string;
+  arguments?: string;
+}
+
+interface ToolResult {
+  success: boolean;
+  [key: string]: unknown;
+}
+
 // Stub for removed Composio integration - social media actions now use direct API
 const composioHelpers = {
   postToTwitter: async (content: string, userId: string) => ({ success: false, error: 'Twitter posting requires direct connection. Please use the Connections page.' }),
@@ -74,10 +88,10 @@ export async function POST(req: Request) {
     };
 
     // Helper function to execute tools
-    const executeTool = async (toolCall: any, userId: string) => {
+    const executeTool = async (toolCall: ToolCall, userId: string): Promise<ToolResult> => {
       const functionCall = toolCall.function || toolCall;
       const { name, arguments: args } = functionCall;
-      const params = JSON.parse(args);
+      const params = JSON.parse(args || '{}');
 
       switch (name) {
         case 'post_to_twitter':

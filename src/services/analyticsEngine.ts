@@ -104,25 +104,25 @@ export class AnalyticsEngine {
     }
   }
 
-  private normalizeAnalyticsResponse(platform: string, response: any): any {
+  private normalizeAnalyticsResponse(platform: string, response: Record<string, unknown>): Record<string, number> | null {
     if (!response) return null;
 
     if (platform === 'twitter') {
       return {
-        impressions: response.impression_count || 0,
-        engagements: (response.retweet_count || 0) + (response.reply_count || 0) + (response.like_count || 0),
-        likes: response.like_count || 0,
-        comments: response.reply_count || 0,
-        shares: response.retweet_count || 0,
-        clicks: response.url_link_clicks || 0,
+        impressions: (response.impression_count as number) || 0,
+        engagements: ((response.retweet_count as number) || 0) + ((response.reply_count as number) || 0) + ((response.like_count as number) || 0),
+        likes: (response.like_count as number) || 0,
+        comments: (response.reply_count as number) || 0,
+        shares: (response.retweet_count as number) || 0,
+        clicks: (response.url_link_clicks as number) || 0,
         engagementRate: this.calculateEngagementRate(response),
       };
     } else if (platform === 'reddit') {
       return {
-        impressions: response.score || 0, // Score as proxy if impressions unavailable
-        engagements: (response.score || 0) + (response.comments || 0),
-        likes: response.score || 0,
-        comments: response.comments || 0,
+        impressions: (response.score as number) || 0, // Score as proxy if impressions unavailable
+        engagements: ((response.score as number) || 0) + ((response.comments as number) || 0),
+        likes: (response.score as number) || 0,
+        comments: (response.comments as number) || 0,
         shares: 0,
         clicks: 0,
         engagementRate: 0,
@@ -132,7 +132,7 @@ export class AnalyticsEngine {
     return null;
   }
 
-  private calculateEngagementRate(metrics: any): number {
+  private calculateEngagementRate(metrics: Record<string, unknown>): number {
     if (!metrics || !metrics.impressions || metrics.impressions === 0) return 0;
 
     const engagements = (metrics.engagements || 0);
@@ -215,10 +215,10 @@ export class AnalyticsEngine {
       totalPosts: analytics.length,
       platforms: platformStats,
       overall: {
-        impressions: Object.values(platformStats).reduce((sum: number, p: any) => sum + p.impressions, 0),
-        engagements: Object.values(platformStats).reduce((sum: number, p: any) => sum + p.engagements, 0),
+        impressions: Object.values(platformStats).reduce((sum: number, p: Record<string, number>) => sum + p.impressions, 0),
+        engagements: Object.values(platformStats).reduce((sum: number, p: Record<string, number>) => sum + p.engagements, 0),
         avgEngagementRate: Object.keys(platformStats).length > 0
-          ? (Object.values(platformStats).reduce((sum: number, p: any) => sum + p.avgEngagementRate, 0) as number) / Object.keys(platformStats).length
+          ? (Object.values(platformStats).reduce((sum: number, p: Record<string, number>) => sum + p.avgEngagementRate, 0) as number) / Object.keys(platformStats).length
           : 0,
       }
     };
@@ -237,7 +237,7 @@ export class AnalyticsEngine {
     };
   }
 
-  async getPredictiveInsights(userId: string): Promise<any[]> {
+  async getPredictiveInsights(userId: string): Promise<Array<Record<string, unknown>>> {
     try {
       // Get historical performance
       const { data: posts } = await supabaseServer
@@ -461,7 +461,7 @@ engagementRate (percentage number).`;
     return enrichedCompetitors;
   }
 
-  private generateInsights(weekly: any): string[] {
+  private generateInsights(weekly: Record<string, unknown>): string[] {
     const insights: string[] = [];
 
     if (weekly.totalPosts > 0) {
@@ -479,7 +479,7 @@ engagementRate (percentage number).`;
     return insights;
   }
 
-  private generateRecommendations(stats: any): string[] {
+  private generateRecommendations(stats: Record<string, unknown>): string[] {
     const recommendations: string[] = [];
 
     if (stats.totalPosts === 0) {
@@ -496,7 +496,7 @@ engagementRate (percentage number).`;
     return recommendations;
   }
 
-  private async logAnalyticsCollection(userId: string, postId: string, analytics: any) {
+  private async logAnalyticsCollection(userId: string, postId: string, analytics: Record<string, unknown>) {
     await supabaseServer
       .from('activity_log')
       .insert({
@@ -511,7 +511,7 @@ engagementRate (percentage number).`;
       });
   }
 
-  private async logActivity(userId: string, action: string, description: string, metadata: any = {}) {
+  private async logActivity(userId: string, action: string, description: string, metadata: Record<string, unknown> = {}) {
     await supabaseServer
       .from('activity_log')
       .insert({

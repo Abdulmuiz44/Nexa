@@ -84,11 +84,12 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session, token }) {
       if (token && session.user) {
-        (session.user as any).id = token.sub as string;
-        (session.user as any).subscriptionTier = token.subscriptionTier as string;
-        (session.user as any).subscriptionStatus = token.subscriptionStatus as string;
-        (session.user as any).apiKey = token.apiKey as string;
-        (session.user as any).status = token.userStatus as string;
+        const user = session.user as Record<string, unknown>;
+        user.id = token.sub as string;
+        user.subscriptionTier = token.subscriptionTier;
+        user.subscriptionStatus = token.subscriptionStatus;
+        user.apiKey = token.apiKey;
+        user.status = token.userStatus;
       }
       return session;
     },

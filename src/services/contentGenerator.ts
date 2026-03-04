@@ -156,7 +156,7 @@ Generate content that aligns with the brand voice and achieves the specified goa
     return contents;
   }
 
-  async optimizeContent(userId: string, content: GeneratedContent, analytics?: any): Promise<GeneratedContent> {
+  async optimizeContent(userId: string, content: GeneratedContent, analytics?: Record<string, unknown>): Promise<GeneratedContent> {
     if (!analytics) return content;
 
     // Use analytics to optimize future content
